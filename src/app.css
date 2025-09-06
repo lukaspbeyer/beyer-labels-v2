@@ -1,0 +1,93 @@
+@import 'tailwindcss';
+
+/* Beyer Design System Custom Components */
+@layer components {
+  /* Control Cards */
+  .control-card {
+    @apply bg-white rounded-xl shadow-md overflow-hidden;
+  }
+  
+  /* Beyer Gradient Buttons */
+  .btn-beyer {
+    @apply px-6 py-3 bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none;
+  }
+  
+  /* Form Inputs */
+  .input-beyer {
+    @apply w-full px-3 py-3 border border-gray-200 rounded-lg text-sm transition-colors duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
+  }
+  
+  /* Format Selection Buttons */
+  .format-btn {
+    @apply flex-1 p-4 bg-white border-2 border-gray-200 rounded-xl transition-all duration-200 hover:border-blue-500 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500;
+  }
+  
+  .format-btn.selected {
+    @apply border-blue-500 bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md;
+  }
+  
+  /* Grid Cells */
+  .grid-cell {
+    @apply border-2 border-gray-200 rounded-md bg-white cursor-pointer transition-all duration-200 hover:border-blue-500 hover:bg-blue-50 hover:scale-105;
+  }
+  
+  .grid-cell.selected {
+    @apply border-blue-500 bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md;
+  }
+  
+  /* Loading Spinner */
+  .spinner {
+    @apply w-5 h-5 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin;
+  }
+  
+  /* Error States */
+  .error-box {
+    @apply bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200;
+  }
+  
+  /* Success States */
+  .success-box {
+    @apply bg-green-50 text-green-600 p-3 rounded-lg text-sm border border-green-200;
+  }
+  
+  /* Sectioning */
+  .control-group h3 {
+    @apply text-xl font-semibold text-gray-800 mb-4;
+  }
+}
+
+/* Custom utilities for print layouts */
+@layer utilities {
+  .exact-mm {
+    box-sizing: border-box;
+  }
+  
+  /* Print-specific measurements will be handled inline for exact control */
+}
+
+/* Global base styles */
+@layer base {
+  html {
+    font-family: 'Noto Sans', system-ui, -apple-system, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}

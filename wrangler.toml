@@ -1,0 +1,15 @@
+name = "beyer-labels-v2"
+main = ".svelte-kit/cloudflare/_worker.js"
+compatibility_date = "2025-01-01"
+
+# Assets configuration (replaces [site])
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"
+
+# Environment variables (non-sensitive)
+[vars]
+ENVIRONMENT = "production"
+
+# Sensitive variables (set via: wrangler secret put OPENAI_API_KEY)
+# OPENAI_API_KEY = "your-key-here"
