@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Beyer Labels v2 - A complete SvelteKit migration of the original Hono-based label application. Mobile-optimized web application for creating elegant labels with optional AI-generated pictograms. Built with SvelteKit v2 and deployed on Cloudflare Workers.
+Beyer Labels - Mobile-optimized web application for creating elegant labels with optional AI-generated pictograms. Built with SvelteKit v2 and deployed on Cloudflare Workers.
 
 ## Commands
 
@@ -36,13 +36,6 @@ wrangler secret put OPENAI_API_KEY  # Set OpenAI API key for pictogram generatio
 - **Styling**: Standard Tailwind CSS (Beyer Design only for print views)
 - **Build**: Vite + SvelteKit with Cloudflare adapter
 
-### Key Migration Changes from v1
-- **Hono JSX** → **Svelte Components**
-- **Props Passing** → **Svelte Stores** (reactive state)
-- **Custom TypeScript Build** → **Vite + SvelteKit**
-- **Manual Routing** → **File-based Routing**
-- **Import Maps** → **Native ESM with aliases**
-
 ### Project Structure
 ```
 src/
@@ -63,8 +56,8 @@ src/
 │   │   ├── PictogramEditor.svelte   # AI pictogram generation
 │   │   └── PrintSetup.svelte        # Print preparation
 │   ├── stores/               # Svelte stores for state management
-│   │   ├── label.ts          # Label text and pictogram state
-│   │   ├── format.ts         # Format selection and positioning
+│   │   ├── label.ts          # Label text and pictogram state (single label)
+│   │   ├── format.ts         # Format selection and label positioning
 │   │   └── pictogram.ts      # AI pictogram management
 │   └── utils/                # Shared utilities and types
 │       ├── types.ts          # Unified type definitions
@@ -77,7 +70,6 @@ wrangler.toml                 # Cloudflare Workers config
 
 ### Available Label Formats
 
-#### Currently Implemented  
 - **105×74mm**: Standard labels (8 per A4 page)
 - **210×100mm**: Large signs (A5 landscape, 1 per page)
 
@@ -100,21 +92,22 @@ Uses **standard Tailwind CSS** for the web interface:
 
 ## State Management Architecture
 
-**IMPORTANT**: Uses **Svelte Stores** instead of prop passing for better reactivity.
+### Single-Label Architecture
+**IMPORTANT**: The app is designed for **single-label printing only**. There is no multi-label support.
 
 ### Store Structure:
 ```typescript
 // Label content and state
-label.ts: headline, body, pictogram settings, current label
+label.ts: headline, body, pictogram settings, currentLabel (single label)
 
 // Format selection and positioning  
-format.ts: selectedFormat, startPosition, available positions
+format.ts: selectedFormat, labelPosition (position of single label on grid)
 
 // AI pictogram management
-pictogram.ts: generation state, history, error handling
+pictogram.ts: generation state, error handling
 ```
 
-### Benefits over Props:
+### Benefits of Svelte Stores:
 - ✅ Reactive updates across all components
 - ✅ No prop drilling through component tree  
 - ✅ Centralized state management
@@ -124,9 +117,9 @@ pictogram.ts: generation state, history, error handling
 ## API Routes (SvelteKit Conventions)
 
 ### Server Routes (+server.ts)
-- `GET /api/label-formats` - Enhanced format configurations
+- `GET /api/label-formats` - Format configurations
 - `POST /api/generate-pictogram` - OpenAI GPT-Image-1 integration  
-- `POST /print` - Server-side HTML generation for printing
+- `POST /print` - Server-side HTML generation for printing single label
 
 ### Environment Variables
 ```bash
@@ -145,17 +138,11 @@ wrangler secret put OPENAI_API_KEY
 - **Styling**: Standard Tailwind utility classes for web UI
 - **TypeScript**: Strict typing throughout
 
-### Tailwind CSS Architecture
-- **Utility-First**: Use standard Tailwind utility classes
-- **Minimal Custom CSS**: Avoid custom CSS except for print views
-- **Responsive Design**: Use Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`)
-- **Component Classes**: Only minimal @layer components for common patterns
-
 ### Print System  
 - Server-side HTML generation for consistent printing
+- Single label positioned on grid based on user selection
 - Exact mm measurements for label alignment
 - Supports both screen preview and print media queries
-- Progressive enhancement (works without JavaScript)
 
 ### Build Process
 1. **SvelteKit** compiles components and routes
@@ -170,7 +157,6 @@ wrangler secret put OPENAI_API_KEY
 - **Web UI**: Use standard Tailwind utility classes, avoid custom CSS
 - **Print Views**: Use inline CSS in `/print/+server.ts` for Beyer Design precision  
 - Follow SvelteKit conventions for routing and API
-- Minimize @layer components - prefer utility classes
 
 ## Important Configurations
 
@@ -209,27 +195,3 @@ binding = "ASSETS"
 [vars]
 ENVIRONMENT = "production"
 ```
-
-## Migration Benefits Achieved
-
-### Developer Experience
-- ✅ Vite's fast HMR and build times
-- ✅ Native TypeScript integration
-- ✅ Component-scoped styling
-- ✅ File-based routing
-- ✅ Better IDE support and debugging
-
-### Performance  
-- ✅ Smaller bundle sizes (no Virtual DOM)
-- ✅ Automatic code splitting
-- ✅ Server-side rendering capabilities
-- ✅ Progressive enhancement
-
-### Maintainability
-- ✅ Reactive state management with Svelte stores
-- ✅ Better separation of concerns
-- ✅ Consistent component patterns  
-- ✅ TypeScript throughout
-- ✅ Future-proof with Svelte 5 compatibility
-
-The SvelteKit v2 migration provides a modern, performant, and maintainable foundation while preserving all original functionality and design principles of the Beyer Labels application.
