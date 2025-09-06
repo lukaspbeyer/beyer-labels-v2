@@ -45,7 +45,11 @@ export const LABEL_FORMATS: Record<string, LabelFormat> = {
       mainSize: '12pt',  // Beyer spec: 12pt for labels
       subSize: '9pt'     // Beyer spec: 9pt for subtitles
     },
-    hasPictogram: false  // Small labels = text only
+    hasPictogram: false,  // Small labels = text only
+    paper: {
+      size: 'A4',
+      orientation: 'portrait'
+    }
   },
   
   // Large format: 210×100mm (1 label per A5 landscape)
@@ -65,10 +69,14 @@ export const LABEL_FORMATS: Record<string, LabelFormat> = {
       relativeWidth: 0.33  // 1/3 of label width
     },
     typography: {
-      mainSize: '18pt',  // Larger for big signs
+      mainSize: '22pt',  // Larger for big signs, dominanter als Piktogramm
       subSize: '12pt'
     },
-    hasPictogram: true   // Large signs = always with pictogram
+    hasPictogram: true,   // Large signs = always with pictogram
+    paper: {
+      size: 'A5',
+      orientation: 'landscape'
+    }
   }
 };
 

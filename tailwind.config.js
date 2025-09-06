@@ -19,7 +19,9 @@ export default {
             100: '#f0f0f0',
             200: '#e0e0e0', 
             300: '#d0d0d0',
+            400: '#999999',
             500: '#86868b',
+            600: '#666666',
             800: '#1d1d1f',
             900: '#333333'
           }
@@ -42,9 +44,6 @@ export default {
         'beyer': '0 2px 8px rgba(0, 0, 0, 0.1)',
         'beyer-focus': '0 0 0 3px rgba(0, 122, 255, 0.1)',
         'beyer-hover': '0 4px 12px rgba(0, 122, 255, 0.3)'
-      },
-      gradients: {
-        'beyer': 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)'
       }
     }
   },

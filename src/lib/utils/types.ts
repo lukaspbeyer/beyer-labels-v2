@@ -26,6 +26,11 @@ export interface LabelTypography {
   subSize: string;
 }
 
+export interface LabelPaper {
+  size: 'A4' | 'A5' | 'A3' | 'A6';
+  orientation: 'portrait' | 'landscape';
+}
+
 export interface LabelFormat {
   id: string;
   name: string;
@@ -34,6 +39,7 @@ export interface LabelFormat {
   pictogram: LabelPictogram;
   typography: LabelTypography;
   hasPictogram: boolean;
+  paper: LabelPaper;
 }
 
 // Label Data Types
@@ -67,7 +73,7 @@ export interface Env {
 // API Response Types
 export interface PictogramResponse {
   success: boolean;
-  imageUrl?: string;
+  imageUrls?: string[];  // Changed to array for multiple images
   error?: string;
 }
 

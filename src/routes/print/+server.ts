@@ -35,8 +35,54 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 };
 
+/**
+ * Get paper dimensions based on format configuration
+ */
+function getPaperDimensions(formatConfig: LabelFormat): { width: string; height: string } {
+  const { size, orientation } = formatConfig.paper;
+  
+  // Standard ISO 216 paper sizes in mm
+  const paperSizes = {
+    A4: { width: 210, height: 297 },
+    A5: { width: 148, height: 210 },
+    A3: { width: 297, height: 420 },
+    A6: { width: 105, height: 148 }
+  };
+  
+  const dimensions = paperSizes[size];
+  if (orientation === 'landscape') {
+    return { 
+      width: `${dimensions.height}mm`, 
+      height: `${dimensions.width}mm` 
+    };
+  }
+  
+  return { 
+    width: `${dimensions.width}mm`, 
+    height: `${dimensions.height}mm` 
+  };
+}
+
+/**
+ * Generate CSS grid properties based on format configuration
+ */
+function getGridCSS(formatConfig: LabelFormat): string {
+  const { columns, rows } = formatConfig.grid;
+  const { width, height } = formatConfig.dimensions;
+  const paperDims = getPaperDimensions(formatConfig);
+  
+  return `
+    grid-template-columns: repeat(${columns}, ${width}mm);
+    grid-template-rows: repeat(${rows}, ${height}mm);
+    width: ${paperDims.width};
+    height: ${paperDims.height};
+  `;
+}
+
 function generatePrintHTML(labels: (Label | null)[], format: any, formatConfig: LabelFormat): string {
   const gridClass = `grid-${format.size.replace(/[x.]/g, '-')}`;
+  const paperDims = getPaperDimensions(formatConfig);
+  const gridCSS = getGridCSS(formatConfig);
   
   return `<!DOCTYPE html>
 <html lang="de">
@@ -52,7 +98,7 @@ function generatePrintHTML(labels: (Label | null)[], format: any, formatConfig: 
     }
     
     @page {
-      size: A4 portrait;
+      size: ${formatConfig.paper.size} ${formatConfig.paper.orientation};
       margin: 0;
     }
     
@@ -64,8 +110,8 @@ function generatePrintHTML(labels: (Label | null)[], format: any, formatConfig: 
     }
     
     .print-page {
-      width: 210mm;
-      height: 297mm;
+      width: ${paperDims.width};
+      height: ${paperDims.height};
       padding: 0;
       background: white;
       display: flex;
@@ -80,18 +126,7 @@ function generatePrintHTML(labels: (Label | null)[], format: any, formatConfig: 
       margin: 0;
     }
     
-    .grid-105-74 {
-      grid-template-columns: repeat(2, 105mm);
-      grid-template-rows: repeat(4, 74mm);
-      width: 210mm;
-      height: 296mm;
-    }
-    
-    .grid-210-100 {
-      grid-template-columns: 210mm;
-      grid-template-rows: 100mm;
-      width: 210mm;
-      height: 100mm;
+    .${gridClass} {${gridCSS}
     }
     
     .label-cell {
@@ -117,7 +152,7 @@ function generatePrintHTML(labels: (Label | null)[], format: any, formatConfig: 
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      padding-top: ${formatConfig.id === '105x74' ? '4mm' : '6mm'};
+      padding-top: ${formatConfig.id === '105x74' ? '4mm' : '2mm'};
     }
     
     .label-main {

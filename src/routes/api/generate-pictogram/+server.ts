@@ -15,7 +15,7 @@ function validateDalleSize(size: string): string {
 
 export const POST: RequestHandler = async ({ request, platform }) => {
   try {
-    const { prompt, size = '1024x1024' } = await request.json();
+    const { prompt, size = '1024x1024', count = 4 } = await request.json();
     
     if (!prompt) {
       const bodyNoPrompt: PictogramResponse = {
@@ -27,6 +27,9 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     
     // Validate size parameter
     const dalleSize = validateDalleSize(size);
+    
+    // Limit count to reasonable number (max 4 for cost and performance)
+    const imageCount = Math.min(Math.max(1, count), 4);
     
     // Get API key from environment
     const apiKey = OPENAI_API_KEY || platform?.env?.OPENAI_API_KEY;
@@ -51,7 +54,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
         prompt: prompt,
         background: 'transparent',
         output_format: 'png',
-        n: 1,
+        n: imageCount,
         size: dalleSize,
         quality: 'high'
       }),
@@ -64,15 +67,16 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     
     const data: any = await response.json();
     
-    // Handle both URL and base64 responses
-    if (data.data && data.data[0]) {
-      const imageData = data.data[0];
-      const imageUrl = imageData.url || (imageData.b64_json ? `data:image/png;base64,${imageData.b64_json}` : null);
+    // Handle multiple images
+    if (data.data && data.data.length > 0) {
+      const imageUrls = data.data.map((imageData: any) => {
+        return imageData.url || (imageData.b64_json ? `data:image/png;base64,${imageData.b64_json}` : null);
+      }).filter((url: string | null) => url !== null);
       
-      if (imageUrl) {
+      if (imageUrls.length > 0) {
         const bodySuccess: PictogramResponse = {
           success: true,
-          imageUrl
+          imageUrls
         };
         return json(bodySuccess);
       }
