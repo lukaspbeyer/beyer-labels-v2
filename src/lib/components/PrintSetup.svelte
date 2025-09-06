@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { currentFormat, startPosition } from '$stores/format';
+  import { currentFormat, labelPosition } from '$stores/format';
   import { currentLabel, headline, body, pictogramRequired, pictogramUrl, clearLabel } from '$stores/label';
   import type { PrintData } from '$utils/types';
   
@@ -10,10 +10,10 @@
     if (!canPrint) return;
     
     const printData: PrintData = {
-      labels: [$currentLabel],
+      label: $currentLabel,
       format: {
         size: $currentFormat.id,
-        startPosition: $startPosition
+        position: $labelPosition
       },
       formatConfig: $currentFormat
     };

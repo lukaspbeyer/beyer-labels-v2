@@ -1,5 +1,6 @@
 /**
- * Print Server Route - Generate HTML for printing labels
+ * Print Server Route - Generate HTML for printing a single label
+ * Simplified for single-label architecture
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -8,20 +9,17 @@ import type { PrintData, Label, LabelFormat } from '$lib/utils/types';
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const data: PrintData = await request.json();
-    const { labels, format, formatConfig } = data;
+    const { label, format, formatConfig } = data;
 
     if (!formatConfig) {
       return json({ error: 'Format configuration required' }, { status: 400 });
     }
 
-    // Create grid with empty cells for positioning
+    // Create grid with the single label at the specified position
     const fullGrid: (Label | null)[] = Array(formatConfig.grid.total).fill(null);
-    labels.forEach((label, index) => {
-      const position = format.startPosition + index;
-      if (position < formatConfig.grid.total) {
-        fullGrid[position] = label;
-      }
-    });
+    if (format.position < formatConfig.grid.total) {
+      fullGrid[format.position] = label;
+    }
 
     // Generate the HTML
     const html = generatePrintHTML(fullGrid, format, formatConfig);
@@ -207,7 +205,7 @@ function generatePrintHTML(labels: (Label | null)[], format: any, formatConfig: 
         <div class="label-cell">
           ${label ? `
             <div class="label-content">
-              ${label.pictogram?.enabled && label.pictogram?.position === 'left' && label.pictogram?.imageUrl ? `
+              ${label.pictogram?.position === 'left' && label.pictogram?.imageUrl ? `
                 <div class="label-pictogram">
                   <img src="${label.pictogram.imageUrl}" alt="">
                 </div>
@@ -216,7 +214,7 @@ function generatePrintHTML(labels: (Label | null)[], format: any, formatConfig: 
                 <div class="label-main">${label.mainText || ''}</div>
                 ${label.subText ? `<div class="label-sub">${label.subText}</div>` : ''}
               </div>
-              ${label.pictogram?.enabled && label.pictogram?.position === 'right' && label.pictogram?.imageUrl ? `
+              ${label.pictogram?.position === 'right' && label.pictogram?.imageUrl ? `
                 <div class="label-pictogram">
                   <img src="${label.pictogram.imageUrl}" alt="">
                 </div>

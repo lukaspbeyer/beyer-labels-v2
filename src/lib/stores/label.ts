@@ -1,5 +1,6 @@
 /**
  * Label Store - Manages label text and content
+ * Simplified for single-label printing
  */
 import { writable, derived } from 'svelte/store';
 import type { Label } from '$utils/types';
@@ -20,7 +21,7 @@ export const pictogramRequired = derived(
   ($format) => $format?.hasPictogram || false
 );
 
-// Combined label state
+// Combined label state - the single label to be printed
 export const currentLabel = derived(
   [headline, body, pictogramRequired, pictogramPosition, pictogramUrl, pictogramPrompt],
   ([$headline, $body, $pictogramRequired, $pictogramPosition, $pictogramUrl, $pictogramPrompt]) => ({
@@ -35,30 +36,10 @@ export const currentLabel = derived(
   } as Label)
 );
 
-// Labels array for print
-export const labels = writable<Label[]>([]);
-
-// Add current label to labels array
-export function addLabel() {
-  currentLabel.subscribe(label => {
-    labels.update(arr => [...arr, label]);
-  })();
-}
-
-// Clear current label
+// Clear/reset the current label
 export function clearLabel() {
   headline.set('');
   body.set('');
   pictogramUrl.set(undefined);
   pictogramPrompt.set(undefined);
-}
-
-// Remove label from array
-export function removeLabel(id: string) {
-  labels.update(arr => arr.filter(l => l.id !== id));
-}
-
-// Clear all labels
-export function clearAllLabels() {
-  labels.set([]);
 }

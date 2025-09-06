@@ -54,7 +54,6 @@ No text, no frames, no background elements.`;
         }
         
         pictogramPrompt.set(prompt);
-        pictogramEnabled.set(true);
       }
     } catch (error) {
       console.error('Error generating pictogram:', error);

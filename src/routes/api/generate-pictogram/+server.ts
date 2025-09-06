@@ -18,10 +18,11 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     const { prompt, size = '1024x1024' } = await request.json();
     
     if (!prompt) {
-      return json<PictogramResponse>({ 
-        success: false, 
-        error: 'No prompt provided' 
-      }, { status: 400 });
+      const bodyNoPrompt: PictogramResponse = {
+        success: false,
+        error: 'No prompt provided'
+      };
+      return json(bodyNoPrompt, { status: 400 });
     }
     
     // Validate size parameter
@@ -31,10 +32,11 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     const apiKey = OPENAI_API_KEY || platform?.env?.OPENAI_API_KEY;
     
     if (!apiKey) {
-      return json<PictogramResponse>({ 
-        success: false, 
-        error: 'OpenAI API key not configured' 
-      }, { status: 500 });
+      const bodyNoKey: PictogramResponse = {
+        success: false,
+        error: 'OpenAI API key not configured'
+      };
+      return json(bodyNoKey, { status: 500 });
     }
     
     // Call OpenAI API with GPT-Image-1 for transparent backgrounds
@@ -68,10 +70,11 @@ export const POST: RequestHandler = async ({ request, platform }) => {
       const imageUrl = imageData.url || (imageData.b64_json ? `data:image/png;base64,${imageData.b64_json}` : null);
       
       if (imageUrl) {
-        return json<PictogramResponse>({
+        const bodySuccess: PictogramResponse = {
           success: true,
-          imageUrl: imageUrl
-        });
+          imageUrl
+        };
+        return json(bodySuccess);
       }
     }
     
@@ -79,9 +82,10 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     
   } catch (error) {
     console.error('Error generating pictogram:', error);
-    return json<PictogramResponse>({
+    const bodyError: PictogramResponse = {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to generate pictogram'
-    }, { status: 500 });
+    };
+    return json(bodyError, { status: 500 });
   }
 };

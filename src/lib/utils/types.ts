@@ -48,12 +48,12 @@ export interface Label {
   };
 }
 
-// Print Data Types
+// Print Data Types - Simplified for single label
 export interface PrintData {
-  labels: Label[];
+  label: Label;
   format: {
     size: string;
-    startPosition: number;
+    position: number;  // Position of the single label on the grid
   };
   formatConfig?: LabelFormat;
 }
@@ -77,9 +77,8 @@ export interface LabelFormState {
   body: string;
 }
 
-// Print Setup Types
+// Print Setup Types - Simplified for single label
 export interface PrintSetupState {
-  count: number;
-  startPosition: number;
+  position: number;  // Position of the single label
   selectedFormat: string;
 }

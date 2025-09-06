@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { currentFormat, startPosition } from '$stores/format';
+  import { currentFormat, labelPosition } from '$stores/format';
   import type { LabelFormat } from '$utils/types';
   
   // Reset position when format changes
   $: if ($currentFormat) {
-    startPosition.set(0);
+    labelPosition.set(0);
   }
   
   function handleCellClick(index: number) {
-    startPosition.set(index);
+    labelPosition.set(index);
   }
   
   // Generate array of cell indices
@@ -19,7 +19,7 @@
 {#if $currentFormat.grid.total > 1}
   <div class="p-6">
     <h3 class="text-base font-semibold text-gray-900 mb-3">
-      Position auf dem Blatt
+      Label-Position auf dem Blatt
     </h3>
     <div 
       class="grid gap-1.5 max-w-52 mx-auto {$currentFormat.grid.columns === 2 ? 'max-w-32' : ''}"
@@ -27,7 +27,7 @@
     >
       {#each cells as index}
         <button
-          class="grid-cell {$startPosition === index ? 'selected' : ''} {$currentFormat.grid.columns === 2 ? 'aspect-[105/74]' : 'aspect-[1.4]'}"
+          class="grid-cell {$labelPosition === index ? 'selected' : ''} {$currentFormat.grid.columns === 2 ? 'aspect-[105/74]' : 'aspect-[1.4]'}"
           data-index={index}
           on:click={() => handleCellClick(index)}
           aria-label="Position {index + 1}"
