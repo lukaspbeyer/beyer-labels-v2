@@ -46,13 +46,14 @@
   }
   
   function generatePromptFromText(text: string): string {
-    return `A single, hand-drawn minimalist line illustration in the style of Studio Ghibli. 
-The subject is "${text}". 
-It must be only one clear symbolic drawing, centered, without any frame, border, box, seal, stamp, or decorative outline. 
-Drawn with expressive black ink-like strokes: gentle, poetic, slightly imperfect, evoking the warmth and simplicity of Ghibli hand drawings. 
-Flat illustration only — no sticker effect, no shadows, no curled corners, no textures, no gradients. 
-Always on a pure flat white background. 
-Do not add extra lines, patterns, symbols, or decorations — show only the main subject. 
+    return `A single, hand-drawn minimalist line illustration in the warm style of Studio Ghibli.
+The subject is "${text}".
+It must be only one clear symbolic drawing, centered, without any frame, border, box, seal, stamp, or decorative outline.
+Use organic, lively lines with varying thickness - thicker where shadows would fall, thinner for delicate details. The lines should feel warm and alive, not too uniform or geometric.
+Add subtle hand-drawn details like gentle cross-hatching for shadows, delicate textures (fabric wrinkles, wood grain, surface patterns), and small imperfections that give it authentic handmade character.
+Embrace the charming irregularities of hand-drawing - slightly uneven circles, organic curves instead of perfect geometry.
+Black ink lines on transparent background, suitable for black and white printing.
+Do not add extra lines, patterns, symbols, or decorations — show only the main subject.
 No text, no frames, no background elements.`;
   }
   

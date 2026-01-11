@@ -2,6 +2,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import FormatSelector from '$components/FormatSelector.svelte';
+  import StyleSelector from '$components/StyleSelector.svelte';
   import LabelForm from '$components/LabelForm.svelte';
   import GridSelector from '$components/GridSelector.svelte';
   import PictogramEditor from '$components/PictogramEditor.svelte';
@@ -33,7 +34,7 @@
 
 <div class="max-w-7xl mx-auto px-6 py-6">
   <header class="text-center mb-12">
-    <h1 class="text-5xl font-bold mb-2 bg-gradient-to-br from-blue-500 to-indigo-600 bg-clip-text text-transparent" style="font-family: 'Sora', system-ui, sans-serif;">
+    <h1 class="text-5xl font-bold mb-2 bg-gradient-to-br from-blue-500 to-indigo-600 bg-clip-text text-transparent font-headline">
       Beyer Labels
     </h1>
     <p class="text-lg text-gray-500">
@@ -50,9 +51,12 @@
       <div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
         <div class="flex flex-col gap-6">
           <div class="flex flex-col gap-4">
-            <h3 class="control-group">Format & Text</h3>
+            <h3 class="control-group">Format & Stil</h3>
             <div class="control-card">
               <FormatSelector formats={$formats} />
+            </div>
+            <div class="control-card">
+              <StyleSelector />
             </div>
             <div class="control-card">
               <LabelForm />

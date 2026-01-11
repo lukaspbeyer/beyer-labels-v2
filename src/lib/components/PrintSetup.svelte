@@ -1,21 +1,23 @@
 <script lang="ts">
   import { currentFormat, labelPosition } from '$stores/format';
   import { currentLabel, headline, body, pictogramRequired, pictogramUrl, clearLabel } from '$stores/label';
+  import { selectedStyleId, currentStyle } from '$stores/style';
   import type { PrintData } from '$utils/types';
-  
+
   // Check if printing is allowed
   $: canPrint = !$pictogramRequired || ($pictogramRequired && !!$pictogramUrl);
-  
+
   async function handlePrint() {
     if (!canPrint) return;
-    
+
     const printData: PrintData = {
       label: $currentLabel,
       format: {
         size: $currentFormat.id,
         position: $labelPosition
       },
-      formatConfig: $currentFormat
+      formatConfig: $currentFormat,
+      styleId: $selectedStyleId
     };
     
     try {
@@ -59,6 +61,9 @@
   <div class="bg-gray-100 rounded-lg p-4 mb-5">
     <div class="mb-2 text-sm leading-relaxed">
       <strong class="text-gray-900 font-semibold">Format:</strong> {$currentFormat.name}
+    </div>
+    <div class="mb-2 text-sm leading-relaxed">
+      <strong class="text-gray-900 font-semibold">Stil:</strong> {$currentStyle.name}
     </div>
     <div class="mb-2 text-sm leading-relaxed">
       <strong class="text-gray-900 font-semibold">Haupttext:</strong> {$headline || 'Nicht ausgefüllt'}
@@ -117,34 +122,34 @@
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  
+
   .print-btn {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     color: white;
   }
-  
+
   .print-btn:hover:not(.disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
   }
-  
+
   .print-btn.disabled {
     background: #6c757d;
     cursor: not-allowed;
     transform: none;
   }
-  
+
   .reset-btn {
     background: #6c757d;
     color: white;
   }
-  
+
   .reset-btn:hover {
     background: #5a6268;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
   }
-  
+
   @media (max-width: 768px) {
     .print-btn, .reset-btn {
       flex-direction: column;

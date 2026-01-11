@@ -40,6 +40,9 @@ export interface LabelFormat {
   typography: LabelTypography;
   hasPictogram: boolean;
   paper: LabelPaper;
+  isSmallLabel?: boolean;  // For layout distinction (horizontal vs vertical)
+  orientation: 'landscape' | 'portrait';  // Content orientation
+  physicalLabelId?: string;  // Reference to physical label (for portrait formats)
 }
 
 // Label Data Types
@@ -62,6 +65,7 @@ export interface PrintData {
     position: number;  // Position of the single label on the grid
   };
   formatConfig?: LabelFormat;
+  styleId?: string;  // Optional style ID for print rendering
 }
 
 // Environment Types (for Cloudflare Workers)
@@ -87,4 +91,48 @@ export interface LabelFormState {
 export interface PrintSetupState {
   position: number;  // Position of the single label
   selectedFormat: string;
+}
+
+// ============================================
+// Label Style System Types
+// ============================================
+
+// Font configuration for a single font
+export interface FontConfig {
+  family: string;
+  weight: number;
+  sizeVariants: { small: string; large: string };
+  lineHeight: string;
+  letterSpacing: string;
+  textTransform: 'none' | 'uppercase' | 'lowercase';
+}
+
+// Style color configuration
+export interface StyleColors {
+  headline: string;
+  body: string;
+}
+
+// Style typography/layout configuration
+export interface StyleTypography {
+  containerPadding: string;
+  containerTextAlign: 'left' | 'center' | 'right';
+  bodyMarginTop: string;
+  pictogramHeight: string;
+  pictogramMarginBottom: string;
+  markdownParagraphMargin: string;  // Spacing between markdown paragraphs (em units)
+}
+
+// Complete label style definition
+export interface LabelStyle {
+  id: string;
+  name: string;
+  description: string;
+  fonts: {
+    headline: FontConfig;
+    body: FontConfig;
+  };
+  colors: StyleColors;
+  typography: StyleTypography;
+  googleFontsUrl: string;
 }

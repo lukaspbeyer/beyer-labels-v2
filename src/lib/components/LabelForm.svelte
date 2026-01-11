@@ -18,15 +18,15 @@
   
   <div class="mb-0">
     <label for="subText" class="block text-sm font-medium text-gray-900 mb-2">
-      Untertitel (optional)
+      Untertitel (optional, Markdown)
     </label>
-    <input
-      type="text"
+    <textarea
       id="subText"
       bind:value={$body}
-      placeholder="z.B. Schraubenzieher & Zangen"
-      class="input-beyer"
-    />
+      placeholder="z.B. Schraubenzieher & Zangen&#10;&#10;Markdown: **fett**, *kursiv*, Listen mit - oder *"
+      rows="3"
+      class="input-beyer resize-y"
+    ></textarea>
   </div>
 </div>
 
