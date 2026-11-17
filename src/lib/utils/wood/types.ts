@@ -3,13 +3,15 @@
 export type FontId =
 	| 'sora'
 	| 'noto-sans'
-	| 'manrope'
-	| 'outfit'
+	| 'zen-kaku-gothic-new'
+	| 'zen-maru-gothic'
+	| 'shippori-mincho'
+	| 'josefin-sans'
 	| 'jost'
-	| 'dm-sans'
-	| 'lexend'
-	| 'space-grotesk';
-export type FontWeight = 400 | 500 | 600;
+	| 'outfit'
+	| 'manrope'
+	| 'dm-sans';
+export type FontWeight = 400 | 500 | 600 | 700;
 export type TextAlign = 'left' | 'center' | 'right';
 export type GrainDirection = 'horizontal' | 'vertical';
 export type Process = 'dark' | 'inverse' | 'fill';
@@ -18,7 +20,7 @@ export type FillColor = 'black' | 'white' | 'anthracite';
 export type Finish = 'raw' | 'oiled' | 'lacquer' | 'limed';
 export type Shape = 'rectangle' | 'pill' | 'oval';
 export type SizeMode = 'auto' | 'manual';
-export type FrontColor = 'white' | 'cashmere' | 'sage' | 'anthracite';
+export type FrontColor = 'agave' | 'anthracite' | 'columba';
 export type ViewAngle = 'front' | 'oblique';
 
 export interface WoodSettings {

@@ -65,16 +65,8 @@ export interface Calibration {
 	edge: { color: string; roughness: number; topBurnWidthMm: number; topBurnStrength: number };
 	label: { thicknessMm: number; tapeGapMm: number };
 	frame: { insetMm: number; lineWidthMm: number };
+	/** Möbelfronten im Haus; Farbwerte geschätzt, nach Muster anpassen */
 	front: { color: Record<FrontColor, string>; roughness: number };
-	handle: {
-		lengthMm: number;
-		holeSpacingMm: number;
-		diameterMm: number;
-		standoffMm: number;
-		gapToLabelMm: number;
-		color: string;
-		roughness: number;
-	};
 	light: {
 		elevationDeg: number;
 		intensity: number;

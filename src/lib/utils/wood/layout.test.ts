@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_WOOD_SETTINGS } from '$stores/wood';
 import { calibration } from './calibration';
-import { FONT_CATALOG, FONT_WEIGHTS } from './fonts';
+import { FONT_CATALOG } from './fonts';
 import { flattenPath, pathBox, polylinesBox, shapePath, signedDistance } from './geometry';
 import { layoutLabel, setLine } from './layout';
 import { loadTestFont } from './testFonts';
@@ -14,12 +14,14 @@ function settings(changes: Partial<WoodSettings> = {}): WoodSettings {
 }
 
 describe('Schriften', () => {
-	it.each(FONT_CATALOG.flatMap((f) => FONT_WEIGHTS.map((w) => [f.id, w] as const)))(
+	it.each(FONT_CATALOG.flatMap((f) => f.weights.map((w) => [f.id, w] as const)))(
 		'%s %i lässt sich laden und hat plausible Strichstärken',
 		(id, weight) => {
 			const font = loadTestFont(id, weight);
-			expect(font.capUnits).toBeGreaterThan(0);
-			expect(font.upperStrokeRatio).toBeGreaterThan(0.05);
+			// Versalhöhe gemessen an H: liegt nahe am Metrikwert der Schrift
+			expect(font.capUnits / (font.font.tables.os2?.sCapHeight ?? font.capUnits)).toBeCloseTo(1, 1);
+			// Serifenschriften (Mincho) haben deutlich dünnere Haarstriche
+			expect(font.upperStrokeRatio).toBeGreaterThan(0.03);
 			expect(font.upperStrokeRatio).toBeLessThan(0.25);
 			expect(font.lowerStrokeRatio).toBeLessThanOrEqual(font.upperStrokeRatio);
 		}

@@ -1,5 +1,5 @@
 /**
- * 3D-Vorschau mit three.js: Label (4 mm Lärche) vor einer Möbelfront mit Griff.
+ * 3D-Vorschau mit three.js: Label (4 mm Lärche) auf einer Möbelfront.
  * Wird nur auf /holz und erst im Browser dynamisch geladen.
  */
 import * as THREE from 'three';
@@ -85,26 +85,6 @@ function labelGeometry(layout: LabelLayout): THREE.ExtrudeGeometry {
 	return geometry;
 }
 
-function barHandle(): THREE.Group {
-	const h = calibration.handle;
-	const material = new THREE.MeshStandardMaterial({ color: h.color, metalness: 1, roughness: h.roughness });
-	const group = new THREE.Group();
-	const bar = new THREE.Mesh(new THREE.CylinderGeometry(h.diameterMm / 2, h.diameterMm / 2, h.lengthMm, 48), material);
-	bar.rotation.z = Math.PI / 2;
-	bar.position.z = h.standoffMm;
-	group.add(bar);
-	for (const side of [-1, 1]) {
-		const post = new THREE.Mesh(new THREE.CylinderGeometry(h.diameterMm * 0.4, h.diameterMm * 0.4, h.standoffMm, 32), material);
-		post.rotation.x = Math.PI / 2;
-		post.position.set((side * h.holeSpacingMm) / 2, 0, h.standoffMm / 2);
-		group.add(post);
-	}
-	group.traverse((o) => {
-		o.castShadow = true;
-	});
-	return group;
-}
-
 function createRenderer(): Result<THREE.WebGLRenderer, SceneError> {
 	try {
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -155,9 +135,6 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 	front.receiveShadow = true;
 	scene.add(front);
 
-	const handle = barHandle();
-	scene.add(handle);
-
 	const faceMaterial = new THREE.MeshPhysicalMaterial({ roughness: 1, metalness: 0 });
 	const edgeMaterial = new THREE.MeshStandardMaterial({ color: cal.edge.color, roughness: cal.edge.roughness, map: edgeTexture() });
 	const label = new THREE.Mesh(new THREE.BufferGeometry(), [faceMaterial, edgeMaterial]);
@@ -198,16 +175,13 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 		dirty = true;
 	}
 
-	/** Abstand, bei dem das Label groß und der Griff darunter als Maßstab ins Bild passt. */
+	/** Abstand, bei dem das Label mit ruhigem Rand auf der Front steht. */
 	function computeFit(layout: LabelLayout): { distance: number; target: THREE.Vector3 } {
-		const handleY = -(layout.height / 2 + cal.handle.gapToLabelMm + cal.handle.diameterMm / 2);
-		const halfWidth = Math.max(layout.width * 0.62 + 8, 50);
-		const top = layout.height / 2 + 16;
-		const bottom = handleY - cal.handle.diameterMm / 2;
-		const halfHeight = (top - bottom) / 2;
+		const halfWidth = Math.max(layout.width * 0.8, 50);
+		const halfHeight = Math.max(layout.height * 1.1, 30);
 		const t = Math.tan(toRad(camera.fov / 2));
-		const distance = Math.max(halfHeight / t, halfWidth / (t * camera.aspect)) * 1.08 + cal.handle.standoffMm;
-		return { distance, target: new THREE.Vector3(0, (top + bottom) / 2, 0) };
+		const distance = Math.max(halfHeight / t, halfWidth / (t * camera.aspect));
+		return { distance, target: new THREE.Vector3(0, 0, 0) };
 	}
 
 	function applyFit(): void {
@@ -232,7 +206,7 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 		const dir = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(az) * Math.cos(el), Math.sin(el));
 		sun.position.copy(dir.multiplyScalar(600));
 		sun.target.position.set(0, 0, 0);
-		const extent = Math.max(layout.width, cal.handle.lengthMm) * 0.8 + 60;
+		const extent = Math.max(layout.width, layout.height) * 0.8 + 60;
 		const shadowCam = sun.shadow.camera;
 		shadowCam.left = -extent;
 		shadowCam.right = extent;
@@ -255,7 +229,6 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 			label.geometry = labelGeometry(layout);
 			geometryKey = nextGeometryKey;
 		}
-		handle.position.y = -(layout.height / 2 + cal.handle.gapToLabelMm + cal.handle.diameterMm / 2);
 
 		const finish = cal.finish[settings.finish];
 		if (maps !== currentMaps) {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { updateWood, woodSettings } from '$stores/wood';
 	import { calibration } from '$utils/wood/calibration';
-	import { FONT_CATALOG, fontInfo } from '$utils/wood/fonts';
+	import { FONT_CATALOG, fontInfo, nearestWeight } from '$utils/wood/fonts';
 	import type { FontWeight, FrontColor } from '$utils/wood/types';
 	import ControlGroup from './ControlGroup.svelte';
 	import Segmented from './Segmented.svelte';
@@ -13,13 +13,10 @@
 	const PROCESS_LABEL = { dark: 'Dunkle Gravur', inverse: 'Inverse Gravur', fill: 'Farbfüllung' } as const;
 	const FINISH_LABEL = { raw: 'roh', oiled: 'geölt', lacquer: 'Lack matt', limed: 'weiß gekalkt' } as const;
 	const SHAPE_LABEL = { rectangle: 'Rechteck', pill: 'Pille', oval: 'Oval' } as const;
-	const FRONT_LABEL = { white: 'Weiß matt', cashmere: 'Kaschmir', sage: 'Salbei', anthracite: 'Anthrazit' } as const;
-	const FRONTS: readonly FrontColor[] = ['white', 'cashmere', 'sage', 'anthracite'];
-	const WEIGHT_OPTIONS: readonly { value: FontWeight; label: string }[] = [
-		{ value: 400, label: 'Regular' },
-		{ value: 500, label: 'Medium' },
-		{ value: 600, label: 'Semibold' }
-	];
+	const FRONT_LABEL = { agave: 'Agave', anthracite: 'Anthrazit', columba: 'Columba Grey' } as const;
+	const FRONTS: readonly FrontColor[] = ['agave', 'anthracite', 'columba'];
+	const WEIGHT_LABEL: Record<FontWeight, string> = { 400: 'Regular', 500: 'Medium', 600: 'Semibold', 700: 'Bold' };
+	const weightOptions = $derived(fontInfo(s.font).weights.map((value) => ({ value, label: WEIGHT_LABEL[value] })));
 
 	function textValue(event: Event): string {
 		const target = event.currentTarget;
@@ -69,9 +66,9 @@
 						class="flex min-h-14 flex-col items-start justify-center rounded-xl border px-3 py-2 text-left transition-colors
 							{font.id === s.font ? 'border-clay bg-clay-soft' : 'border-line bg-white hover:border-ink-muted'}"
 						aria-pressed={font.id === s.font}
-						onclick={() => updateWood({ font: font.id })}
+						onclick={() => updateWood({ font: font.id, weight: nearestWeight(font.id, s.weight) })}
 					>
-						<span class="text-lg leading-tight text-ink" style="font-family: '{font.cssFamily}'; font-weight: {s.weight}"
+						<span class="text-lg leading-tight text-ink" style="font-family: '{font.cssFamily}'; font-weight: {nearestWeight(font.id, s.weight)}"
 							>{s.uppercase ? 'TELLER' : 'Teller'}</span
 						>
 						<span class="text-xs text-ink-muted">{font.name}</span>
@@ -79,7 +76,7 @@
 				{/each}
 			</div>
 		</div>
-		<Segmented label="Gewicht" options={WEIGHT_OPTIONS} value={s.weight} onchange={(weight) => updateWood({ weight })} />
+		<Segmented label="Gewicht" options={weightOptions} value={s.weight} onchange={(weight) => updateWood({ weight })} />
 		<Slider label="Versalhöhe" unit="mm" min={2} max={30} step={0.5} decimals={1} value={s.capHeight} onchange={(capHeight) => updateWood({ capHeight })} />
 		<Slider label="Laufweite" unit="%" min={0} max={40} step={1} value={s.tracking} onchange={(tracking) => updateWood({ tracking })} />
 		<Slider
@@ -223,7 +220,7 @@
 	<ControlGroup title="Szene" summary={FRONT_LABEL[s.front]}>
 		<div class="flex flex-col gap-2" role="group" aria-label="Möbelfront">
 			<span class="text-sm text-ink-muted">Möbelfront</span>
-			<div class="grid grid-cols-4 gap-2">
+			<div class="grid grid-cols-3 gap-2">
 				{#each FRONTS as front (front)}
 					<button
 						type="button"

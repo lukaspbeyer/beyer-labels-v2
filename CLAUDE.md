@@ -7,7 +7,7 @@ Beyer Labels - Mobile-optimized web application for creating elegant labels with
 
 Two areas:
 - **Papier** (`/`): printed paper labels.
-- **Holz** (`/holz`): door labels made of larch (Lärche), engraved with a CO₂ laser (xTool X1). Photorealistic 3D preview in front of a furniture front and SVG export for the laser software.
+- **Holz** (`/holz`): door labels made of larch (Lärche), engraved with a CO₂ laser (xTool X1). Photorealistic 3D preview on a furniture front, Japandi presets and SVG export for the laser software.
 
 ## Commands
 
@@ -70,7 +70,7 @@ src/
 │   │   ├── GridSelector.svelte      # Position selector grid  
 │   │   ├── PictogramEditor.svelte   # AI pictogram generation
 │   │   ├── PrintSetup.svelte        # Print preparation
-│   │   └── wood/                    # /holz: WoodControls, WoodPreview, ControlGroup, Segmented, Slider
+│   │   └── wood/                    # /holz: PresetPicker, WoodControls, WoodPreview, ControlGroup, Segmented, Slider
 │   ├── stores/               # Svelte stores for state management
 │   │   ├── label.ts          # Label text and pictogram state (single label)
 │   │   ├── format.ts         # Format selection and label positioning
@@ -83,7 +83,7 @@ src/
 │       ├── labelFormats.ts   # Label format configurations
 │       ├── imageProcessing.ts # Image trimming utilities
 │       └── wood/             # /holz logic (see "Holzlabels")
-static/fonts/<font>/          # Local WOFF files (latin, 400/500/600) + OFL.txt
+static/fonts/<font>/          # Local WOFF files (latin, three weights per font) + OFL.txt
 static/textures/              # Larch texture, latewood map, nachweis.txt (CC BY 2.0)
 scripts/build-larch-texture.py # Builds the larch texture from a photo
 
@@ -143,14 +143,18 @@ pictogram.ts: generation state, error handling
 ## Holzlabels (/holz)
 
 Pipeline per change (all lengths in mm, y down):
-1. `stores/wood.ts` holds `WoodSettings`; the page loads the font (`utils/wood/fonts.ts`, `createFontLoader`) and keeps layout and settings as a pair once the selected font is loaded.
+1. `stores/wood.ts` holds `WoodSettings` (start: preset Tatami, `applyPreset`); the page loads the font (`utils/wood/fonts.ts`, `createFontLoader`) and keeps layout and settings as a pair once the selected font is loaded.
 2. `layout.ts` sets main and sub line glyph by glyph (kerning, tracking, no ligatures), determines the size (auto: text + padding, whole mm, 20–200 × 10–100) and places the text. `geometry.ts` builds the shapes (rectangle with corner radius, pill, oval).
 3. `checks.ts` returns fabrication warnings: cap height, thinnest stroke (measured per font and weight from I, H, E, O, n, o, e), margin to edge/frame/inverse rim, size limit.
 4. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps (depth, wall taper, self shadow, latewood shallower and lighter, halo, charred edge, finish). After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
-5. `scene.ts` (three.js) shows the extruded 4 mm label in front of the furniture front with a bar handle. Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
+5. `scene.ts` (three.js) shows the extruded 4 mm label on the furniture front (no handle). Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
 6. `svgExport.ts` writes the laser file.
 
-**Calibration**: all colours, depths, gloss, light, layout padding and warning thresholds are in `utils/wood/calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving.
+**Fonts**: ten free fonts (OFL) in `FONT_CATALOG`, each with its own three weights (Zen Kaku/Maru Gothic: 400/500/700, others 400/500/600); `nearestWeight` adjusts the weight on a font change. Cap height is measured from the glyph H. Shippori Mincho has fine hairlines and needs about 7 mm cap height.
+
+**Presets** (`utils/wood/presets.ts`): Japandi presets for the fronts in the house (Agave, Anthrazit, Columba Grey): Tatami, Sumi, Washi, Hinoki, Mincho, Ishi. A preset sets design and front only; text, size, grain, view and light stay. Every preset must stay free of fabrication warnings (tested).
+
+**Calibration**: all colours, depths, gloss, light, layout padding and warning thresholds are in `utils/wood/calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving. The front colours (Agave, Anthrazit, Columba Grey) are estimates; match them to a sample.
 
 **SVG contract**: `width`/`height` in mm, `viewBox` 1 unit = 1 mm, text only as paths. Layers by colour: `g#gravur` black fill (engraving; inverse = field minus text, `evenodd`), `g#rahmen` blue `#0000FF` stroke (frame line), `g#schnitt` red `#FF0000` stroke (cut). File name `holzlabel-<text>-<w>x<h>mm.svg`.
 

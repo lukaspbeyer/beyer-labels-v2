@@ -9,20 +9,23 @@ export interface FontInfo {
 	name: string;
 	/** CSS-Familienname der @font-face-Regeln in holz.css */
 	cssFamily: string;
+	/** Verfügbare Schnitte: normal, mittel, kräftig */
+	weights: readonly FontWeight[];
 }
 
+/** Zehn freie Schriften (OFL), ruhig und klar, passend zu Beyer-Design und Japandi. */
 export const FONT_CATALOG: readonly FontInfo[] = [
-	{ id: 'sora', name: 'Sora', cssFamily: 'holz-sora' },
-	{ id: 'noto-sans', name: 'Noto Sans', cssFamily: 'holz-noto-sans' },
-	{ id: 'manrope', name: 'Manrope', cssFamily: 'holz-manrope' },
-	{ id: 'outfit', name: 'Outfit', cssFamily: 'holz-outfit' },
-	{ id: 'jost', name: 'Jost', cssFamily: 'holz-jost' },
-	{ id: 'dm-sans', name: 'DM Sans', cssFamily: 'holz-dm-sans' },
-	{ id: 'lexend', name: 'Lexend', cssFamily: 'holz-lexend' },
-	{ id: 'space-grotesk', name: 'Space Grotesk', cssFamily: 'holz-space-grotesk' }
+	{ id: 'sora', name: 'Sora', cssFamily: 'holz-sora', weights: [400, 500, 600] },
+	{ id: 'noto-sans', name: 'Noto Sans', cssFamily: 'holz-noto-sans', weights: [400, 500, 600] },
+	{ id: 'zen-kaku-gothic-new', name: 'Zen Kaku Gothic', cssFamily: 'holz-zen-kaku-gothic-new', weights: [400, 500, 700] },
+	{ id: 'zen-maru-gothic', name: 'Zen Maru Gothic', cssFamily: 'holz-zen-maru-gothic', weights: [400, 500, 700] },
+	{ id: 'shippori-mincho', name: 'Shippori Mincho', cssFamily: 'holz-shippori-mincho', weights: [400, 500, 600] },
+	{ id: 'josefin-sans', name: 'Josefin Sans', cssFamily: 'holz-josefin-sans', weights: [400, 500, 600] },
+	{ id: 'jost', name: 'Jost', cssFamily: 'holz-jost', weights: [400, 500, 600] },
+	{ id: 'outfit', name: 'Outfit', cssFamily: 'holz-outfit', weights: [400, 500, 600] },
+	{ id: 'manrope', name: 'Manrope', cssFamily: 'holz-manrope', weights: [400, 500, 600] },
+	{ id: 'dm-sans', name: 'DM Sans', cssFamily: 'holz-dm-sans', weights: [400, 500, 600] }
 ];
-
-export const FONT_WEIGHTS: readonly FontWeight[] = [400, 500, 600];
 
 export interface LoadedFont {
 	id: FontId;
@@ -47,6 +50,12 @@ export function fontUrl(id: FontId, weight: FontWeight): string {
 
 export function fontInfo(id: FontId): FontInfo {
 	return FONT_CATALOG.find((f) => f.id === id) ?? FONT_CATALOG[0];
+}
+
+/** Nächstliegender verfügbarer Schnitt, etwa nach einem Schriftwechsel. */
+export function nearestWeight(id: FontId, weight: FontWeight): FontWeight {
+	const { weights } = fontInfo(id);
+	return weights.reduce((best, w) => (Math.abs(w - weight) < Math.abs(best - weight) ? w : best), weights[0]);
 }
 
 /** Längen der Abschnitte, die ein waagerechter oder senkrechter Strahl innerhalb der Glyphe schneidet. */
@@ -104,8 +113,15 @@ function measureStrokes(font: Font, capUnits: number): { upper: number; lower: n
 	return { upper, lower };
 }
 
+/** Versalhöhe aus der Glyphe H; der Metrikwert der Schrift dient nur als Rückfall. */
+function measureCapUnits(font: Font): number {
+	const ys = flattenPath(font.charToGlyph('H').path.commands).flat().map((p) => p.y);
+	const measured = ys.length > 0 ? Math.max(...ys) - Math.min(0, ...ys) : 0;
+	return measured > 0 ? measured : (font.tables.os2?.sCapHeight ?? font.unitsPerEm * 0.7);
+}
+
 export function describeFont(id: FontId, weight: FontWeight, font: Font): LoadedFont {
-	const capUnits = font.tables.os2?.sCapHeight ?? font.unitsPerEm * 0.7;
+	const capUnits = measureCapUnits(font);
 	const strokes = measureStrokes(font, capUnits);
 	return { id, weight, font, capUnits, upperStrokeRatio: strokes.upper, lowerStrokeRatio: strokes.lower };
 }

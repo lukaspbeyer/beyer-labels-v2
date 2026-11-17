@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../../app.css';
 	import './holz.css';
+	import PresetPicker from '$components/wood/PresetPicker.svelte';
 	import WoodControls from '$components/wood/WoodControls.svelte';
 	import WoodPreview from '$components/wood/WoodPreview.svelte';
 	import { woodSettings } from '$stores/wood';
@@ -90,6 +91,8 @@
 				<h1 class="font-ui-head text-3xl tracking-tight text-ink">Holzlabels</h1>
 				<p class="text-ink-muted">Lärche, mit dem CO<sub>2</sub>-Laser graviert. Gestalten, ansehen, Laserdatei laden.</p>
 			</div>
+
+			<PresetPicker />
 
 			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
 				<div class="flex items-baseline justify-between gap-3">
