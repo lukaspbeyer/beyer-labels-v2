@@ -1,0 +1,66 @@
+{
+	"woodTexture": {
+		"colorUrl": "/textures/laerche-farbe.jpg",
+		"latewoodUrl": "/textures/laerche-spaetholz.jpg",
+		"widthPx": 846,
+		"heightPx": 1040,
+		"mmPerPx": 0.3,
+		"lamellae": [
+			[0, 238],
+			[238, 396],
+			[396, 520],
+			[520, 758],
+			[758, 882],
+			[882, 1040]
+		],
+		"fiberDetail": 0.06
+	},
+	"engraving": {
+		"depthMm": { "low": 0.15, "medium": 0.4, "high": 0.8 },
+		"burnColor": { "low": "#b07a45", "medium": "#6e4224", "high": "#2c1a10" },
+		"latewoodDepthReduction": 0.45,
+		"latewoodColorLighten": 0.35,
+		"floorNoiseMm": 0.02,
+		"beamBlurMm": 0.06,
+		"wallTaper": 0.4,
+		"cavityStrength": 0.3,
+		"selfShadow": 0.55,
+		"haloRadiusMm": 0.6,
+		"haloStrength": 0.16,
+		"roughness": 0.92,
+		"inverseRimMm": 3.5
+	},
+	"fill": {
+		"color": { "black": "#1e1c1b", "white": "#f2efe8", "anthracite": "#3d3f42" },
+		"roughness": 0.55
+	},
+	"finish": {
+		"raw": { "gamma": 0.96, "saturation": 0.92, "tint": "#ffffff", "lime": 0, "roughness": 0.86, "clearcoat": 0, "clearcoatRoughness": 0.6, "burnDarken": 1 },
+		"oiled": { "gamma": 1.12, "saturation": 1.08, "tint": "#fbe9d4", "lime": 0, "roughness": 0.56, "clearcoat": 0, "clearcoatRoughness": 0.6, "burnDarken": 0.85 },
+		"lacquer": { "gamma": 1.08, "saturation": 1.06, "tint": "#fbeedd", "lime": 0, "roughness": 0.5, "clearcoat": 0.55, "clearcoatRoughness": 0.38, "burnDarken": 0.93 },
+		"limed": { "gamma": 1, "saturation": 0.75, "tint": "#ffffff", "lime": 0.5, "roughness": 0.82, "clearcoat": 0, "clearcoatRoughness": 0.6, "burnDarken": 1 }
+	},
+	"limeColor": "#f4f1ea",
+	"limeInEngraving": 0.3,
+	"edge": { "color": "#3b2416", "roughness": 0.9, "topBurnWidthMm": 0.35, "topBurnStrength": 0.35 },
+	"label": { "thicknessMm": 4, "tapeGapMm": 1 },
+	"frame": { "insetMm": 2, "lineWidthMm": 0.35 },
+	"front": {
+		"color": { "white": "#ecebe6", "cashmere": "#d6ccbd", "sage": "#a3ad97", "anthracite": "#3a3c3e" },
+		"roughness": 0.8
+	},
+	"handle": { "lengthMm": 160, "holeSpacingMm": 128, "diameterMm": 12, "standoffMm": 32, "gapToLabelMm": 28, "color": "#b9b9b6", "roughness": 0.32 },
+	"light": { "elevationDeg": 36, "intensity": 2.6, "color": "#fff4e6", "ambient": 0.55, "environment": 0.35, "exposure": 1.0 },
+	"layout": {
+		"paddingX": 1.1,
+		"paddingY": 0.75,
+		"minPadding": 3.5,
+		"subCapRatio": 0.55,
+		"minWidth": 20,
+		"maxWidth": 200,
+		"minHeight": 10,
+		"maxHeight": 100
+	},
+	"fabrication": { "minCapHeightMm": 3, "minStrokeMm": 0.3, "minMarginMm": 2 },
+	"render": { "maxPixels": 480000, "maxPxPerMm": 10, "quickPxPerMm": 4, "refineDelayMs": 150 }
+}

@@ -4,7 +4,7 @@
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { OPENAI_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { PictogramResponse } from '$lib/utils/types';
 
 // Validate DALL-E size parameter
@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     const imageCount = Math.min(Math.max(1, count), 4);
     
     // Get API key from environment
-    const apiKey = OPENAI_API_KEY || platform?.env?.OPENAI_API_KEY;
+    const apiKey = env.OPENAI_API_KEY || platform?.env?.OPENAI_API_KEY;
     
     if (!apiKey) {
       const bodyNoKey: PictogramResponse = {

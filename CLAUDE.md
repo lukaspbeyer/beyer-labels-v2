@@ -5,6 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Beyer Labels - Mobile-optimized web application for creating elegant labels with optional AI-generated pictograms. Built with SvelteKit v2 and deployed on Cloudflare Workers.
 
+Two areas:
+- **Papier** (`/`): printed paper labels.
+- **Holz** (`/holz`): door labels made of larch (Lärche), engraved with a CO₂ laser (xTool X1). Photorealistic 3D preview in front of a furniture front and SVG export for the laser software.
+
 ## Commands
 
 ```bash
@@ -20,6 +24,12 @@ wrangler deploy       # Deploy to Cloudflare Workers
 npm run check         # Run svelte-check with TypeScript
 npm run check:watch   # Run svelte-check in watch mode
 
+# Tests
+npm run test:run      # Vitest (jsdom)
+
+# Larch texture for /holz (Python with Pillow and NumPy)
+python3 scripts/build-larch-texture.py <photo>   # writes static/textures/laerche-*.jpg
+
 # Setup
 npm install                          # Install dependencies
 wrangler secret put OPENAI_API_KEY  # Set OpenAI API key for pictogram generation
@@ -33,6 +43,8 @@ wrangler secret put OPENAI_API_KEY  # Set OpenAI API key for pictogram generatio
 - **State Management**: Svelte Stores (reactive)
 - **Components**: Svelte Components with Tailwind CSS
 - **AI Integration**: OpenAI GPT-Image-1 for pictogram generation (transparent backgrounds)
+- **3D preview (/holz)**: three.js, loaded dynamically in the browser on `/holz` only
+- **Fonts as paths (/holz)**: opentype.js parses the local font files for layout and SVG export
 - **Styling**: Standard Tailwind CSS (Beyer Design only for print views)
 - **Build**: Vite + SvelteKit with Cloudflare adapter
 
@@ -40,7 +52,10 @@ wrangler secret put OPENAI_API_KEY  # Set OpenAI API key for pictogram generatio
 ```
 src/
 ├── routes/                    # SvelteKit file-based routing
-│   ├── +page.svelte          # Main application page
+│   ├── +page.svelte          # Main application page (Papier)
+│   ├── holz/
+│   │   ├── +page.svelte      # Wood label configurator (Holz)
+│   │   └── holz.css          # @font-face rules for the local fonts
 │   ├── api/                  # Server-side API routes  
 │   │   ├── label-formats/
 │   │   │   └── +server.ts    # Label format configurations API
@@ -54,26 +69,37 @@ src/
 │   │   ├── LabelForm.svelte         # Text input fields
 │   │   ├── GridSelector.svelte      # Position selector grid  
 │   │   ├── PictogramEditor.svelte   # AI pictogram generation
-│   │   └── PrintSetup.svelte        # Print preparation
+│   │   ├── PrintSetup.svelte        # Print preparation
+│   │   └── wood/                    # /holz: WoodControls, WoodPreview, ControlGroup, Segmented, Slider
 │   ├── stores/               # Svelte stores for state management
 │   │   ├── label.ts          # Label text and pictogram state (single label)
 │   │   ├── format.ts         # Format selection and label positioning
-│   │   └── pictogram.ts      # AI pictogram management
+│   │   ├── pictogram.ts      # AI pictogram management
+│   │   └── wood.ts           # /holz settings (single label)
+│   ├── types/opentype.d.ts   # Types for the used part of opentype.js
 │   └── utils/                # Shared utilities and types
 │       ├── types.ts          # Unified type definitions
+│       ├── result.ts         # Result<T, E> for expected errors
 │       ├── labelFormats.ts   # Label format configurations
-│       └── imageProcessing.ts # Image trimming utilities
+│       ├── imageProcessing.ts # Image trimming utilities
+│       └── wood/             # /holz logic (see "Holzlabels")
+static/fonts/<font>/          # Local WOFF files (latin, 400/500/600) + OFL.txt
+static/textures/              # Larch texture, latewood map, nachweis.txt (CC BY 2.0)
+scripts/build-larch-texture.py # Builds the larch texture from a photo
 
 svelte.config.js              # SvelteKit configuration with Cloudflare adapter
 wrangler.toml                 # Cloudflare Workers config
 ```
 
-### Available Label Formats
+### Available Label Formats (Papier)
 
 - **105×74mm**: Standard labels (8 per A4 page)
 - **210×100mm**: Large signs (A5 landscape, 1 per page)
 
 ## Design System
+
+### Web UI /holz
+Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted`), one terracotta accent (`clay`), lines instead of shadows. Tokens in `src/app.css` (`@theme`), UI fonts `font-ui-head` (Sora) and `font-ui-body` (Noto Sans) from `static/fonts`. Every control is at least 44 px; no horizontal scrolling at 360 px.
 
 ### Web UI (Standard Tailwind CSS)
 Uses **standard Tailwind CSS** for the web interface:
@@ -113,6 +139,24 @@ pictogram.ts: generation state, error handling
 - ✅ Centralized state management
 - ✅ Better performance with selective subscriptions
 - ✅ TypeScript integration
+
+## Holzlabels (/holz)
+
+Pipeline per change (all lengths in mm, y down):
+1. `stores/wood.ts` holds `WoodSettings`; the page loads the font (`utils/wood/fonts.ts`, `createFontLoader`) and keeps layout and settings as a pair once the selected font is loaded.
+2. `layout.ts` sets main and sub line glyph by glyph (kerning, tracking, no ligatures), determines the size (auto: text + padding, whole mm, 20–200 × 10–100) and places the text. `geometry.ts` builds the shapes (rectangle with corner radius, pill, oval).
+3. `checks.ts` returns fabrication warnings: cap height, thinnest stroke (measured per font and weight from I, H, E, O, n, o, e), margin to edge/frame/inverse rim, size limit.
+4. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps (depth, wall taper, self shadow, latewood shallower and lighter, halo, charred edge, finish). After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
+5. `scene.ts` (three.js) shows the extruded 4 mm label in front of the furniture front with a bar handle. Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
+6. `svgExport.ts` writes the laser file.
+
+**Calibration**: all colours, depths, gloss, light, layout padding and warning thresholds are in `utils/wood/calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving.
+
+**SVG contract**: `width`/`height` in mm, `viewBox` 1 unit = 1 mm, text only as paths. Layers by colour: `g#gravur` black fill (engraving; inverse = field minus text, `evenodd`), `g#rahmen` blue `#0000FF` stroke (frame line), `g#schnitt` red `#FF0000` stroke (cut). File name `holzlabel-<text>-<w>x<h>mm.svg`.
+
+**Texture**: `static/textures/laerche-farbe.jpg` and `laerche-spaetholz.jpg` are built from a photo of planed larch boards (source and licence in `nachweis.txt`; the credit is shown on the page). Six lamellae stacked as a panel; the label sits inside one lamella when it fits across the grain. For own photos adjust `CROPS` in the script and `woodTexture` in `calibration.json`.
+
+**Diagnostics**: the preview element carries `data-mode` (`3d`, `fallback`, `loading`, `error`), `data-render-count`, `data-render-quality` (`quick`, `full`) and `data-render-ms`.
 
 ## API Routes (SvelteKit Conventions)
 
@@ -181,6 +225,9 @@ export default {
   }
 };
 ```
+
+### Vite Configuration (vite.config.ts)
+`ssr.noExternal: ['opentype.js']`: opentype.js ships ESM only via the `module` field, so it is bundled for SSR instead of being loaded as CommonJS.
 
 ### Wrangler Configuration (wrangler.toml)
 ```toml

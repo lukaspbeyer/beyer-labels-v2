@@ -46,6 +46,18 @@
   /* Border Radius */
   --radius-beyer: 12px;
 
+  /* Holzlabels (/holz): warmes Off-White, dunkles Warmgrau, Terrakotta */
+  --color-ivory: #faf9f5;
+  --color-sand: #f0eee6;
+  --color-line: #e3e0d6;
+  --color-ink: #3d3929;
+  --color-ink-muted: #73705f;
+  --color-clay: #c96442;
+  --color-clay-dark: #ab4f31;
+  --color-clay-soft: #f3e3da;
+  --font-ui-head: 'holz-sora', system-ui, sans-serif;
+  --font-ui-body: 'holz-noto-sans', system-ui, sans-serif;
+
   /* Box Shadows */
   --shadow-beyer: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-beyer-focus: 0 0 0 3px rgba(0, 122, 255, 0.1);

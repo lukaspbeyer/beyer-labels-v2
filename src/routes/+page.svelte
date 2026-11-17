@@ -40,6 +40,7 @@
     <p class="text-lg text-gray-500">
       Elegante Etiketten mit optionalen KI-generierten Piktogrammen
     </p>
+    <a href="/holz" class="inline-block mt-3 text-sm text-blue-600 hover:underline">Holzlabels aus Lärche →</a>
   </header>
   
   {#if isLoading}

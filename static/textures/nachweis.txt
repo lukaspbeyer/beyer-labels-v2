@@ -1,0 +1,9 @@
+Lärchentextur (laerche-farbe.jpg, laerche-spaetholz.jpg)
+
+Grundlage: Foto „Larch Wood“ von Christine und Hagen Graf
+Quelle: https://www.flickr.com/photos/17963290@N00/17494311315
+Lizenz: CC BY 2.0, https://creativecommons.org/licenses/by/2.0/
+
+Bearbeitet: gedreht, in Bretter zugeschnitten, Beleuchtung ausgeglichen, als Lamellen
+zu einer Platte zusammengesetzt; Spätholzkarte daraus berechnet
+(scripts/build-larch-texture.py).

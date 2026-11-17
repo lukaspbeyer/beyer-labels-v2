@@ -181,6 +181,7 @@ No text, no frames, no background elements.`;
 </div>
 
 <style>
+  @reference "../../app.css";
   .pictogram-option {
     @apply relative border-2 border-gray-300 rounded-lg p-2 bg-white cursor-pointer 
            transition-all duration-200 hover:scale-105 hover:border-blue-500 hover:shadow-md
