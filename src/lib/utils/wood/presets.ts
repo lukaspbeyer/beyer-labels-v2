@@ -1,6 +1,7 @@
 /**
  * Gestaltungsvorlagen im Japandi-Stil für die Fronten im Haus (Agave, Anthrazit, Columba Grey).
- * Eine Vorlage setzt nur Gestaltung und Front; Text, Größe, Maserung, Ansicht und Licht bleiben.
+ * Eine Vorlage setzt Gestaltung und Front, mit `size` zusätzlich ein festes Format;
+ * Text, Maserung, Ansicht und Licht bleiben.
  */
 import type { WoodSettings } from './types';
 
@@ -28,6 +29,8 @@ export interface WoodPreset {
 	name: string;
 	description: string;
 	settings: PresetSettings;
+	/** Festes Format für eine Serie gleich großer Labels */
+	size?: { width: number; height: number };
 }
 
 export const PRESETS: readonly WoodPreset[] = [
@@ -162,8 +165,36 @@ export const PRESETS: readonly WoodPreset[] = [
 			edge: 'burnt',
 			front: 'agave'
 		}
+	},
+	{
+		id: 'kura',
+		name: 'Kura',
+		description: 'Jost klein und gesperrt, schwarz gefüllt, Kante geschliffen. Feste 64 × 24 mm für Schränke.',
+		settings: {
+			uppercase: false,
+			font: 'jost',
+			weight: 400,
+			capHeight: 6,
+			tracking: 22,
+			process: 'fill',
+			depth: 'low',
+			burn: 'medium',
+			fillColor: 'black',
+			finish: 'oiled',
+			shape: 'rectangle',
+			cornerRadius: 0,
+			frame: false,
+			edge: 'sanded',
+			front: 'agave'
+		},
+		size: { width: 64, height: 24 }
 	}
 ];
+
+/** Änderungen, die eine Vorlage an den Einstellungen vornimmt. */
+export function presetChanges(preset: WoodPreset): Partial<WoodSettings> {
+	return preset.size ? { ...preset.settings, sizeMode: 'manual', ...preset.size } : { ...preset.settings };
+}
 
 /** Stimmen die Einstellungen in allen Feldern der Vorlage überein? */
 export function matchesPreset(settings: WoodSettings, preset: WoodPreset): boolean {
@@ -182,6 +213,8 @@ export function matchesPreset(settings: WoodSettings, preset: WoodPreset): boole
 		(s.shape !== 'rectangle' || settings.cornerRadius === s.cornerRadius) &&
 		settings.frame === s.frame &&
 		settings.edge === s.edge &&
-		settings.front === s.front
+		settings.front === s.front &&
+		(!preset.size ||
+			(settings.sizeMode === 'manual' && settings.width === preset.size.width && settings.height === preset.size.height))
 	);
 }

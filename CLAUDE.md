@@ -152,7 +152,7 @@ Pipeline per change (all lengths in mm, y down):
 
 **Fonts**: ten free fonts (OFL) in `FONT_CATALOG`, each with its own three weights (Zen Kaku/Maru Gothic: 400/500/700, others 400/500/600); `nearestWeight` adjusts the weight on a font change. Cap height is measured from the glyph H. Shippori Mincho has fine hairlines and needs about 7 mm cap height.
 
-**Presets** (`utils/wood/presets.ts`): Japandi presets for the fronts in the house (Agave, Anthrazit, Columba Grey): Tatami, Sumi, Washi, Hinoki, Mincho, Ishi. A preset sets design and front only; text, size, grain, view and light stay. Every preset must stay free of fabrication warnings (tested).
+**Presets** (`utils/wood/presets.ts`): Japandi presets for the fronts in the house (Agave, Anthrazit, Columba Grey): Tatami, Sumi, Washi, Hinoki, Mincho, Ishi, Kura. A preset sets design and front; with `size` (Kura: 64 × 24 mm, the series format for kitchen, bath and bedroom cabinets) it also sets a fixed size. Text, grain, view and light stay. Every preset must stay free of fabrication warnings (tested).
 
 **Calibration**: all colours, depths, gloss, light, layout padding and warning thresholds are in `utils/wood/calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving. The front colours (Agave, Anthrazit, Columba Grey) are estimates; match them to a sample.
 

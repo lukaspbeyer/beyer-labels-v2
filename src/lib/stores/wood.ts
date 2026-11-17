@@ -2,7 +2,7 @@
  * Wood Store - Einstellungen des Holzlabels (/holz), ein Label auf einmal.
  */
 import { writable } from 'svelte/store';
-import { PRESETS, type WoodPreset } from '$utils/wood/presets';
+import { PRESETS, presetChanges, type WoodPreset } from '$utils/wood/presets';
 import type { WoodSettings } from '$utils/wood/types';
 
 const TATAMI = PRESETS[0].settings;
@@ -29,9 +29,9 @@ export function updateWood(changes: Partial<WoodSettings>): void {
 	woodSettings.update((current) => ({ ...current, ...changes }));
 }
 
-/** Übernimmt Gestaltung und Front einer Vorlage; Text und Größe bleiben. */
+/** Übernimmt Gestaltung und Front einer Vorlage, bei festem Format auch die Größe; der Text bleibt. */
 export function applyPreset(preset: WoodPreset): void {
-	updateWood({ ...preset.settings });
+	updateWood(presetChanges(preset));
 }
 
 export function resetWood(): void {
