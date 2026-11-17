@@ -144,7 +144,7 @@ describe('labelStyles', () => {
 			const compact = LABEL_STYLES['ghibli-compact'];
 			const ghibli = LABEL_STYLES.ghibli;
 			const berlin = LABEL_STYLES.berlin;
-			expect(compact.typography.markdownParagraphMargin).toBe('1.5em');
+			expect(compact.typography.markdownParagraphMargin).toBe('1.6em');
 			expect(parseFloat(compact.typography.markdownParagraphMargin)).toBeGreaterThan(
 				parseFloat(ghibli.typography.markdownParagraphMargin)
 			);
