@@ -146,7 +146,7 @@ Pipeline per change (all lengths in mm, y down):
 1. `stores/wood.ts` holds `WoodSettings` (start: preset Tatami, `applyPreset`); the page loads the font (`utils/wood/fonts.ts`, `createFontLoader`) and keeps layout and settings as a pair once the selected font is loaded.
 2. `layout.ts` sets main and sub line glyph by glyph (kerning, tracking, no ligatures), determines the size (auto: text + padding, whole mm, 20–200 × 10–100) and places the text. `geometry.ts` builds the shapes (rectangle with corner radius, pill, oval).
 3. `checks.ts` returns fabrication warnings: cap height, thinnest stroke (measured per font and weight from I, H, E, O, n, o, e), margin to edge/frame/inverse rim, size limit.
-4. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps (depth, wall taper, self shadow, latewood shallower and lighter, halo, charred edge, finish). After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
+4. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps (depth, wall taper, self shadow, latewood shallower and lighter, halo, edge burnt or sanded, finish). After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
 5. `scene.ts` (three.js) shows the extruded 4 mm label on the furniture front (no handle). Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
 6. `svgExport.ts` writes the laser file.
 

@@ -19,6 +19,7 @@ export type PresetSettings = Pick<
 	| 'shape'
 	| 'cornerRadius'
 	| 'frame'
+	| 'edge'
 	| 'front'
 >;
 
@@ -48,6 +49,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 2,
 			frame: false,
+			edge: 'burnt',
 			front: 'columba'
 		}
 	},
@@ -69,6 +71,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 0,
 			frame: false,
+			edge: 'burnt',
 			front: 'agave'
 		}
 	},
@@ -90,6 +93,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'pill',
 			cornerRadius: 0,
 			frame: false,
+			edge: 'burnt',
 			front: 'anthracite'
 		}
 	},
@@ -111,6 +115,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 2,
 			frame: false,
+			edge: 'burnt',
 			front: 'columba'
 		}
 	},
@@ -132,6 +137,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 1,
 			frame: true,
+			edge: 'burnt',
 			front: 'anthracite'
 		}
 	},
@@ -153,6 +159,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'pill',
 			cornerRadius: 0,
 			frame: false,
+			edge: 'burnt',
 			front: 'agave'
 		}
 	}
@@ -174,6 +181,7 @@ export function matchesPreset(settings: WoodSettings, preset: WoodPreset): boole
 		settings.shape === s.shape &&
 		(s.shape !== 'rectangle' || settings.cornerRadius === s.cornerRadius) &&
 		settings.frame === s.frame &&
+		settings.edge === s.edge &&
 		settings.front === s.front
 	);
 }

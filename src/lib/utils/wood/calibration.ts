@@ -4,7 +4,7 @@
  * etwa nach einer Testgravur. Diese Datei prüft nur die Struktur beim Übersetzen.
  */
 import values from './calibration.json';
-import type { FillColor, Finish, FrontColor, Level } from './types';
+import type { EdgeFinish, FillColor, Finish, FrontColor, Level } from './types';
 
 export interface FinishCalibration {
 	/** > 1 dunkelt das Holz ab (Anfeuern) */
@@ -62,7 +62,7 @@ export interface Calibration {
 	limeColor: string;
 	/** Anteil der Lasur, der in der Gravur verbleibt */
 	limeInEngraving: number;
-	edge: { color: string; roughness: number; topBurnWidthMm: number; topBurnStrength: number };
+	edge: Record<EdgeFinish, { color: string; roughness: number; topBurnWidthMm: number; topBurnStrength: number }>;
 	label: { thicknessMm: number; tapeGapMm: number };
 	frame: { insetMm: number; lineWidthMm: number };
 	/** Möbelfronten im Haus; Farbwerte geschätzt, nach Muster anpassen */

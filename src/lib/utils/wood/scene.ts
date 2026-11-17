@@ -136,7 +136,7 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 	scene.add(front);
 
 	const faceMaterial = new THREE.MeshPhysicalMaterial({ roughness: 1, metalness: 0 });
-	const edgeMaterial = new THREE.MeshStandardMaterial({ color: cal.edge.color, roughness: cal.edge.roughness, map: edgeTexture() });
+	const edgeMaterial = new THREE.MeshStandardMaterial({ map: edgeTexture() });
 	const label = new THREE.Mesh(new THREE.BufferGeometry(), [faceMaterial, edgeMaterial]);
 	label.position.z = cal.label.tapeGapMm;
 	label.castShadow = true;
@@ -244,6 +244,8 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 		faceMaterial.needsUpdate = true;
 
 		frontMaterial.color.set(cal.front.color[settings.front]);
+		edgeMaterial.color.set(cal.edge[settings.edge].color);
+		edgeMaterial.roughness = cal.edge[settings.edge].roughness;
 		placeLight(settings, layout);
 
 		const nextViewKey = `${settings.view}|${layout.width}|${layout.height}`;

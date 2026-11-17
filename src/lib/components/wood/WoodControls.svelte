@@ -203,6 +203,15 @@
 			onchange={(frame) => updateWood({ frame })}
 		/>
 		<Segmented
+			label="Kante"
+			options={[
+				{ value: 'burnt', label: 'Gebrannt' },
+				{ value: 'sanded', label: 'Geschliffen' }
+			]}
+			value={s.edge}
+			onchange={(edge) => updateWood({ edge })}
+		/>
+		<Segmented
 			label="Größe"
 			options={[
 				{ value: 'auto', label: 'Automatisch' },

@@ -19,6 +19,8 @@ export type Level = 'low' | 'medium' | 'high';
 export type FillColor = 'black' | 'white' | 'anthracite';
 export type Finish = 'raw' | 'oiled' | 'lacquer' | 'limed';
 export type Shape = 'rectangle' | 'pill' | 'oval';
+/** Kante: so wie der Laser sie schneidet oder hell nachgeschliffen */
+export type EdgeFinish = 'burnt' | 'sanded';
 export type SizeMode = 'auto' | 'manual';
 export type FrontColor = 'agave' | 'anthracite' | 'columba';
 export type ViewAngle = 'front' | 'oblique';
@@ -47,6 +49,7 @@ export interface WoodSettings {
 	shape: Shape;
 	cornerRadius: number;
 	frame: boolean;
+	edge: EdgeFinish;
 	sizeMode: SizeMode;
 	width: number;
 	height: number;

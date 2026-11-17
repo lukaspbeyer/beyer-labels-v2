@@ -42,7 +42,10 @@
 	},
 	"limeColor": "#f4f1ea",
 	"limeInEngraving": 0.3,
-	"edge": { "color": "#3b2416", "roughness": 0.9, "topBurnWidthMm": 0.35, "topBurnStrength": 0.35 },
+	"edge": {
+		"burnt": { "color": "#3b2416", "roughness": 0.9, "topBurnWidthMm": 0.35, "topBurnStrength": 0.35 },
+		"sanded": { "color": "#c08452", "roughness": 0.85, "topBurnWidthMm": 0.35, "topBurnStrength": 0 }
+	},
 	"label": { "thicknessMm": 4, "tapeGapMm": 1 },
 	"frame": { "insetMm": 2, "lineWidthMm": 0.35 },
 	"front": {
