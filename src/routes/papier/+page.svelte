@@ -50,7 +50,7 @@
 	const preview = $derived(sheet ? pageSvg(sheet, KURA.paper.ink) : '');
 	const fileName = $derived(labels.length > 0 ? paperLabelFileName({ text: labels[0].text, format: formatId }, labels.length) : '');
 
-	const FORMAT_IDS: readonly PaperLabelFormatId[] = ['small', 'large'];
+	const FORMAT_IDS: readonly PaperLabelFormatId[] = ['label', 'sign'];
 	const formatOptions = FORMAT_IDS.map((value) => {
 		const f = PAPER_LABEL_FORMATS[value];
 		return { value, label: `${f.name} ${f.width} × ${f.height}` };

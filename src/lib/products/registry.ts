@@ -76,8 +76,8 @@ export const PRODUCTS: readonly ProductEntry[] = [
 		summary: 'Etiketten auf dem Bogen, eines oder mehrere, jedes an seinem Platz. Als PDF drucken.',
 		href: '/papier',
 		examples: (kura, font) => [
-			paperExample(kura, font, { text: 'gewürze', subText: '', format: 'small' }),
-			paperExample(kura, font, { text: 'winter', subText: 'mützen · schals', format: 'large' })
+			paperExample(kura, font, { text: 'gewürze', subText: '', format: 'label' }),
+			paperExample(kura, font, { text: 'winter', subText: 'mützen · schals', format: 'sign' })
 		]
 	},
 	{

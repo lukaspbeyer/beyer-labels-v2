@@ -26,8 +26,8 @@ function label(input: Partial<PaperLabelInput>) {
 
 describe('Papierlabel', () => {
 	it('leitet die Versalhöhe je Format aus Kura ab', () => {
-		expect(label({ format: 'small' }).layout.lines[0].capHeight).toBeCloseTo(9.84, 2);
-		expect(label({ format: 'large' }).layout.lines[0].capHeight).toBeCloseTo(19.69, 2);
+		expect(label({ format: 'label' }).layout.lines[0].capHeight).toBeCloseTo(9.84, 2);
+		expect(label({ format: 'sign' }).layout.lines[0].capHeight).toBeCloseTo(19.69, 2);
 	});
 
 	it('setzt das Wort klein und mittig ins Etikett', () => {
@@ -52,19 +52,19 @@ describe('Papierlabel', () => {
 		const sixth = pathBox(label({ position: 5 }).page.items[0].commands);
 		expect(sixth.minX - first.minX).toBeCloseTo(105, 6);
 		expect(sixth.minY - first.minY).toBeCloseTo(2 * 74, 6);
-		expect(label({ format: 'large' }).page).toMatchObject({ width: 210, height: 148 });
+		expect(label({ format: 'sign' }).page).toMatchObject({ width: 210, height: 148 });
 	});
 
 	it('rechnet Spalte und Zeile in den Platz um und zurück', () => {
-		expect(positionAt('small', 1, 2)).toBe(2);
-		expect(placeOf('small', 2)).toEqual({ column: 1, row: 2 });
-		expect(positionAt('small', 3, 1)).toBeNull();
-		expect(positionAt('large', 1, 1)).toBe(0);
+		expect(positionAt('label', 1, 2)).toBe(2);
+		expect(placeOf('label', 2)).toEqual({ column: 1, row: 2 });
+		expect(positionAt('label', 3, 1)).toBeNull();
+		expect(positionAt('sign', 1, 1)).toBe(0);
 	});
 
 	it('setzt mehrere Etiketten auf einen Bogen, die freien Plätze bleiben leer', () => {
 		const one = label({ text: 'tee' }).layout;
-		const page = paperSheetPage('small', [
+		const page = paperSheetPage('label', [
 			{ layout: one, position: 0 },
 			{ layout: one, position: 7 }
 		]);
@@ -82,7 +82,7 @@ describe('Papierlabel', () => {
 
 	it('benennt die Datei nach Wort und Format', () => {
 		expect(paperLabelFileName({ ...DEFAULT_PAPER_LABEL_INPUT, text: 'Gewürze' })).toBe('papierlabel-gewuerze-105x74mm.pdf');
-		expect(paperLabelFileName({ text: 'Tee', format: 'small' }, 3)).toBe('papierlabel-tee-und-2-weitere-105x74mm.pdf');
+		expect(paperLabelFileName({ text: 'Tee', format: 'label' }, 3)).toBe('papierlabel-tee-und-2-weitere-105x74mm.pdf');
 	});
 });
 

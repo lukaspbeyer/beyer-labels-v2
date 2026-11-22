@@ -14,7 +14,7 @@ import { flattenPath, polylinesBox, svgPathData } from '$lib/typesetting/geometr
 import type { FabricationWarning, FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$lib/media/wood/types';
 
 export const WOOD_LABEL_FORMATS = {
-	standard: { width: 64, height: 24, name: 'Serie' },
+	series: { width: 64, height: 24, name: 'Serie' },
 	/** Ausnahme für ein unverzichtbar langes Wort */
 	long: { width: 90, height: 24, name: 'Langformat' }
 } as const;
@@ -35,7 +35,7 @@ export interface WoodLabelInput {
 
 export const DEFAULT_WOOD_LABEL_INPUT: WoodLabelInput = {
 	text: 'teller',
-	format: 'standard',
+	format: 'series',
 	front: 'agave',
 	grainSeed: 1,
 	view: 'oblique',
@@ -46,7 +46,7 @@ export const DEFAULT_WOOD_LABEL_INPUT: WoodLabelInput = {
 export function woodLabelSettings(kura: Kura, input: WoodLabelInput): WoodSettings {
 	const { width, height } = WOOD_LABEL_FORMATS[input.format];
 	// Die Versalhöhe folgt dem Serienformat, damit das Langformat dieselbe Schrift trägt
-	const series = WOOD_LABEL_FORMATS.standard;
+	const series = WOOD_LABEL_FORMATS.series;
 	return {
 		text: applyCase(kura.sign.case, input.text),
 		subText: '',

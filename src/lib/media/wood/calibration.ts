@@ -66,6 +66,8 @@ export interface Calibration {
 	limeInEngraving: number;
 	edge: Record<EdgeFinish, { color: string; roughness: number; topBurnWidthMm: number; topBurnStrength: number }>;
 	label: { thicknessMm: number; tapeGapMm: number };
+	/** Mehrere Labels in einer Laserdatei: untereinander mit diesem Abstand, höchstens so viele */
+	laserSheet: { gapMm: number; maxLabels: number };
 	frame: { insetMm: number; lineWidthMm: number };
 	/** Möbelfronten im Haus; Farbwerte geschätzt, nach Muster anpassen */
 	front: { color: Record<FrontColor, string>; roughness: number };

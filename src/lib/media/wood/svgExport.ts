@@ -4,7 +4,7 @@
  */
 import { calibration } from './calibration';
 import { fontInfo } from '$lib/typesetting/fonts';
-import { svgPathData } from '$lib/typesetting/geometry';
+import { svgPathData, translatePath } from '$lib/typesetting/geometry';
 import { displayText } from './layout';
 import type { LabelLayout, PathCommand, WoodSettings } from './types';
 
@@ -26,8 +26,8 @@ function formatSize(value: number): string {
 	return Number.isInteger(value) ? String(value) : value.toFixed(1).replace('.', ',');
 }
 
-/** Dateiname nach dem Muster holzlabel-teller-80x30mm.svg */
-export function exportFileName(settings: WoodSettings, layout: LabelLayout): string {
+/** Dateiname nach dem Muster holzlabel-teller-80x30mm.svg; bei mehreren Labels holzlabel-teller-und-2-weitere-80x30mm.svg */
+export function exportFileName(settings: WoodSettings, layout: LabelLayout, count = 1): string {
 	const slug =
 		settings.text
 			.trim()
@@ -41,7 +41,7 @@ export function exportFileName(settings: WoodSettings, layout: LabelLayout): str
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/^-+|-+$/g, '') || 'label';
 	const size = `${formatSize(layout.width).replace(',', '-')}x${formatSize(layout.height).replace(',', '-')}`;
-	return `holzlabel-${slug}-${size}mm.svg`;
+	return `holzlabel-${slug}${count > 1 ? `-und-${count - 1}-weitere` : ''}-${size}mm.svg`;
 }
 
 function engravingPaths(layout: LabelLayout, settings: WoodSettings): { commands: PathCommand[]; fillRule: 'nonzero' | 'evenodd' } {
@@ -68,34 +68,63 @@ function description(settings: WoodSettings, layout: LabelLayout): string {
 	].join('. ');
 }
 
+export interface SheetLabel {
+	layout: LabelLayout;
+	settings: WoodSettings;
+}
+
+/** Die Laserdatei für ein Label. */
 export function buildSvg(layout: LabelLayout, settings: WoodSettings): string {
-	const w = formatSize(layout.width).replace(',', '.');
-	const h = formatSize(layout.height).replace(',', '.');
-	const engraving = engravingPaths(layout, settings);
-	const title = displayText([settings.text, settings.subText].filter((t) => t.trim()).join(' / '), false);
+	return buildSheetSvg([{ layout, settings }]);
+}
+
+/**
+ * Die Laserdatei für ein oder mehrere Labels. Mehrere stehen untereinander, linksbündig,
+ * mit dem Abstand aus der Kalibrierung; die Ebenen bleiben dieselben.
+ */
+export function buildSheetSvg(labels: readonly SheetLabel[]): string {
+	const gap = calibration.laserSheet.gapMm;
+	let y = 0;
+	const placed = labels.map((label) => {
+		const at = y;
+		y += label.layout.height + gap;
+		return { ...label, y: at };
+	});
+	const width = Math.max(...labels.map((l) => l.layout.width));
+	const height = y - gap;
+	const w = formatSize(width).replace(',', '.');
+	const h = formatSize(height).replace(',', '.');
+	const titles = labels.map(({ settings }) => displayText([settings.text, settings.subText].filter((t) => t.trim()).join(' / '), false));
+	const first = labels[0];
+	const about =
+		labels.length === 1
+			? description(first.settings, first.layout)
+			: `${labels.length} Labels untereinander, Abstand ${formatSize(gap)} mm. ${description(first.settings, first.layout)}`;
 	const parts = [
 		'<?xml version="1.0" encoding="UTF-8"?>',
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">`,
-		`<title>Holzlabel ${escapeXml(title)}</title>`,
-		`<desc>${escapeXml(description(settings, layout))}</desc>`
+		`<title>Holzlabel ${escapeXml(titles.join(', '))}</title>`,
+		`<desc>${escapeXml(about)}</desc>`
 	];
-	if (engraving.commands.length > 0) {
+	const engravings = placed.map((l) => ({ ...engravingPaths(l.layout, l.settings), y: l.y })).filter((e) => e.commands.length > 0);
+	if (engravings.length > 0) {
 		parts.push(
 			`<g id="gravur" fill="${ENGRAVE_COLOR}" stroke="none">`,
-			`<path fill-rule="${engraving.fillRule}" d="${svgPathData(engraving.commands)}"/>`,
+			...engravings.map((e) => `<path fill-rule="${e.fillRule}" d="${svgPathData(translatePath(e.commands, 0, e.y))}"/>`),
 			'</g>'
 		);
 	}
-	if (layout.frame.length > 0) {
+	const frames = placed.filter((l) => l.layout.frame.length > 0);
+	if (frames.length > 0) {
 		parts.push(
 			`<g id="rahmen" fill="none" stroke="${FRAME_COLOR}" stroke-width="0.1">`,
-			`<path d="${svgPathData(layout.frame)}"/>`,
+			...frames.map((l) => `<path d="${svgPathData(translatePath(l.layout.frame, 0, l.y))}"/>`),
 			'</g>'
 		);
 	}
 	parts.push(
 		`<g id="schnitt" fill="none" stroke="${CUT_COLOR}" stroke-width="0.1">`,
-		`<path d="${svgPathData(layout.outline)}"/>`,
+		...placed.map((l) => `<path d="${svgPathData(translatePath(l.layout.outline, 0, l.y))}"/>`),
 		'</g>',
 		'</svg>'
 	);
