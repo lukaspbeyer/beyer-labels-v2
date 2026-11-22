@@ -48,6 +48,7 @@
 		"sanded": { "color": "#c08452", "roughness": 0.85, "topBurnWidthMm": 0.35, "topBurnStrength": 0 }
 	},
 	"label": { "thicknessMm": 4, "tapeGapMm": 1 },
+	"laserSheet": { "gapMm": 3, "maxLabels": 12 },
 	"frame": { "insetMm": 2, "lineWidthMm": 0.35 },
 	"front": {
 		"color": { "agave": "#8e9a8c", "anthracite": "#3a3c3e", "columba": "#bdbbb4" },

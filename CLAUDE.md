@@ -72,7 +72,7 @@ src/
     │   └── paper/             # Paper print: page model with SVG preview, PDF output
     ├── products/              # woodLabel.ts, paperLabel.ts, daySheet.ts, registry.ts (workbench), orders.ts (agents), hint.ts
     ├── server/                # mcp.ts (tools), files.ts (24 h store), access.ts (Cloudflare Access)
-    ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview)
+    ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview, WoodTopView)
     ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
     ├── types/opentype.d.ts    # Types for the used part of opentype.js
     └── utils/                 # result.ts (Result<T, E> for expected errors), download.ts (save a file from the browser)
@@ -94,7 +94,7 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 - `KURA_OPTIONS` and `KURA_RANGES`: allowed values; validation and the workbench controls both read them.
 - `vocabulary.ts`: the Kura vocabulary (short words for cupboards and drawers).
 
-**Workbench** (`src/routes/werkbank/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`.
+**Workbench** (`src/routes/werkbank/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`. Overview and workbench show the examples in front of their surroundings (`backdrop` of an example: the furniture front for wood, sand for paper). A wood example carries `wood` (layout and settings); `components/wood/WoodTopView.svelte` renders it as a lit top view with the same surface pipeline as `/holz` (`renderSurface`, `shadeFlat`, quick frame first), without three.js, so every larch control of the workbench shows its effect. It carries the same `data-render-*` attributes as the preview and `data-mode` (`sketch`, `surface`).
 
 There are no presets and no design controls on product pages. Never put a design value (font, tracking, size ratio, colour) into a product or a page; change Kura instead.
 
@@ -106,9 +106,9 @@ Each product module holds its formats, its input type, the derivation from Kura 
 
 **Registry** (`registry.ts`): `PRODUCTS` lists every product with a summary, its page and examples drawn for a given Kura. A new product registers here and then appears on the overview and the workbench without further changes. Every product must be free of hints in the committed Kura (tested).
 
-**Wood label** (`woodLabel.ts`): formats series 64 × 24 mm and long 90 × 24 mm; one word, no sub line. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
+**Wood label** (`woodLabel.ts`): formats `series` 64 × 24 mm and `long` 90 × 24 mm; one word, no sub line. `woodLabelSketch` draws a plain top view as SVG (a crop of the larch photo in the tone of the finish); overview and workbench show it only until the larch photo has loaded. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
 
-**Paper label** (`paperLabel.ts`): formats label 105 × 74 mm (A4 portrait sheet, 2 × 4) and sign 210 × 100 mm (A5 landscape, top); one word per label, sub line allowed. `layoutPaperLabel` sets the lines of one label, `checkPaperLabel` returns `sign-width` and `sub-width`, `paperSheetPage` places any number of labels at their places on one sheet (`positionAt`/`placeOf` convert between column/row from 1 and the row-wise position from 0); free places stay unprinted. The cell borders are shown in the preview only and are not printed.
+**Paper label** (`paperLabel.ts`): formats `label` 105 × 74 mm (A4 portrait sheet, 2 × 4) and `sign` 210 × 100 mm (A5 landscape, top); one word per label, sub line allowed. `layoutPaperLabel` sets the lines of one label, `checkPaperLabel` returns `sign-width` and `sub-width`, `paperSheetPage` places any number of labels at their places on one sheet (`positionAt`/`placeOf` convert between column/row from 1 and the row-wise position from 0); free places stay unprinted. The cell borders are shown in the preview only and are not printed.
 
 ## Typesetting (`src/lib/typesetting`)
 
@@ -127,7 +127,7 @@ The engine supports more than Kura uses today (inverse engraving, frame, pill, o
 
 **Calibration**: colours, depths, gloss, light, layout padding and warning thresholds are in `calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving. The front colours (Agave, Anthrazit, Columba Grey) are estimates. The front is the surroundings of the preview, not part of the design.
 
-**SVG contract**: `width`/`height` in mm, `viewBox` 1 unit = 1 mm, text only as paths. Layers by colour: `g#gravur` black fill (engraving; inverse = field minus text, `evenodd`), `g#rahmen` blue `#0000FF` stroke (frame line), `g#schnitt` red `#FF0000` stroke (cut). File name `holzlabel-<text>-<w>x<h>mm.svg`.
+**SVG contract**: `width`/`height` in mm, `viewBox` 1 unit = 1 mm, text only as paths. Layers by colour: `g#gravur` black fill (engraving; inverse = field minus text, `evenodd`), `g#rahmen` blue `#0000FF` stroke (frame line), `g#schnitt` red `#FF0000` stroke (cut). File name `holzlabel-<text>-<w>x<h>mm.svg`. `buildSheetSvg` puts several labels into one file, one below the other with the gap from `calibration.json` (`laserSheet`); the layers stay the same, one path per label.
 
 **Texture**: `static/textures/laerche-farbe.jpg` and `laerche-spaetholz.jpg` are built from a photo of planed larch boards (source and licence in `nachweis.txt`; the credit is shown on the page). For own photos adjust `CROPS` in the script and `woodTexture` in `calibration.json`.
 
@@ -141,7 +141,7 @@ The engine supports more than Kura uses today (inverse engraving, frame, pill, o
 
 `products/orders.ts` is what agents see: `listProducts()` returns per product its fields, limits, output format and a valid example; `makeProduct(kura, id, content, font)` returns the file (`OrderFile`) or the hints. Any hint means no file. Every example in the list must produce a file, and the list must contain the same products as the workbench registry (both tested). A new product needs an entry in `registry.ts` and in `orders.ts`.
 
-`server/mcp.ts` exposes two tools over `createMcpHandler` (a fresh server per request, no session): `list_products` and `render_product({ product, content })`. The result is a JSON text with `url`, `fileName`, `mimeType`, `validForHours`, plus a `resource_link`; on a rule violation `created: false` with `hints` and `isError`. The day sheet accepts one day or `{ days: [...] }` with up to seven days. The paper label accepts one label (place as `column`/`row` or `position`, from 1) or `{ format, labels: [...] }` for several on one sheet; labels without a place fill the free places in order, a place named twice is a hint.
+`server/mcp.ts` exposes two tools over `createMcpHandler` (a fresh server per request, no session): `list_products` and `render_product({ product, content })`. The result is a JSON text with `url`, `fileName`, `mimeType`, `validForHours`, plus a `resource_link`; on a rule violation `created: false` with `hints` and `isError`. The day sheet accepts one day or `{ days: [...] }` with up to seven days. Format ids are the same words in code and for agents (`series`/`long`, `label`/`sign`); the earlier names `standard`, `small` and `large` stay valid as aliases. Wood label and paper label both accept `{ labels: [...] }` for several pieces in one file. The paper label accepts one label (place as `column`/`row` or `position`, from 1) or `{ format, labels: [...] }` for several on one sheet; labels without a place fill the free places in order, a place named twice is a hint.
 
 `server/files.ts` stores a file in Workers KV (binding `FILES`) with a TTL of 24 hours under a 48-digit random hex key; `/d/<key>/<name>` serves it without sign-in.
 
@@ -151,7 +151,7 @@ Local test of the endpoint: `npm run dev`, then POST JSON-RPC to `/mcp` with `Ac
 
 ## Web UI
 
-Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted`), one terracotta accent (`clay`), lines instead of shadows. Tokens in `src/app.css` (`@theme`), UI fonts `font-ui-head` (Sora) and `font-ui-body` (Noto Sans) from `static/fonts`. Every control is at least 44 px; no horizontal scrolling at 360 px. Use Tailwind utility classes; avoid custom CSS. The UI fonts are independent of Kura's typeface.
+Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted`), one terracotta accent (`clay`), lines instead of shadows. Tokens in `src/app.css` (`@theme`), UI fonts `font-ui-head` (Sora) and `font-ui-body` (Noto Sans) from `static/fonts`. Every control is at least 44 px; no horizontal scrolling at 360 px. Product pages share one build: preview, title with one sentence, status card (format, hints, download, file name), control groups, secondary actions, footer. Use Tailwind utility classes; avoid custom CSS. The UI fonts are independent of Kura's typeface.
 
 ## Development Notes
 

@@ -14,9 +14,9 @@ import type { Hint } from './hint';
 
 export const PAPER_LABEL_FORMATS = {
 	/** Etikettenbogen A4 hoch mit 2 × 4 Etiketten */
-	small: { width: 105, height: 74, name: 'Etikett', sheet: { width: 210, height: 297, columns: 2, rows: 4, name: 'A4 hoch' } },
+	label: { width: 105, height: 74, name: 'Etikett', sheet: { width: 210, height: 297, columns: 2, rows: 4, name: 'A4 hoch' } },
 	/** Ein Schild auf A5 quer, oben */
-	large: { width: 210, height: 100, name: 'Schild', sheet: { width: 210, height: 148, columns: 1, rows: 1, name: 'A5 quer' } }
+	sign: { width: 210, height: 100, name: 'Schild', sheet: { width: 210, height: 148, columns: 1, rows: 1, name: 'A5 quer' } }
 } as const;
 
 export type PaperLabelFormatId = keyof typeof PAPER_LABEL_FORMATS;
@@ -29,7 +29,7 @@ export interface PaperLabelInput {
 	position: number;
 }
 
-export const DEFAULT_PAPER_LABEL_INPUT: PaperLabelInput = { text: 'gewürze', subText: '', format: 'small', position: 0 };
+export const DEFAULT_PAPER_LABEL_INPUT: PaperLabelInput = { text: 'gewürze', subText: '', format: 'label', position: 0 };
 
 export interface PaperLabelLayout {
 	format: PaperLabelFormatId;

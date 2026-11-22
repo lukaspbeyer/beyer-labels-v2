@@ -6,6 +6,7 @@ import type { Kura } from '$lib/kura/kura';
 import { pageSvg } from '$lib/media/paper/page';
 import { calibration } from '$lib/media/wood/calibration';
 import { layoutLabel } from '$lib/media/wood/layout';
+import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { DAY_SHEET_EXAMPLE, layoutDaySheet } from './daySheet';
 import type { Hint } from './hint';
@@ -21,6 +22,8 @@ export interface ProductExample {
 	hints: Hint[];
 	/** Farbe der Umgebung, vor der die Sache hängt oder liegt; gehört nicht zur Gestaltung */
 	backdrop?: string;
+	/** Bei Lärche: woraus der Renderer im Browser die Oberfläche rechnet; `svg` steht, bis das Holz geladen ist */
+	wood?: { layout: LabelLayout; settings: WoodSettings };
 }
 
 export interface ProductEntry {
@@ -40,7 +43,7 @@ export interface ProductEntry {
 function woodExample(kura: Kura, font: LoadedFont, input: Partial<WoodLabelInput>, caption: string): ProductExample {
 	const settings = woodLabelSettings(kura, { ...DEFAULT_WOOD_LABEL_INPUT, ...input });
 	const layout = layoutLabel(settings, font);
-	return { caption, svg: woodLabelSketch(layout, settings), width: layout.width, height: layout.height, hints: checkWoodLabel(kura, layout, settings), backdrop: calibration.front.color.agave };
+	return { caption, svg: woodLabelSketch(layout, settings), width: layout.width, height: layout.height, hints: checkWoodLabel(kura, layout, settings), backdrop: calibration.front.color.agave, wood: { layout, settings } };
 }
 
 function paperExample(kura: Kura, font: LoadedFont, input: Omit<PaperLabelInput, 'position'>): ProductExample {
@@ -59,8 +62,8 @@ export const PRODUCTS: readonly ProductEntry[] = [
 		href: '/holz',
 		examples: (kura, font) => [
 			woodExample(kura, font, { text: 'teller' }, 'Serie 64 × 24 mm'),
-			woodExample(kura, font, { text: 'duschgel' }, 'längstes Wort des Wortschatzes'),
-			woodExample(kura, font, { text: 'servietten', format: 'long' }, 'Langformat 90 × 24 mm')
+			woodExample(kura, font, { text: 'duschgel', grainSeed: 2 }, 'längstes Wort des Wortschatzes'),
+			woodExample(kura, font, { text: 'servietten', format: 'long', grainSeed: 3 }, 'Langformat 90 × 24 mm')
 		],
 		notes: (kura, font) => {
 			const misfits = vocabularyMisfits(kura, font);
@@ -76,8 +79,8 @@ export const PRODUCTS: readonly ProductEntry[] = [
 		summary: 'Etiketten auf dem Bogen, eines oder mehrere, jedes an seinem Platz. Als PDF drucken.',
 		href: '/papier',
 		examples: (kura, font) => [
-			paperExample(kura, font, { text: 'gewürze', subText: '', format: 'small' }),
-			paperExample(kura, font, { text: 'winter', subText: 'mützen · schals', format: 'large' })
+			paperExample(kura, font, { text: 'gewürze', subText: '', format: 'label' }),
+			paperExample(kura, font, { text: 'winter', subText: 'mützen · schals', format: 'sign' })
 		]
 	},
 	{

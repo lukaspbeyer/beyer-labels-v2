@@ -11,7 +11,7 @@
 
 	const FRONT_LABEL = { agave: 'Agave', anthracite: 'Anthrazit', columba: 'Columba Grey' } as const;
 	const FRONTS: readonly FrontColor[] = ['agave', 'anthracite', 'columba'];
-	const FORMAT_IDS: readonly WoodLabelFormatId[] = ['standard', 'long'];
+	const FORMAT_IDS: readonly WoodLabelFormatId[] = ['series', 'long'];
 	const formatOptions = FORMAT_IDS.map((value) => {
 		const format = WOOD_LABEL_FORMATS[value];
 		return { value, label: `${format.name} ${format.width} × ${format.height}` };

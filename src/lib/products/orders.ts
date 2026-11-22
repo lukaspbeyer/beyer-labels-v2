@@ -5,7 +5,8 @@
 import type { Kura } from '$lib/kura/kura';
 import { renderPdf } from '$lib/media/paper/pdf';
 import { layoutLabel } from '$lib/media/wood/layout';
-import { buildSvg, exportFileName } from '$lib/media/wood/svgExport';
+import { calibration } from '$lib/media/wood/calibration';
+import { buildSheetSvg, exportFileName, type SheetLabel } from '$lib/media/wood/svgExport';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { err, ok, type Result } from '$utils/result';
 import { DAY_SHEET_EXAMPLE, DAY_SHEET_LIMITS, daySheetFileName, layoutDaySheet, parseDaySheet, type DaySheetInput } from './daySheet';
@@ -54,8 +55,10 @@ function word(content: Record<string, unknown>): Result<string, Hint[]> {
 	return text ? ok(text) : err([{ kind: 'empty', message: 'text: Das Wort fehlt.' }]);
 }
 
-function choice<T extends string>(value: unknown, allowed: readonly T[], fallback: T, field: string): Result<T, Hint[]> {
+/** Wahl aus festen Werten; `aliases` hält frühere Namen gültig. */
+function choice<T extends string>(value: unknown, allowed: readonly T[], fallback: T, field: string, aliases: Record<string, T> = {}): Result<T, Hint[]> {
 	if (value === undefined || value === null || value === '') return ok(fallback);
+	if (typeof value === 'string' && value in aliases) return ok(aliases[value]);
 	return allowed.includes(value as T) ? ok(value as T) : err([{ kind: 'choice', message: `${field}: erlaubt sind ${allowed.join(', ')}.` }]);
 }
 
@@ -66,23 +69,38 @@ const woodLabel: Orderable = {
 		medium: 'Lärche-Gravur',
 		output: 'SVG',
 		description:
-			'Türlabel aus 4 mm Lärche für den Laser. Ein einzelnes kurzes Wort; Kura schreibt es klein. Die SVG enthält die Ebenen Gravur (schwarz) und Schnitt (rot), 1 Einheit = 1 mm.',
+			'Türlabel aus 4 mm Lärche für den Laser. Je Label ein einzelnes kurzes Wort; Kura schreibt es klein. Die SVG enthält die Ebenen Gravur (schwarz) und Schnitt (rot), 1 Einheit = 1 mm. ' +
+			`Für mehrere Labels in einer Datei statt text { "labels": [ { "text": … }, … ] } senden, höchstens ${calibration.laserSheet.maxLabels}; sie stehen untereinander mit ${calibration.laserSheet.gapMm} mm Abstand.`,
 		fields: [
 			{ name: 'text', type: 'string', required: true, description: 'Ein kurzes Wort, im Serienformat höchstens 45 mm breit (etwa 8 Buchstaben).' },
-			{ name: 'format', type: '"standard" | "long"', required: false, description: 'standard = Serie 64 × 24 mm (Vorgabe), long = 90 × 24 mm nur für ein unverzichtbar langes Wort.' }
+			{ name: 'format', type: '"series" | "long"', required: false, description: 'series = Serienformat 64 × 24 mm (Vorgabe), long = Langformat 90 × 24 mm nur für ein unverzichtbar langes Wort.' },
+			{ name: 'labels', type: '{ text, format? }[]', required: false, description: 'Mehrere Labels in einer Datei; ersetzt text auf oberster Ebene. format auf oberster Ebene gilt für jedes Label ohne eigenes format.' }
 		],
 		example: { text: 'teller' }
 	},
 	async make(kura, content, font) {
 		const source = record(content);
-		const text = word(source);
-		const format = choice<WoodLabelFormatId>(source.format, Object.keys(WOOD_LABEL_FORMATS) as WoodLabelFormatId[], 'standard', 'format');
-		if (!text.ok || !format.ok) return err([...(text.ok ? [] : text.error), ...(format.ok ? [] : format.error)]);
-		const settings = woodLabelSettings(kura, { ...DEFAULT_WOOD_LABEL_INPUT, text: text.value, format: format.value });
-		const layout = layoutLabel(settings, font);
-		const hints = checkWoodLabel(kura, layout, settings);
+		const many = Array.isArray(source.labels);
+		const raw = many ? (source.labels as unknown[]).map(record) : [source];
+		const limit = calibration.laserSheet.maxLabels;
+		if (raw.length === 0 || raw.length > limit) return err([{ kind: 'too-many', message: `labels: 1 bis ${limit} Labels je Datei.` }]);
+		const at = (i: number, message: string) => (many ? `labels[${i}]: ${message}` : message);
+		const hints: Hint[] = [];
+		const labels: SheetLabel[] = [];
+		raw.forEach((label, i) => {
+			const text = word(label);
+			const format = choice<WoodLabelFormatId>(label.format ?? source.format, Object.keys(WOOD_LABEL_FORMATS) as WoodLabelFormatId[], 'series', 'format', { standard: 'series' });
+			if (!text.ok || !format.ok) {
+				hints.push(...[...(text.ok ? [] : text.error), ...(format.ok ? [] : format.error)].map((h) => ({ ...h, message: at(i, h.message) })));
+				return;
+			}
+			const settings = woodLabelSettings(kura, { ...DEFAULT_WOOD_LABEL_INPUT, text: text.value, format: format.value });
+			const layout = layoutLabel(settings, font);
+			hints.push(...checkWoodLabel(kura, layout, settings).map((h) => ({ ...h, message: at(i, h.message) })));
+			labels.push({ layout, settings });
+		});
 		if (hints.length > 0) return err(hints);
-		return ok({ fileName: exportFileName(settings, layout), mime: 'image/svg+xml', body: buildSvg(layout, settings) });
+		return ok({ fileName: exportFileName(labels[0].settings, labels[0].layout, labels.length), mime: 'image/svg+xml', body: buildSheetSvg(labels) });
 	}
 };
 
@@ -99,16 +117,16 @@ const paperLabel: Orderable = {
 		fields: [
 			{ name: 'text', type: 'string', required: true, description: 'Ein kurzes Wort.' },
 			{ name: 'subText', type: 'string', required: false, description: 'Unterzeile, etwa der Ort oder der Inhalt.' },
-			{ name: 'format', type: '"small" | "large"', required: false, description: 'small = Etikett 105 × 74 mm auf A4 hoch mit 8 Plätzen (Vorgabe), large = Schild 210 × 100 mm auf A5 quer.' },
-			{ name: 'column, row', type: 'number, number', required: false, description: 'Platz auf dem Bogen als Spalte und Zeile ab 1, von links oben; bei small Spalte 1 bis 2, Zeile 1 bis 4.' },
-			{ name: 'position', type: 'number', required: false, description: 'Statt column und row: Platz ab 1, zeilenweise von links oben; bei small 1 bis 8. Ohne Angabe der erste freie Platz.' },
+			{ name: 'format', type: '"label" | "sign"', required: false, description: 'label = Etikett 105 × 74 mm auf A4 hoch mit 8 Plätzen (Vorgabe), sign = Schild 210 × 100 mm auf A5 quer.' },
+			{ name: 'column, row', type: 'number, number', required: false, description: 'Platz auf dem Bogen als Spalte und Zeile ab 1, von links oben; beim Etikett Spalte 1 bis 2, Zeile 1 bis 4.' },
+			{ name: 'position', type: 'number', required: false, description: 'Statt column und row: Platz ab 1, zeilenweise von links oben; beim Etikett 1 bis 8. Ohne Angabe der erste freie Platz.' },
 			{ name: 'labels', type: '{ text, subText?, column?, row?, position? }[]', required: false, description: 'Mehrere Etiketten auf einem Bogen, höchstens so viele wie Plätze; ersetzt text, subText und die Platzangabe auf oberster Ebene.' }
 		],
-		example: { text: 'gewürze', subText: 'regal 2', format: 'small', column: 1, row: 2 }
+		example: { text: 'gewürze', subText: 'regal 2', format: 'label', column: 1, row: 2 }
 	},
 	async make(kura, content, font) {
 		const source = record(content);
-		const format = choice<PaperLabelFormatId>(source.format, Object.keys(PAPER_LABEL_FORMATS) as PaperLabelFormatId[], 'small', 'format');
+		const format = choice<PaperLabelFormatId>(source.format, Object.keys(PAPER_LABEL_FORMATS) as PaperLabelFormatId[], 'label', 'format', { small: 'label', large: 'sign' });
 		if (!format.ok) return err(format.error);
 		const many = Array.isArray(source.labels);
 		const raw = many ? (source.labels as unknown[]).map(record) : [source];

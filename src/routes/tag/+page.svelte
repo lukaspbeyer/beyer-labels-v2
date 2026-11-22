@@ -57,7 +57,7 @@
 	const preview = $derived(result.sheet ? pageSvg(result.sheet, KURA.paper.ink) : '');
 	const printable = $derived(result.day !== null && result.hints.length === 0);
 	const fileName = $derived(result.day ? daySheetFileName(result.day) : '');
-	const weekday = $derived(result.day ? new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${result.day.date}T00:00:00Z`)) : '');
+	const weekday = $derived(result.day ? new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${result.day.date}T00:00:00Z`)) : '');
 
 	$effect(() => {
 		createFontLoader(fetch)
@@ -111,8 +111,8 @@
 
 			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
 				<div class="flex items-baseline justify-between gap-3">
-					<span class="text-sm text-ink-muted">Blatt</span>
-					<span class="font-ui-head text-lg">{weekday || 'A4 hoch'}</span>
+					<span class="text-sm text-ink-muted">Format</span>
+					<span class="font-ui-head text-lg tabular-nums">210 × 297 mm</span>
 				</div>
 				{#if fontError}
 					<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
@@ -139,14 +139,10 @@
 					PDF herunterladen
 				</button>
 				<p class="-mt-2 truncate text-center text-xs text-ink-muted" data-testid="file-name">{fileName}</p>
-				<div class="grid grid-cols-2 gap-2">
-					<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = fields({ ...EMPTY, date: form.date }))}>Leeren</button>
-					<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = fields(DAY_SHEET_EXAMPLE))}>Beispiel</button>
-				</div>
 			</div>
 
 			<div class="flex flex-col gap-3">
-				<ControlGroup title="Heute wichtig" summary={form.focus.text} open>
+				<ControlGroup title="Heute wichtig" summary={weekday} open>
 					<label class="flex flex-col gap-2 text-sm">
 						<span class="text-ink-muted">Tag</span>
 						<input type="date" class={INPUT} bind:value={form.date} data-testid="date" />
@@ -203,6 +199,11 @@
 						<textarea class="{INPUT} py-2 leading-relaxed" rows={L.remember} bind:value={form.remember}></textarea>
 					</label>
 				</ControlGroup>
+			</div>
+
+			<div class="grid grid-cols-2 gap-2">
+				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = fields({ ...EMPTY, date: form.date }))}>Blatt leeren</button>
+				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = fields(DAY_SHEET_EXAMPLE))}>Beispiel</button>
 			</div>
 
 			<footer class="px-1 text-xs leading-relaxed text-ink-muted">

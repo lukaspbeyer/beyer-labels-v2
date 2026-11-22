@@ -87,7 +87,7 @@
 
 			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
 				<div class="flex items-baseline justify-between gap-3">
-					<span class="text-sm text-ink-muted">Größe</span>
+					<span class="text-sm text-ink-muted">Format</span>
 					<span class="font-ui-head text-lg tabular-nums">{layout ? `${layout.width} × ${layout.height} mm` : '–'}</span>
 				</div>
 				{#if fontError}

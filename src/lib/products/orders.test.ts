@@ -28,6 +28,27 @@ describe('Bestellbare Produkte', () => {
 		expect((await make('holzlabel', { text: 'servietten', format: 'long' })).ok).toBe(true);
 	});
 
+	it('Holzlabel: mehrere Labels stehen untereinander in einer Datei', async () => {
+		const sheet = await make('holzlabel', { labels: [{ text: 'teller' }, { text: 'tassen' }, { text: 'servietten', format: 'long' }] });
+		expect(sheet.ok && sheet.value.fileName).toBe('holzlabel-teller-und-2-weitere-64x24mm.svg');
+		const svg = sheet.ok ? String(sheet.value.body) : '';
+		// drei Labels von 24 mm mit zweimal 3 mm Abstand, so breit wie das Langformat
+		expect(svg).toContain('width="90mm" height="78mm"');
+		expect(svg.match(/<g id="schnitt"[\s\S]*?<\/g>/)?.[0].match(/<path/g)).toHaveLength(3);
+		const bad = await make('holzlabel', { labels: [{ text: 'teller' }, { text: 'servietten' }, {}] });
+		expect(!bad.ok && bad.error.map((h) => h.kind)).toEqual(['sign-width', 'empty']);
+		expect(!bad.ok && bad.error[0].message.startsWith('labels[1]')).toBe(true);
+	});
+
+	it('nimmt die früheren Formatnamen weiter an', async () => {
+		expect((await make('holzlabel', { text: 'teller', format: 'standard' })).ok).toBe(true);
+		const sign = await make('papierlabel', { text: 'winter', format: 'large' });
+		expect(sign.ok && sign.value.fileName).toBe('papierlabel-winter-210x100mm.pdf');
+		expect((await make('papierlabel', { text: 'tee', format: 'small' })).ok).toBe(true);
+		const unknown = await make('papierlabel', { text: 'tee', format: 'riesig' });
+		expect(!unknown.ok && unknown.error[0].message).toBe('format: erlaubt sind label, sign.');
+	});
+
 	it('Papierlabel: zählt Plätze ab 1 und lehnt Plätze außerhalb des Bogens ab', async () => {
 		expect((await make('papierlabel', { text: 'gewürze', position: 8 })).ok).toBe(true);
 		const outside = await make('papierlabel', { text: 'gewürze', position: 9 });
@@ -43,7 +64,7 @@ describe('Bestellbare Produkte', () => {
 		const clash = await make('papierlabel', { labels: [{ text: 'tee', position: 3 }, { text: 'kaffee', column: 1, row: 2 }, { text: 'weihnachtsdekoration' }] });
 		expect(!clash.ok && clash.error.map((h) => h.kind)).toEqual(['position', 'sign-width']);
 		expect(!clash.ok && clash.error[1].message.startsWith('labels[2]')).toBe(true);
-		const tooMany = await make('papierlabel', { format: 'large', labels: [{ text: 'a' }, { text: 'b' }] });
+		const tooMany = await make('papierlabel', { format: 'sign', labels: [{ text: 'a' }, { text: 'b' }] });
 		expect(!tooMany.ok && tooMany.error.map((h) => h.kind)).toEqual(['too-many']);
 	});
 

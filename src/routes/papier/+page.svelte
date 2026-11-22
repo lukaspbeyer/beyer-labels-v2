@@ -50,7 +50,7 @@
 	const preview = $derived(sheet ? pageSvg(sheet, KURA.paper.ink) : '');
 	const fileName = $derived(labels.length > 0 ? paperLabelFileName({ text: labels[0].text, format: formatId }, labels.length) : '');
 
-	const FORMAT_IDS: readonly PaperLabelFormatId[] = ['small', 'large'];
+	const FORMAT_IDS: readonly PaperLabelFormatId[] = ['label', 'sign'];
 	const formatOptions = FORMAT_IDS.map((value) => {
 		const f = PAPER_LABEL_FORMATS[value];
 		return { value, label: `${f.name} ${f.width} × ${f.height}` };
@@ -81,6 +81,11 @@
 
 	function clear(): void {
 		delete cells[selected];
+	}
+
+	function clearAll(): void {
+		cells = {};
+		selected = 0;
 	}
 
 	function setFormat(next: PaperLabelFormatId): void {
@@ -154,8 +159,8 @@
 
 			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
 				<div class="flex items-baseline justify-between gap-3">
-					<span class="text-sm text-ink-muted">Bogen</span>
-					<span class="font-ui-head text-lg tabular-nums">{format.sheet.name} · {format.width} × {format.height} mm</span>
+					<span class="text-sm text-ink-muted">Format</span>
+					<span class="font-ui-head text-lg tabular-nums">{format.width} × {format.height} mm</span>
 				</div>
 				{#if fontError}
 					<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
@@ -187,7 +192,7 @@
 			</div>
 
 			<div class="flex flex-col gap-3">
-				<ControlGroup title="Bogen" summary={`${labels.length} von ${positions.length} ${positions.length === 1 ? 'Platz' : 'Plätzen'} belegt`} open>
+				<ControlGroup title="Bogen" summary={`${format.sheet.name} · ${labels.length} von ${positions.length} belegt`} open>
 					<Segmented label="Format (mm)" options={formatOptions} value={formatId} onchange={setFormat} />
 					{#if positions.length > 1}
 						<div class="flex flex-col gap-2" role="group" aria-label="Platz auf dem Bogen">
@@ -240,6 +245,12 @@
 					{/if}
 				</ControlGroup>
 			</div>
+
+			{#if positions.length > 1}
+				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted disabled:opacity-50" disabled={labels.length === 0} onclick={clearAll}>
+					Bogen leeren
+				</button>
+			{/if}
 
 			<footer class="px-1 text-xs leading-relaxed text-ink-muted">
 				<p>In Originalgröße drucken (100 %, ohne „An Seite anpassen“), sonst stimmen die Plätze auf dem Bogen nicht. Freie Plätze bleiben unbedruckt, der Bogen lässt sich später weiter nutzen.</p>
