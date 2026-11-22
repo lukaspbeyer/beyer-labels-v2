@@ -128,7 +128,8 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	const zoneGap = cap * 2.5;
 	const headingGap = cap * 1.25;
 	const box = cap * 1.25;
-	const inset = box + cap * 0.9;
+	// Zwei Kanten für das ganze Blatt: an der linken stehen Überschriften, Kästchen und Uhrzeiten, an der zweiten jeder Eintrag
+	const entryLeft = left + box + cap * 0.9;
 
 	/** Setzt einen Einzeiler; `anchor` ist die linke oder rechte Kante, `y` die Grundlinie. */
 	function put(text: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, side: 'left' | 'right' = 'left'): number {
@@ -160,8 +161,9 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 		items.push({ kind: 'stroke', commands, widthMm: rule });
 	}
 
-	function checkbox(x: number, baseline: number, size = box): void {
-		items.push({ kind: 'stroke', commands: roundedRectPath(x, baseline - size + (size - cap) / 2, size, size, 0), widthMm: rule });
+	/** Kästchen an der Kante `x`, senkrecht mittig zur Versalhöhe `capHeight` der Zeile. */
+	function checkbox(x: number, baseline: number, capHeight = cap): void {
+		items.push({ kind: 'stroke', commands: roundedRectPath(x, baseline - capHeight / 2 - box / 2, box, box, 0), widthMm: rule });
 	}
 
 	function heading(text: string, x: number, y: number): number {
@@ -169,13 +171,13 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 		return y + headingCap + headingGap;
 	}
 
-	// Kopf: Wochentag als Zeichen, Datum als Unterzeile
+	// Kopf: Wochentag als Zeichen, Datum als Unterzeile. Das Zeichen steht hier nicht allein, es folgt der Ausrichtung des Textes.
 	const day = new Date(`${input.date}T00:00:00Z`);
 	const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'long', timeZone: 'UTC' }).format(day);
 	const dateText = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(day);
 	const signCap = signCapHeight(kura, width, SHEET.headerHeight);
 	const subCap = signCap * kura.subLine.capRatio;
-	const anchor = kura.sign.align === 'left' ? left : kura.sign.align === 'right' ? right : left + width / 2;
+	const align = kura.text.align;
 	const headerLines: [string, number, number][] = [
 		[weekday, signCap, SHEET.margin + signCap],
 		[dateText, subCap, SHEET.margin + signCap + kura.subLine.lineSpacing * signCap + subCap]
@@ -183,25 +185,21 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	for (const [text, capHeight, baseline] of headerLines) {
 		const set = setLine(font, applyCase(kura.sign.case, text), capHeight, kura.sign.trackingPercent);
 		const inkWidth = set.ink.maxX - set.ink.minX;
-		const x = kura.sign.align === 'left' ? anchor : kura.sign.align === 'right' ? anchor - inkWidth : anchor - inkWidth / 2;
+		const x = align === 'left' ? left : align === 'right' ? right - inkWidth : left + (width - inkWidth) / 2;
 		items.push({ kind: 'fill', commands: translatePath(set.commands, x - set.ink.minX, baseline) });
 	}
 	let y = SHEET.margin + SHEET.headerHeight + zoneGap;
 
 	// Heute wichtig: eine Sache, größer als alles andere, darunter der erste Schritt
 	y = heading('heute wichtig', left, y);
-	const focusBox = focusCap * 1.25;
-	const focusInset = focusBox + focusCap * 0.9;
 	const focusBaseline = y + focusRow - focusCap * 0.9;
-	checkbox(left, focusBaseline, focusBox);
-	entry(input.focus.text, focusCap, left + focusInset, focusBaseline, width - focusInset, 'focus.text');
+	checkbox(left, focusBaseline, focusCap);
+	entry(input.focus.text, focusCap, entryLeft, focusBaseline, right - entryLeft, 'focus.text');
 	line(left, right, y + focusRow);
 	y += focusRow + headingGap;
-	const stepLabel = left + focusInset;
-	put('erster schritt', 'sign', headingCap, stepLabel, y + row - cap * 0.9);
-	const stepX = stepLabel + cap * 9.5;
-	entry(input.focus.firstStep, cap, stepX, y + row - cap * 0.9, right - stepX, 'focus.firstStep');
-	line(stepX, right, y + row);
+	y = heading('erster schritt', entryLeft, y) - headingGap + cap * 0.35;
+	entry(input.focus.firstStep, cap, entryLeft, y + row - cap * 0.9, right - entryLeft, 'focus.firstStep');
+	line(entryLeft, right, y + row);
 	y += row + zoneGap;
 
 	// Routinen: drei Spalten, nur was gilt
@@ -214,7 +212,7 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 		input.routines[id].slice(0, DAY_SHEET_LIMITS.routinesPerBlock).forEach((text, i) => {
 			const baseline = rowY + row - cap * 0.9;
 			checkbox(x, baseline);
-			entry(text, cap, x + inset, baseline, column - inset, `routines.${id}[${i}]`);
+			entry(text, cap, x + (entryLeft - left), baseline, column - (entryLeft - left), `routines.${id}[${i}]`);
 			rowY += row;
 		});
 	});
@@ -227,22 +225,22 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 		const baseline = y + row - cap * 0.9;
 		checkbox(left, baseline);
 		const durationWidth = task?.minutes ? put(`${task.minutes} min`, 'text', cap, right, baseline, 'right') + cap * 1.5 : 0;
-		if (task) entry(task.text, cap, left + inset, baseline, width - inset - durationWidth, `tasks[${i}].text`);
-		line(left + inset, right, y + row);
+		if (task) entry(task.text, cap, entryLeft, baseline, right - entryLeft - durationWidth, `tasks[${i}].text`);
+		line(left, right, y + row);
 		y += row;
 	}
 	y += zoneGap;
 
-	// Termine: Uhrzeit, Sache, rechts die Zeit zum Losgehen
+	// Termine: Uhrzeit an der linken Kante, Sache in eigener Spalte, rechts die Zeit zum Losgehen
 	y = heading('termine', left, y);
-	const timeColumn = cap * 5.2;
+	const appointmentLeft = left + cap * 5.2;
 	for (let i = 0; i < DAY_SHEET_LIMITS.appointments; i++) {
 		const appointment = input.appointments[i];
 		const baseline = y + row - cap * 0.9;
 		if (appointment) {
 			put(appointment.time, 'text', cap, left, baseline);
 			const leaveWidth = appointment.leaveAt ? put(`los ${appointment.leaveAt}`, 'text', cap, right, baseline, 'right') + cap * 1.5 : 0;
-			entry(appointment.text, cap, left + timeColumn, baseline, width - timeColumn - leaveWidth, `appointments[${i}].text`);
+			entry(appointment.text, cap, appointmentLeft, baseline, right - appointmentLeft - leaveWidth, `appointments[${i}].text`);
 		}
 		line(left, right, y + row);
 		y += row;

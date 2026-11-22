@@ -18,7 +18,7 @@ export interface KuraValues {
 	typeface: { font: FontId; weight: FontWeight };
 	/** Textrolle „Zeichen“: das einzelne, gesperrte Wort */
 	sign: { case: LetterCase; trackingPercent: number; align: TextAlign };
-	/** Textrolle „Text“: Listeneinträge und Angaben; ihre Ausrichtung gilt auch für Überschriften von Zonen */
+	/** Textrolle „Text“: Listeneinträge und Angaben; ihre Ausrichtung gilt auch für Überschriften von Zonen und für ein Zeichen, das neben Text steht */
 	text: { case: LetterCase; trackingPercent: number; align: TextAlign };
 	/** Verhältnis von Schrift zu Fläche */
 	proportion: {

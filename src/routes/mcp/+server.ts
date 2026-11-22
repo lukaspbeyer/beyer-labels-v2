@@ -13,8 +13,8 @@ let font: LoadedFont | null = null;
 const handle: RequestHandler = async ({ request, platform, fetch, url }) => {
 	const env = platform?.env;
 	const config = accessConfig(env);
-	// Ohne eingerichtetes Access bleibt der Endpunkt zu; nur der Entwicklungsserver ist offen
-	const identity = !config && dev ? null : await verifyAccess(request, config);
+	// Ohne eingerichtetes Access bleibt der Endpunkt zu; nur der Entwicklungsserver ist offen (er hat kein Access vor sich)
+	const identity = dev ? null : await verifyAccess(request, config);
 	if (identity && !identity.ok) {
 		const status = identity.error === 'not-configured' ? 503 : 401;
 		return json({ error: identity.error === 'not-configured' ? 'Anmeldung über Cloudflare Access ist nicht eingerichtet.' : 'Nicht angemeldet.' }, { status });
@@ -27,7 +27,10 @@ const handle: RequestHandler = async ({ request, platform, fetch, url }) => {
 		origin: url.origin,
 		async loadFont() {
 			if (!font) {
-				const loaded = await createFontLoader(fetch).load(KURA.typeface.font, KURA.typeface.weight);
+				// Im Worker direkt aus den statischen Dateien lesen: Der Weg über die eigene Adresse endet an der Anmeldung der Seiten
+				const assets = env?.ASSETS as { fetch: typeof fetch } | undefined;
+				const read: typeof fetch = assets && !dev ? (input) => assets.fetch(new URL(String(input), url.origin)) : fetch;
+				const loaded = await createFontLoader(read).load(KURA.typeface.font, KURA.typeface.weight);
 				if (loaded.ok) font = loaded.value;
 			}
 			return font;

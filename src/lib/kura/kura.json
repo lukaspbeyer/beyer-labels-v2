@@ -1,7 +1,7 @@
 {
 	"typeface": { "font": "jost", "weight": 400 },
 	"sign": { "case": "lower", "trackingPercent": 22, "align": "center" },
-	"text": { "case": "as-typed", "trackingPercent": 3, "align": "left" },
+	"text": { "case": "lower", "trackingPercent": 8, "align": "left" },
 	"proportion": { "capHeightPerWidth": 0.09375, "capHeightPerHeight": 0.25, "maxSignWidthRatio": 0.703125 },
 	"subLine": { "capRatio": 0.55, "lineSpacing": 0.6 },
 	"wood": {

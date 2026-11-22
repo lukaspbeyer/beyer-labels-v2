@@ -1,6 +1,7 @@
 /**
  * Produkt Papierlabel: gedrucktes Etikett im Hausdesign Kura.
- * Unterregeln des Produkts: zwei Formate auf festen Bögen, ein Wort, Unterzeile erlaubt.
+ * Unterregeln des Produkts: zwei Formate auf festen Bögen, je Etikett ein Wort, Unterzeile erlaubt.
+ * Ein Bogen kann mehrere Etiketten tragen, jedes an seinem Platz.
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
 import { applyCase, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
@@ -69,22 +70,43 @@ export function checkPaperLabel(kura: Kura, layout: PaperLabelLayout): Hint[] {
 	);
 }
 
-/** Der Druckbogen mit dem Etikett an seinem Platz. Ein Platz außerhalb des Bogens gilt als erster Platz. */
-export function paperLabelPage(layout: PaperLabelLayout, position: number): PrintPage {
-	const { sheet } = PAPER_LABEL_FORMATS[layout.format];
-	const index = position >= 0 && position < sheet.columns * sheet.rows ? Math.floor(position) : 0;
-	const dx = (index % sheet.columns) * layout.width;
-	const dy = Math.floor(index / sheet.columns) * layout.height;
+/** Platz ab 0 aus Spalte und Zeile ab 1; `null`, wenn es den Platz auf dem Bogen nicht gibt. */
+export function positionAt(format: PaperLabelFormatId, column: number, row: number): number | null {
+	const { columns, rows } = PAPER_LABEL_FORMATS[format].sheet;
+	if (!Number.isInteger(column) || !Number.isInteger(row) || column < 1 || column > columns || row < 1 || row > rows) return null;
+	return (row - 1) * columns + (column - 1);
+}
+
+/** Spalte und Zeile ab 1 zu einem Platz ab 0. */
+export function placeOf(format: PaperLabelFormatId, position: number): { column: number; row: number } {
+	const { columns } = PAPER_LABEL_FORMATS[format].sheet;
+	return { column: (position % columns) + 1, row: Math.floor(position / columns) + 1 };
+}
+
+/** Der Druckbogen mit jedem Etikett an seinem Platz. Ein Platz außerhalb des Bogens gilt als erster Platz. */
+export function paperSheetPage(format: PaperLabelFormatId, labels: readonly { layout: PaperLabelLayout; position: number }[]): PrintPage {
+	const { sheet, width, height } = PAPER_LABEL_FORMATS[format];
 	return {
 		width: sheet.width,
 		height: sheet.height,
-		items: layout.lines.filter((l) => l.commands.length > 0).map((l) => ({ kind: 'fill', commands: translatePath(l.commands, dx, dy) }))
+		items: labels.flatMap(({ layout, position }) => {
+			const index = position >= 0 && position < sheet.columns * sheet.rows ? Math.floor(position) : 0;
+			const dx = (index % sheet.columns) * width;
+			const dy = Math.floor(index / sheet.columns) * height;
+			return layout.lines.filter((l) => l.commands.length > 0).map((l) => ({ kind: 'fill' as const, commands: translatePath(l.commands, dx, dy) }));
+		})
 	};
 }
 
-/** Dateiname nach dem Muster papierlabel-gewuerze-105x74mm.pdf */
-export function paperLabelFileName(input: PaperLabelInput): string {
+/** Der Druckbogen mit einem einzelnen Etikett an seinem Platz. */
+export function paperLabelPage(layout: PaperLabelLayout, position: number): PrintPage {
+	return paperSheetPage(layout.format, [{ layout, position }]);
+}
+
+/** Dateiname nach dem Muster papierlabel-gewuerze-105x74mm.pdf; bei mehreren Etiketten papierlabel-gewuerze-und-2-weitere-105x74mm.pdf */
+export function paperLabelFileName(input: Pick<PaperLabelInput, 'text' | 'format'>, count = 1): string {
 	const { width, height } = PAPER_LABEL_FORMATS[input.format];
+	const more = count > 1 ? `-und-${count - 1}-weitere` : '';
 	const slug =
 		input.text
 			.trim()
@@ -95,5 +117,5 @@ export function paperLabelFileName(input: PaperLabelInput): string {
 			.replace(/ß/g, 'ss')
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/^-+|-+$/g, '') || 'label';
-	return `papierlabel-${slug}-${width}x${height}mm.pdf`;
+	return `papierlabel-${slug}${more}-${width}x${height}mm.pdf`;
 }

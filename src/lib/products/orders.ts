@@ -10,7 +10,7 @@ import type { LoadedFont } from '$lib/typesetting/fonts';
 import { err, ok, type Result } from '$utils/result';
 import { DAY_SHEET_EXAMPLE, DAY_SHEET_LIMITS, daySheetFileName, layoutDaySheet, parseDaySheet, type DaySheetInput } from './daySheet';
 import type { Hint } from './hint';
-import { checkPaperLabel, layoutPaperLabel, PAPER_LABEL_FORMATS, paperLabelFileName, paperLabelPage, positionCount, type PaperLabelFormatId } from './paperLabel';
+import { checkPaperLabel, layoutPaperLabel, PAPER_LABEL_FORMATS, paperLabelFileName, paperSheetPage, positionAt, positionCount, type PaperLabelFormatId, type PaperLabelLayout } from './paperLabel';
 import { checkWoodLabel, DEFAULT_WOOD_LABEL_INPUT, WOOD_LABEL_FORMATS, woodLabelSettings, type WoodLabelFormatId } from './woodLabel';
 
 export interface OrderField {
@@ -93,30 +93,75 @@ const paperLabel: Orderable = {
 		medium: 'Papier-Druck',
 		output: 'PDF',
 		description:
-			'Gedrucktes Etikett auf einem Etikettenbogen. Ein kurzes Wort, wahlweise mit Unterzeile; Kura schreibt beides klein. In Originalgröße (100 %) drucken.',
+			'Gedrucktes Etikett auf einem Etikettenbogen. Je Etikett ein kurzes Wort, wahlweise mit Unterzeile; Kura schreibt beides klein. In Originalgröße (100 %) drucken. ' +
+			'Der Platz auf dem Bogen ist wählbar, damit ein angebrochener Bogen weiter genutzt werden kann. ' +
+			'Für mehrere Etiketten auf einem Bogen statt text { "format": …, "labels": [ { "text": …, "column": …, "row": … }, … ] } senden; ohne Platzangabe füllen die Etiketten die freien Plätze der Reihe nach.',
 		fields: [
 			{ name: 'text', type: 'string', required: true, description: 'Ein kurzes Wort.' },
 			{ name: 'subText', type: 'string', required: false, description: 'Unterzeile, etwa der Ort oder der Inhalt.' },
 			{ name: 'format', type: '"small" | "large"', required: false, description: 'small = Etikett 105 × 74 mm auf A4 hoch mit 8 Plätzen (Vorgabe), large = Schild 210 × 100 mm auf A5 quer.' },
-			{ name: 'position', type: 'number', required: false, description: 'Platz auf dem Bogen ab 1, zeilenweise von links oben; bei small 1 bis 8. Vorgabe 1.' }
+			{ name: 'column, row', type: 'number, number', required: false, description: 'Platz auf dem Bogen als Spalte und Zeile ab 1, von links oben; bei small Spalte 1 bis 2, Zeile 1 bis 4.' },
+			{ name: 'position', type: 'number', required: false, description: 'Statt column und row: Platz ab 1, zeilenweise von links oben; bei small 1 bis 8. Ohne Angabe der erste freie Platz.' },
+			{ name: 'labels', type: '{ text, subText?, column?, row?, position? }[]', required: false, description: 'Mehrere Etiketten auf einem Bogen, höchstens so viele wie Plätze; ersetzt text, subText und die Platzangabe auf oberster Ebene.' }
 		],
-		example: { text: 'gewürze', subText: 'regal 2', format: 'small', position: 1 }
+		example: { text: 'gewürze', subText: 'regal 2', format: 'small', column: 1, row: 2 }
 	},
 	async make(kura, content, font) {
 		const source = record(content);
-		const text = word(source);
 		const format = choice<PaperLabelFormatId>(source.format, Object.keys(PAPER_LABEL_FORMATS) as PaperLabelFormatId[], 'small', 'format');
-		if (!text.ok || !format.ok) return err([...(text.ok ? [] : text.error), ...(format.ok ? [] : format.error)]);
+		if (!format.ok) return err(format.error);
+		const many = Array.isArray(source.labels);
+		const raw = many ? (source.labels as unknown[]).map(record) : [source];
+		const { columns, rows } = PAPER_LABEL_FORMATS[format.value].sheet;
 		const places = positionCount(format.value);
-		const place = source.position === undefined || source.position === null ? 1 : source.position;
-		if (typeof place !== 'number' || !Number.isInteger(place) || place < 1 || place > places)
-			return err([{ kind: 'position', message: `position: Platz 1 bis ${places} angeben.` }]);
-		const input = { text: text.value, subText: typeof source.subText === 'string' ? source.subText : '', format: format.value, position: place - 1 };
-		const layout = layoutPaperLabel(kura, input, font);
-		const hints = checkPaperLabel(kura, layout);
+		if (raw.length === 0 || raw.length > places) return err([{ kind: 'too-many', message: `labels: 1 bis ${places} Etiketten passen auf diesen Bogen.` }]);
+		const at = (i: number, field: string) => (many ? `labels[${i}].${field}` : field);
+		const hints: Hint[] = [];
+		// Erst die genannten Plätze; danach füllen die übrigen Etiketten die freien der Reihe nach
+		const taken = new Map<number, number>();
+		const named = raw.map((label, i): number | null => {
+			const hasCell = label.column !== undefined || label.row !== undefined;
+			if (!hasCell && (label.position === undefined || label.position === null)) return null;
+			const place = hasCell
+				? positionAt(format.value, label.column as number, label.row as number)
+				: typeof label.position === 'number' && Number.isInteger(label.position) && label.position >= 1 && label.position <= places
+					? label.position - 1
+					: null;
+			if (place === null) {
+				hints.push({
+					kind: 'position',
+					message: hasCell ? `${at(i, 'column')}, ${at(i, 'row')}: Spalte 1 bis ${columns} und Zeile 1 bis ${rows} angeben.` : `${at(i, 'position')}: Platz 1 bis ${places} angeben.`
+				});
+				return -1;
+			}
+			if (taken.has(place)) hints.push({ kind: 'position', message: `labels[${i}]: Der Platz ist schon durch labels[${taken.get(place)}] belegt. Einen anderen Platz wählen.` });
+			else taken.set(place, i);
+			return place;
+		});
+		let next = 0;
+		let first = '';
+		const placed: { layout: PaperLabelLayout; position: number }[] = [];
+		raw.forEach((label, i) => {
+			const text = word(label);
+			if (!text.ok) {
+				hints.push(...text.error.map((h) => ({ ...h, message: at(i, h.message) })));
+				return;
+			}
+			let place = named[i];
+			if (place === null) {
+				while (taken.has(next)) next++;
+				place = next;
+				taken.set(place, i);
+			}
+			const input = { text: text.value, subText: typeof label.subText === 'string' ? label.subText : '', format: format.value, position: place };
+			const layout = layoutPaperLabel(kura, input, font);
+			hints.push(...checkPaperLabel(kura, layout).map((h) => (many ? { ...h, message: `labels[${i}]: ${h.message}` } : h)));
+			placed.push({ layout, position: place });
+			first ||= text.value;
+		});
 		if (hints.length > 0) return err(hints);
-		const body = await renderPdf([paperLabelPage(layout, input.position)], kura.paper.ink, input.text);
-		return ok({ fileName: paperLabelFileName(input), mime: 'application/pdf', body });
+		const body = await renderPdf([paperSheetPage(format.value, placed)], kura.paper.ink, first);
+		return ok({ fileName: paperLabelFileName({ text: first, format: format.value }, placed.length), mime: 'application/pdf', body });
 	}
 };
 

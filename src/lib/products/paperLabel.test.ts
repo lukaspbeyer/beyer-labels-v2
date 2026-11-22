@@ -10,6 +10,9 @@ import {
 	layoutPaperLabel,
 	paperLabelFileName,
 	paperLabelPage,
+	paperSheetPage,
+	placeOf,
+	positionAt,
 	type PaperLabelInput
 } from './paperLabel';
 
@@ -52,6 +55,25 @@ describe('Papierlabel', () => {
 		expect(label({ format: 'large' }).page).toMatchObject({ width: 210, height: 148 });
 	});
 
+	it('rechnet Spalte und Zeile in den Platz um und zurück', () => {
+		expect(positionAt('small', 1, 2)).toBe(2);
+		expect(placeOf('small', 2)).toEqual({ column: 1, row: 2 });
+		expect(positionAt('small', 3, 1)).toBeNull();
+		expect(positionAt('large', 1, 1)).toBe(0);
+	});
+
+	it('setzt mehrere Etiketten auf einen Bogen, die freien Plätze bleiben leer', () => {
+		const one = label({ text: 'tee' }).layout;
+		const page = paperSheetPage('small', [
+			{ layout: one, position: 0 },
+			{ layout: one, position: 7 }
+		]);
+		expect(page.items).toHaveLength(2);
+		const [a, b] = page.items.map((item) => pathBox(item.commands));
+		expect(b.minX - a.minX).toBeCloseTo(105, 6);
+		expect(b.minY - a.minY).toBeCloseTo(3 * 74, 6);
+	});
+
 	it('meldet ein zu breites Wort und eine zu breite Unterzeile', () => {
 		expect(label({ text: 'gewürze' }).hints).toEqual([]);
 		expect(label({ text: 'weihnachtsdekoration' }).hints.map((h) => h.kind)).toEqual(['sign-width']);
@@ -60,6 +82,7 @@ describe('Papierlabel', () => {
 
 	it('benennt die Datei nach Wort und Format', () => {
 		expect(paperLabelFileName({ ...DEFAULT_PAPER_LABEL_INPUT, text: 'Gewürze' })).toBe('papierlabel-gewuerze-105x74mm.pdf');
+		expect(paperLabelFileName({ text: 'Tee', format: 'small' }, 3)).toBe('papierlabel-tee-und-2-weitere-105x74mm.pdf');
 	});
 });
 
