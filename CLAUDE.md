@@ -72,7 +72,7 @@ src/
     │   └── paper/             # Paper print: page model with SVG preview, PDF output
     ├── products/              # woodLabel.ts, paperLabel.ts, daySheet.ts, registry.ts (workbench), orders.ts (agents), hint.ts
     ├── server/                # mcp.ts (tools), files.ts (24 h store), access.ts (Cloudflare Access)
-    ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview)
+    ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview, WoodTopView)
     ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
     ├── types/opentype.d.ts    # Types for the used part of opentype.js
     └── utils/                 # result.ts (Result<T, E> for expected errors), download.ts (save a file from the browser)
@@ -94,7 +94,7 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 - `KURA_OPTIONS` and `KURA_RANGES`: allowed values; validation and the workbench controls both read them.
 - `vocabulary.ts`: the Kura vocabulary (short words for cupboards and drawers).
 
-**Workbench** (`src/routes/werkbank/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`. Overview and workbench show the examples in front of their surroundings (`backdrop` of an example: the furniture front for wood, sand for paper).
+**Workbench** (`src/routes/werkbank/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`. Overview and workbench show the examples in front of their surroundings (`backdrop` of an example: the furniture front for wood, sand for paper). A wood example carries `wood` (layout and settings); `components/wood/WoodTopView.svelte` renders it as a lit top view with the same surface pipeline as `/holz` (`renderSurface`, `shadeFlat`, quick frame first), without three.js, so every larch control of the workbench shows its effect. It carries the same `data-render-*` attributes as the preview and `data-mode` (`sketch`, `surface`).
 
 There are no presets and no design controls on product pages. Never put a design value (font, tracking, size ratio, colour) into a product or a page; change Kura instead.
 
@@ -106,7 +106,7 @@ Each product module holds its formats, its input type, the derivation from Kura 
 
 **Registry** (`registry.ts`): `PRODUCTS` lists every product with a summary, its page and examples drawn for a given Kura. A new product registers here and then appears on the overview and the workbench without further changes. Every product must be free of hints in the committed Kura (tested).
 
-**Wood label** (`woodLabel.ts`): formats `series` 64 × 24 mm and `long` 90 × 24 mm; one word, no sub line. `woodLabelSketch` draws the top view for overview and workbench: a crop of the larch photo in the tone of the finish, without depth and light. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
+**Wood label** (`woodLabel.ts`): formats `series` 64 × 24 mm and `long` 90 × 24 mm; one word, no sub line. `woodLabelSketch` draws a plain top view as SVG (a crop of the larch photo in the tone of the finish); overview and workbench show it only until the larch photo has loaded. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
 
 **Paper label** (`paperLabel.ts`): formats `label` 105 × 74 mm (A4 portrait sheet, 2 × 4) and `sign` 210 × 100 mm (A5 landscape, top); one word per label, sub line allowed. `layoutPaperLabel` sets the lines of one label, `checkPaperLabel` returns `sign-width` and `sub-width`, `paperSheetPage` places any number of labels at their places on one sheet (`positionAt`/`placeOf` convert between column/row from 1 and the row-wise position from 0); free places stay unprinted. The cell borders are shown in the preview only and are not printed.
 

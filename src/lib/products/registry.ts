@@ -62,8 +62,8 @@ export const PRODUCTS: readonly ProductEntry[] = [
 		href: '/holz',
 		examples: (kura, font) => [
 			woodExample(kura, font, { text: 'teller' }, 'Serie 64 × 24 mm'),
-			woodExample(kura, font, { text: 'duschgel' }, 'längstes Wort des Wortschatzes'),
-			woodExample(kura, font, { text: 'servietten', format: 'long' }, 'Langformat 90 × 24 mm')
+			woodExample(kura, font, { text: 'duschgel', grainSeed: 2 }, 'längstes Wort des Wortschatzes'),
+			woodExample(kura, font, { text: 'servietten', format: 'long', grainSeed: 3 }, 'Langformat 90 × 24 mm')
 		],
 		notes: (kura, font) => {
 			const misfits = vocabularyMisfits(kura, font);
