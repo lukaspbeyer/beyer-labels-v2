@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_WOOD_SETTINGS } from '$stores/wood';
+import { TEST_SETTINGS } from './testSettings';
 import { flattenPath, isInside, polylinesBox } from './geometry';
 import { layoutLabel } from './layout';
 import { buildSvg, exportFileName } from './svgExport';
@@ -9,7 +9,7 @@ import type { PathCommand, Point, WoodSettings } from './types';
 const sora = loadTestFont('sora', 400);
 
 function exportFor(changes: Partial<WoodSettings> = {}): { svg: Document; text: string; settings: WoodSettings } {
-	const s = { ...DEFAULT_WOOD_SETTINGS, ...changes };
+	const s = { ...TEST_SETTINGS, ...changes };
 	const text = buildSvg(layoutLabel(s, sora), s);
 	return { svg: new DOMParser().parseFromString(text, 'image/svg+xml'), text, settings: s };
 }
@@ -38,7 +38,7 @@ describe('SVG-Export', () => {
 	it('hat Maße in mm und einen passenden viewBox (1 Einheit = 1 mm)', () => {
 		const { svg } = exportFor();
 		const root = svg.documentElement;
-		const layout = layoutLabel(DEFAULT_WOOD_SETTINGS, sora);
+		const layout = layoutLabel(TEST_SETTINGS, sora);
 		expect(root.getAttribute('width')).toBe(`${layout.width}mm`);
 		expect(root.getAttribute('height')).toBe(`${layout.height}mm`);
 		expect(root.getAttribute('viewBox')).toBe(`0 0 ${layout.width} ${layout.height}`);
@@ -80,7 +80,7 @@ describe('SVG-Export', () => {
 		const path = svg.querySelector('g#gravur path');
 		expect(path?.getAttribute('fill-rule')).toBe('evenodd');
 		const polylines = flattenPath(parsePathData(path?.getAttribute('d') ?? ''));
-		const layout = layoutLabel({ ...DEFAULT_WOOD_SETTINGS, process: 'inverse' }, sora);
+		const layout = layoutLabel({ ...TEST_SETTINGS, process: 'inverse' }, sora);
 		const inField: Point = { x: 4.5, y: layout.height / 2 };
 		const inRim: Point = { x: 1, y: layout.height / 2 };
 		const glyph = flattenPath(layout.lines[0].commands);
@@ -99,7 +99,7 @@ describe('SVG-Export', () => {
 	});
 
 	it('Dateiname folgt dem Muster holzlabel-<text>-<b>x<h>mm.svg', () => {
-		const s = { ...DEFAULT_WOOD_SETTINGS, sizeMode: 'manual' as const, width: 80, height: 30 };
+		const s = { ...TEST_SETTINGS, sizeMode: 'manual' as const, width: 80, height: 30 };
 		expect(exportFileName(s, layoutLabel(s, sora))).toBe('holzlabel-teller-80x30mm.svg');
 		const umlaut = { ...s, text: 'Gewürze & Öle' };
 		expect(exportFileName(umlaut, layoutLabel(umlaut, sora))).toBe('holzlabel-gewuerze-oele-80x30mm.svg');

@@ -1,6 +1,7 @@
 /**
  * Gestaltungsvorlagen im Japandi-Stil für die Fronten im Haus (Agave, Anthrazit, Columba Grey).
- * Eine Vorlage setzt nur Gestaltung und Front; Text, Größe, Maserung, Ansicht und Licht bleiben.
+ * Eine Vorlage setzt Gestaltung und Front, mit `size` ein festes Format, sonst die automatische Größe;
+ * Text, Maserung, Ansicht und Licht bleiben.
  */
 import type { WoodSettings } from './types';
 
@@ -19,6 +20,7 @@ export type PresetSettings = Pick<
 	| 'shape'
 	| 'cornerRadius'
 	| 'frame'
+	| 'edge'
 	| 'front'
 >;
 
@@ -27,13 +29,39 @@ export interface WoodPreset {
 	name: string;
 	description: string;
 	settings: PresetSettings;
+	/** Festes Format für eine Serie gleich großer Labels */
+	size?: { width: number; height: number };
 }
 
+/** Die erste Vorlage ist das Hausdesign Kura und der Startzustand (BEYER-DESIGN-GUIDELINES.md). */
 export const PRESETS: readonly WoodPreset[] = [
+	{
+		id: 'kura',
+		name: 'Kura',
+		description: 'Unser Hausdesign: Jost klein und gesperrt, schwarz gefüllt, Kante geschliffen, 64 × 24 mm.',
+		settings: {
+			uppercase: false,
+			font: 'jost',
+			weight: 400,
+			capHeight: 6,
+			tracking: 22,
+			process: 'fill',
+			depth: 'low',
+			burn: 'medium',
+			fillColor: 'black',
+			finish: 'oiled',
+			shape: 'rectangle',
+			cornerRadius: 0,
+			frame: false,
+			edge: 'sanded',
+			front: 'agave'
+		},
+		size: { width: 64, height: 24 }
+	},
 	{
 		id: 'tatami',
 		name: 'Tatami',
-		description: 'Sora, dunkel graviert, geölt. Der Beyer-Klassiker.',
+		description: 'Sora, dunkel graviert, geölt.',
 		settings: {
 			uppercase: true,
 			font: 'sora',
@@ -48,6 +76,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 2,
 			frame: false,
+			edge: 'burnt',
 			front: 'columba'
 		}
 	},
@@ -69,6 +98,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 0,
 			frame: false,
+			edge: 'burnt',
 			front: 'agave'
 		}
 	},
@@ -90,6 +120,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'pill',
 			cornerRadius: 0,
 			frame: false,
+			edge: 'burnt',
 			front: 'anthracite'
 		}
 	},
@@ -111,6 +142,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 2,
 			frame: false,
+			edge: 'burnt',
 			front: 'columba'
 		}
 	},
@@ -132,6 +164,7 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'rectangle',
 			cornerRadius: 1,
 			frame: true,
+			edge: 'burnt',
 			front: 'anthracite'
 		}
 	},
@@ -153,10 +186,16 @@ export const PRESETS: readonly WoodPreset[] = [
 			shape: 'pill',
 			cornerRadius: 0,
 			frame: false,
+			edge: 'burnt',
 			front: 'agave'
 		}
 	}
 ];
+
+/** Änderungen, die eine Vorlage an den Einstellungen vornimmt: festes Format oder automatische Größe. */
+export function presetChanges(preset: WoodPreset): Partial<WoodSettings> {
+	return preset.size ? { ...preset.settings, sizeMode: 'manual', ...preset.size } : { ...preset.settings, sizeMode: 'auto' };
+}
 
 /** Stimmen die Einstellungen in allen Feldern der Vorlage überein? */
 export function matchesPreset(settings: WoodSettings, preset: WoodPreset): boolean {
@@ -174,6 +213,9 @@ export function matchesPreset(settings: WoodSettings, preset: WoodPreset): boole
 		settings.shape === s.shape &&
 		(s.shape !== 'rectangle' || settings.cornerRadius === s.cornerRadius) &&
 		settings.frame === s.frame &&
-		settings.front === s.front
+		settings.edge === s.edge &&
+		settings.front === s.front &&
+		(!preset.size ||
+			(settings.sizeMode === 'manual' && settings.width === preset.size.width && settings.height === preset.size.height))
 	);
 }

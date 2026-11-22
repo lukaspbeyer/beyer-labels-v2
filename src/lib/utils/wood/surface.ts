@@ -279,7 +279,8 @@ export function composeSurface(input: SurfaceInput, settings: WoodSettings): Omi
 	const walls = blurField(input.engraved, w, h, Math.max(0.6, Math.max(e.beamBlurMm, depth * e.wallTaper) * pxPerMm), 2);
 	const cavity = blurField(input.engraved, w, h, depth * 1.2 * pxPerMm, 2);
 	const halo = isBurn ? blurField(input.engraved, w, h, e.haloRadiusMm * pxPerMm / 1.4, 2) : null;
-	const edge = blurField(input.inside, w, h, calibration.edge.topBurnWidthMm * pxPerMm, 1);
+	const edgeCal = calibration.edge[settings.edge];
+	const edge = blurField(input.inside, w, h, edgeCal.topBurnWidthMm * pxPerMm, 1);
 	const horizontal = settings.grain === 'horizontal';
 	const fibers = fiberProfile(horizontal ? h : w, pxPerMm, settings.grainSeed);
 	const fiberDetail = calibration.woodTexture.fiberDetail;
@@ -307,7 +308,7 @@ export function composeSurface(input: SurfaceInput, settings: WoodSettings): Omi
 			const b = clamp01(input.wood[i * 3 + 2] * (1 + fiber));
 			applyFinish(woodFinish, r, g, b, lw, wood);
 			const haloDark = halo ? e.haloStrength * clamp01((halo[i] - m) * 2.2) : 0;
-			const edgeDark = calibration.edge.topBurnStrength * clamp01(1 - (edge[i] - 0.5) * 2);
+			const edgeDark = edgeCal.topBurnStrength * clamp01(1 - (edge[i] - 0.5) * 2);
 			const shade = (1 - haloDark) * (1 - edgeDark);
 
 			if (m > 0 && isBurn) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_WOOD_SETTINGS } from '$stores/wood';
+import { TEST_SETTINGS } from './testSettings';
 import { checkFabrication, textMargin } from './checks';
 import { layoutLabel } from './layout';
 import { loadTestFont } from './testFonts';
@@ -9,7 +9,7 @@ const sora = loadTestFont('sora', 400);
 const manrope = loadTestFont('manrope', 400);
 
 function warningsFor(changes: Partial<WoodSettings>, font = sora): string[] {
-	const s = { ...DEFAULT_WOOD_SETTINGS, ...changes };
+	const s = { ...TEST_SETTINGS, ...changes };
 	return checkFabrication(layoutLabel(s, font), s).map((w) => w.kind);
 }
 
@@ -43,7 +43,7 @@ describe('Fertigungswarnungen', () => {
 	});
 
 	it('misst den Randabstand bei Rahmen bis zur Rahmenlinie', () => {
-		const s: WoodSettings = { ...DEFAULT_WOOD_SETTINGS, sizeMode: 'manual', width: 70, height: 20 };
+		const s: WoodSettings = { ...TEST_SETTINGS, sizeMode: 'manual', width: 70, height: 20 };
 		const withFrame: WoodSettings = { ...s, frame: true };
 		expect(textMargin(layoutLabel(withFrame, sora), withFrame)).toBeLessThan(textMargin(layoutLabel(s, sora), s));
 	});

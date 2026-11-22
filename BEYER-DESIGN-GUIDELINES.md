@@ -9,6 +9,80 @@ Ein minimalistisches Design-System inspiriert von vietnamesisch-japanischer Äst
 - **Funktion**: Optimiert für Schwarz-Weiß-Laser-Druck
 - **Harmonie**: Tatami-Grid (6px) für natürliche Proportionen
 
+## Hausdesign Kura
+
+**Kura ist das Hausdesign der Familie Beyer für alle Holzlabels im Haus** (Küche, Bad, Schlafzimmer). In `/holz` ist Kura die erste Vorlage und der Startzustand. Die Abschnitte ab „Typografie“ gelten für Papier-Etiketten und Druck.
+
+Der Name: *Kura* (蔵) ist das japanische Speicherhaus, der Ort, an dem Vorräte und Wertvolles geordnet lagern. Genau das beschriften die Labels: Schränke, Schubladen, Vorräte.
+
+### Was Kura ausmacht
+
+1. **Holz vor Schrift.** Die Schrift nimmt etwa die Hälfte der Breite ein, der Rest ist freie Lärchenfläche. Die Ruhe und Wertigkeit entsteht aus dieser Fläche, nicht aus der Schrift.
+2. **Leise Schrift.** Kleinbuchstaben, dünn, weit gesperrt. Das Wort liest sich wie ein ruhiges Zeichen, nicht wie ein Hinweisschild.
+3. **Klarer Kontrast.** Die Gravur ist flach und schwarz gefüllt. Damit bleibt die kleine Schrift aus 1–2 m lesbar, ohne groß werden zu müssen.
+4. **Ehrliches Material.** Naturbelassene, geölte Lärche mit hell geschliffener Kante, scharfen Ecken, ohne Rahmen und ohne Verkohlung. Das Label sieht aus wie ein Stück Holz, nicht wie ein Laserprodukt.
+5. **Serie statt Einzelstück.** Alle Labels haben dasselbe Format. Nur das Wort ändert sich. Eine Reihe von Fronten wirkt dadurch geordnet und gewollt.
+6. **Ein kurzes Wort.** Ein Begriff, klein geschrieben, ohne Unterzeile, ohne Artikel. Lange Wörter werden durch kurze ersetzt (siehe Wortschatz).
+
+### Warum Kura zum Haus passt
+
+- **Lärche ist das durchgehende Material des Hauses:** Fenster, Türzargen und die Kanten der Küchenfronten. Ein Lärchenlabel mit heller Kante setzt diese Linie fort und wirkt wie ein Teil des Möbels.
+- **Die Fronten sind graugrün (Agave), grifflos und ruhig;** dazu Lehmputz, eine helle Holzdecke, dunkler Steinboden und außen Schiefer. Schwarz gefüllte Schrift nimmt die schwarze Arbeitsplatte, den Boden und den Schiefer auf.
+- **Vorbild sind japanische Hausschilder aus Holz:** naturbelassenes Holz, scharfe Ecken, saubere Kanten, kleine, weit gesperrte Schrift, meist schwarz gefüllt, viel freie Fläche. Kura überträgt diese Haltung auf kleine Labels für Schränke.
+- **Kleinbuchstaben statt Versalien:** Im direkten Vergleich mit Jost in Versalien wirkt die Kleinschrift leiser und moderner; Ober- und Unterlängen geben dem Wort eine eigene Gestalt.
+- **Jost statt Sora:** Jost ist eine geometrische Grotesk mit Futura-Anmutung (einstöckiges a) und kommt den Vorbildern am nächsten. Sora bleibt die Schrift der Papier-Etiketten.
+- **Festes Querformat statt Kompakt oder Quadrat:** Kompakt verliert die freie Fläche und wirkt wie ein Etikett aus dem Drucker. Ein Quadrat wirkt auf einer großen Front wie ein aufgesetztes Objekt. Das Querformat nimmt die waagerechten Kanten der Fronten und die waagerechte Maserung auf.
+- **Größe zwischen leisem Detail und ausgewogen:** auf einer 50–60 cm breiten Front etwa ein Zehntel der Breite; aus der Nähe ein Detail, aus 1–2 m lesbar.
+
+### Spezifikation
+
+| Merkmal | Kura |
+|---|---|
+| Material | Lärche, 4 mm, Maserung waagerecht |
+| Format | 64 × 24 mm, fest für alle Wörter |
+| Form | Rechteck, Eckradius 0 mm, ohne Rahmenlinie |
+| Kante | hell geschliffen (nach dem Laserschnitt schleifen oder Platte sägen und nur gravieren) |
+| Oberfläche | geölt |
+| Schrift | Jost Regular (400), Kleinbuchstaben, einzeilig, mittig |
+| Schrifthöhe | Versalhöhe 6 mm |
+| Laufweite | 22 % |
+| Gravur | flach, schwarz gefüllt |
+| Front | Agave (graugrün) |
+| Schriftbreite | höchstens 45 mm, damit links und rechts mindestens 9,5 mm Holz bleiben |
+
+Langformat für die seltene Ausnahme eines unverzichtbar langen Wortes (etwa „servietten“): 90 × 24 mm, alles andere gleich.
+
+### Wortschatz
+
+Alle Wörter passen in 64 × 24 mm ohne Fertigungswarnung (geprüft mit den Schriftdaten von Jost; längstes Wort „duschgel“, 45 mm).
+
+- **Küche:** teller, schalen, tassen, gläser, besteck, töpfe, pfannen, deckel, backen, bretter, messer, geräte, vorrat, gewürze, öle, tee, kaffee, müsli, nudeln, reis, mehl, zucker, brot, snacks, dosen, folien, tücher, putzen, müll
+- **Bad:** tücher, lappen, zähne, haare, pflege, kosmetik, rasur, seife, duschgel, shampoo, föhn, medizin, pflaster, papier, putzen, bürsten, vorrat, wäsche
+- **Schlafzimmer:** bettzeug, decken, kissen, wäsche, socken, pyjamas, pullover, shirts, hosen, hemden, schals, mützen, gürtel, schmuck, uhren, schuhe, sport, bücher, papiere, kabel, koffer, winter, sommer
+
+Kurze Wörter statt langer:
+
+| Statt | Kura |
+|---|---|
+| waschlappen | lappen |
+| unterwäsche | wäsche |
+| handtücher | tücher |
+| zahnpflege | zähne |
+| haarpflege | haare |
+| hautpflege | pflege |
+| bettwäsche | bettzeug |
+| dokumente | papiere |
+| putzmittel | putzen |
+| konserven | dosen |
+| ladekabel | kabel |
+| klopapier | papier |
+
+Neue Wörter: in `/holz` mit der Vorlage Kura eingeben. Zeigt die Fertigungsprüfung einen Hinweis, ist das Wort zu lang; dann ein kürzeres wählen.
+
+### Noch abzugleichen
+
+Farbtöne und Tiefen der Vorschau sind Schätzwerte. Nach einer Testgravur auf dem xTool die Füllung auf geschliffener Lärche und den Farbton der Agave-Front in `src/lib/utils/wood/calibration.json` anpassen.
+
 ## Typografie
 
 ### Schriftarten
