@@ -111,12 +111,13 @@
 							<h2 class="font-ui-head text-xl text-ink">{product.name}</h2>
 							<a href={product.href} class="flex min-h-11 items-center text-sm text-clay-dark underline">{product.medium} · öffnen</a>
 						</div>
-						<div class="flex flex-wrap items-end gap-5">
+						<!-- Die Beispiele liegen maßstäblich (3 px je mm) vor ihrer Umgebung, wie in der Übersicht -->
+						<div class="flex flex-wrap items-end gap-x-6 gap-y-5 rounded-xl p-4 sm:p-6" style="background: {examples[0]?.backdrop ?? 'var(--color-sand)'}">
 							{#each examples as example (example.caption)}
 								<figure class="flex flex-col gap-2" style="width: min(100%, {example.width * 3}px)">
 									<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
-									<div class="ring-1 ring-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full">{@html example.svg}</div>
-									<figcaption class="flex flex-col gap-2 text-xs text-ink-muted">
+									<div class="bg-white [&>svg]:block [&>svg]:h-auto [&>svg]:w-full {example.backdrop ? '' : 'ring-1 ring-line'}">{@html example.svg}</div>
+									<figcaption class="flex flex-col gap-2 text-xs {example.backdrop ? 'text-ink' : 'text-ink-muted'}">
 										{example.caption}
 										{#each example.hints as hint (hint.message)}
 											<span class="rounded-lg bg-clay-soft px-2 py-1 text-ink" data-kind={hint.kind}>{hint.message}</span>
@@ -329,7 +330,7 @@
 				/>
 			</ControlGroup>
 
-			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt immer in Schwarz. Holzlabels zeigt diese Seite schematisch; die fotorealistische Ansicht steht auf der Produktseite.</p>
+			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt immer in Schwarz. Holzlabels zeigt diese Seite als Draufsicht ohne Tiefe und Licht; die fotorealistische Ansicht steht auf der Produktseite.</p>
 		</aside>
 	</main>
 </div>
