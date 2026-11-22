@@ -1,0 +1,20 @@
+{
+	"typeface": { "font": "jost", "weight": 400 },
+	"sign": { "case": "lower", "trackingPercent": 22, "align": "center" },
+	"text": { "case": "as-typed", "trackingPercent": 3, "align": "left" },
+	"proportion": { "capHeightPerWidth": 0.09375, "capHeightPerHeight": 0.25, "maxSignWidthRatio": 0.703125 },
+	"subLine": { "capRatio": 0.55, "lineSpacing": 0.6 },
+	"wood": {
+		"grain": "horizontal",
+		"process": "fill",
+		"depth": "low",
+		"burn": "medium",
+		"fillColor": "black",
+		"finish": "oiled",
+		"shape": "rectangle",
+		"cornerRadius": 0,
+		"frame": false,
+		"edge": "sanded"
+	},
+	"paper": { "ink": "#000000", "textCapHeight": 3.4, "ruleWidth": 0.25 }
+}

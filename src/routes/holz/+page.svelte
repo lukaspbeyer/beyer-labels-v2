@@ -1,15 +1,14 @@
 <script lang="ts">
-	import '../../app.css';
-	import './holz.css';
-	import PresetPicker from '$components/wood/PresetPicker.svelte';
+	import SiteHeader from '$components/SiteHeader.svelte';
 	import WoodControls from '$components/wood/WoodControls.svelte';
 	import WoodPreview from '$components/wood/WoodPreview.svelte';
+	import { KURA } from '$lib/kura/kura';
+	import { checkWoodLabel } from '$lib/products/woodLabel';
 	import { woodSettings } from '$stores/wood';
-	import { checkFabrication } from '$utils/wood/checks';
-	import { createFontLoader, type FontLoader, type LoadedFont } from '$utils/wood/fonts';
-	import { layoutLabel } from '$utils/wood/layout';
-	import type { LabelLayout, WoodSettings } from '$utils/wood/types';
-	import { buildSvg, exportFileName } from '$utils/wood/svgExport';
+	import { createFontLoader, type FontLoader, type LoadedFont } from '$lib/typesetting/fonts';
+	import { layoutLabel } from '$lib/media/wood/layout';
+	import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
+	import { buildSvg, exportFileName } from '$lib/media/wood/svgExport';
 
 	let loader: FontLoader | null = null;
 	// Schriftobjekte nicht reaktiv verpacken; nur der Austausch zählt
@@ -29,7 +28,7 @@
 		return lastRendered;
 	});
 	const layout = $derived(rendered?.layout ?? null);
-	const warnings = $derived(rendered ? checkFabrication(rendered.layout, rendered.settings) : []);
+	const warnings = $derived(rendered ? checkWoodLabel(KURA, rendered.layout, rendered.settings) : []);
 	const fileName = $derived(rendered ? exportFileName(rendered.settings, rendered.layout) : '');
 
 	$effect(() => {
@@ -62,19 +61,13 @@
 </script>
 
 <svelte:head>
-	<title>Holzlabels · Beyer Labels</title>
-	<meta name="description" content="Türlabels aus Lärche gestalten, fotorealistisch ansehen und als Laserdatei laden." />
-	<link rel="preload" href="/fonts/sora/sora-latin-400-normal.woff" as="font" type="font/woff" crossorigin="anonymous" />
+	<title>Holzlabel · Kura</title>
+	<meta name="description" content="Türlabels aus Lärche im Hausdesign Kura ansehen und als Laserdatei laden." />
+	<link rel="preload" href="/fonts/jost/jost-latin-400-normal.woff" as="font" type="font/woff" crossorigin="anonymous" />
 </svelte:head>
 
 <div class="min-h-screen bg-ivory font-ui-body text-ink">
-	<header class="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-4 sm:px-6">
-		<a href="/" class="flex min-h-11 items-center font-ui-head text-base tracking-tight text-ink">Beyer Labels</a>
-		<nav class="flex gap-1 rounded-full bg-sand p-1 text-sm" aria-label="Bereiche">
-			<a href="/" class="flex min-h-11 items-center rounded-full px-4 text-ink-muted hover:text-ink">Papier</a>
-			<a href="/holz" class="flex min-h-11 items-center rounded-full bg-white px-4 text-ink shadow-sm" aria-current="page">Holz</a>
-		</nav>
-	</header>
+	<SiteHeader />
 
 	<main class="mx-auto grid max-w-[1400px] grid-cols-1 gap-6 pb-16 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-6">
 		<section
@@ -88,11 +81,9 @@
 
 		<div class="flex flex-col gap-4 px-4 sm:px-6 lg:px-0">
 			<div class="flex flex-col gap-1 pt-2">
-				<h1 class="font-ui-head text-3xl tracking-tight text-ink">Holzlabels</h1>
-				<p class="text-ink-muted">Lärche, mit dem CO<sub>2</sub>-Laser graviert. Gestalten, ansehen, Laserdatei laden.</p>
+				<h1 class="font-ui-head text-3xl tracking-tight text-ink">Holzlabel</h1>
+				<p class="text-ink-muted">Hausdesign Kura in Lärche, mit dem CO<sub>2</sub>-Laser graviert. Wort eingeben, ansehen, Laserdatei laden.</p>
 			</div>
-
-			<PresetPicker />
 
 			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
 				<div class="flex items-baseline justify-between gap-3">
@@ -112,7 +103,7 @@
 							{/each}
 						</ul>
 					{:else if layout}
-						<p class="text-sm text-ink-muted" data-testid="no-warnings">Keine Fertigungshinweise.</p>
+						<p class="text-sm text-ink-muted" data-testid="no-warnings">Keine Hinweise.</p>
 					{/if}
 				</div>
 				<button

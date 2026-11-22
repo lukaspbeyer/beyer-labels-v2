@@ -1,5 +1,5 @@
 {
-	"name": "beyer-labels-v2",
+	"name": "kura",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
@@ -37,8 +37,11 @@
 		"wrangler": "^4.33.2"
 	},
 	"dependencies": {
-		"marked": "^17.0.1",
+		"@cantoo/pdf-lib": "^2.11.1",
+		"@modelcontextprotocol/server": "^2.4.0",
+		"jose": "^6.2.18",
 		"opentype.js": "^2.0.0",
-		"three": "^0.187.0"
+		"three": "^0.187.0",
+		"zod": "^4.6.7"
 	}
 }

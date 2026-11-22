@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { calibration } from '$utils/wood/calibration';
-	import type { LabelScene } from '$utils/wood/scene';
-	import { loadWoodSource, renderSurface, shadeFlat, type SurfaceMaps, type WoodSource } from '$utils/wood/surface';
-	import type { LabelLayout, WoodSettings } from '$utils/wood/types';
+	import { calibration } from '$lib/media/wood/calibration';
+	import type { LabelScene } from '$lib/media/wood/scene';
+	import { loadWoodSource, renderSurface, shadeFlat, type SurfaceMaps, type WoodSource } from '$lib/media/wood/surface';
+	import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
 
 	interface Props {
 		layout: LabelLayout | null;
@@ -37,7 +37,7 @@
 
 	async function createScene(target: HTMLElement): Promise<LabelScene | null> {
 		try {
-			const module = await import('$utils/wood/scene');
+			const module = await import('$lib/media/wood/scene');
 			const created = module.createLabelScene(target);
 			return created.ok ? created.value : null;
 		} catch {
