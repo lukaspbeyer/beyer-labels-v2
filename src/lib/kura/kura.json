@@ -1,0 +1,18 @@
+{
+	"typeface": { "font": "jost", "weight": 400 },
+	"sign": { "case": "lower", "trackingPercent": 22, "align": "center" },
+	"proportion": { "capHeightPerWidth": 0.09375, "capHeightPerHeight": 0.25, "maxSignWidthRatio": 0.703125 },
+	"subLine": { "lineSpacing": 0.6 },
+	"wood": {
+		"grain": "horizontal",
+		"process": "fill",
+		"depth": "low",
+		"burn": "medium",
+		"fillColor": "black",
+		"finish": "oiled",
+		"shape": "rectangle",
+		"cornerRadius": 0,
+		"frame": false,
+		"edge": "sanded"
+	}
+}

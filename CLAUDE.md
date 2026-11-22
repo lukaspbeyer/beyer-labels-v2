@@ -5,9 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Beyer Labels - Mobile-optimized web application for creating elegant labels with optional AI-generated pictograms. Built with SvelteKit v2 and deployed on Cloudflare Workers.
 
-Two areas:
-- **Papier** (`/`): printed paper labels.
-- **Holz** (`/holz`): door labels made of larch (Lärche), engraved with a CO₂ laser (xTool X1). Photorealistic 3D preview on a furniture front, Japandi presets and SVG export for the laser software.
+Everything follows one house design, **Kura**. Structure in three levels with one-way dependencies (see `GLOSSARY.md` and `docs/adr/`): design (Kura) → medium (larch engraving, paper print) → product (wood label, paper label, day sheet).
+
+Areas today:
+- **Holz** (`/holz`): product wood label. Door labels made of larch (Lärche), engraved with a CO₂ laser (xTool X1). Photorealistic 3D preview on a furniture front and SVG export for the laser software.
+- **Papier** (`/`): the old paper label system (own styles, pictograms). It is being replaced by paper products in Kura; do not extend it.
+
+Planned, in this order: paper print with PDF and the paper label; Kura workbench at `/` with previews of all products; day sheet; MCP server (list products, render product).
 
 ## Commands
 
@@ -70,19 +74,21 @@ src/
 │   │   ├── GridSelector.svelte      # Position selector grid  
 │   │   ├── PictogramEditor.svelte   # AI pictogram generation
 │   │   ├── PrintSetup.svelte        # Print preparation
-│   │   └── wood/                    # /holz: PresetPicker, WoodControls, WoodPreview, ControlGroup, Segmented, Slider
+│   │   └── wood/                    # /holz: WoodControls, WoodPreview, ControlGroup, Segmented, Slider
+│   ├── kura/                 # Kura: kura.json (the design), kura.ts (validation, derivation rules)
+│   ├── products/             # Products: woodLabel.ts (formats, input, derivation from Kura, hints)
 │   ├── stores/               # Svelte stores for state management
 │   │   ├── label.ts          # Label text and pictogram state (single label)
 │   │   ├── format.ts         # Format selection and label positioning
 │   │   ├── pictogram.ts      # AI pictogram management
-│   │   └── wood.ts           # /holz settings (single label)
+│   │   └── wood.ts           # /holz input (word, format, preview surroundings); settings are derived
 │   ├── types/opentype.d.ts   # Types for the used part of opentype.js
 │   └── utils/                # Shared utilities and types
 │       ├── types.ts          # Unified type definitions
 │       ├── result.ts         # Result<T, E> for expected errors
 │       ├── labelFormats.ts   # Label format configurations
 │       ├── imageProcessing.ts # Image trimming utilities
-│       └── wood/             # /holz logic (see "Holzlabels")
+│       └── wood/             # Medium larch engraving (see "Holzlabels")
 static/fonts/<font>/          # Local WOFF files (latin, three weights per font) + OFL.txt
 static/textures/              # Larch texture, latewood map, nachweis.txt (CC BY 2.0)
 scripts/build-larch-texture.py # Builds the larch texture from a photo
@@ -143,18 +149,20 @@ pictogram.ts: generation state, error handling
 ## Holzlabels (/holz)
 
 Pipeline per change (all lengths in mm, y down):
-1. `stores/wood.ts` holds `WoodSettings` (start: house design Kura with „teller“, `applyPreset`); the page loads the font (`utils/wood/fonts.ts`, `createFontLoader`) and keeps layout and settings as a pair once the selected font is loaded.
+1. `stores/wood.ts` holds the `WoodLabelInput` (word, format, front, grain cut, view, light). `products/woodLabel.ts` derives the engine's `WoodSettings` from Kura and that input (`woodLabelSettings`); the product never sets a design value itself. The page loads the font (`utils/wood/fonts.ts`, `createFontLoader`) and keeps layout and settings as a pair once the selected font is loaded.
 2. `layout.ts` sets main and sub line glyph by glyph (kerning, tracking, no ligatures), determines the size (auto: text + padding, whole mm, 20–200 × 10–100) and places the text. `geometry.ts` builds the shapes (rectangle with corner radius, pill, oval).
-3. `checks.ts` returns fabrication warnings: cap height, thinnest stroke (measured per font and weight from I, H, E, O, n, o, e), margin to edge/frame/inverse rim, size limit.
+3. `checks.ts` returns fabrication warnings: cap height, thinnest stroke (measured per font and weight from I, H, E, O, n, o, e), margin to edge/frame/inverse rim, size limit. `checkWoodLabel` adds the Kura rule for the width of the word (`sign-width`).
 4. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps (depth, wall taper, self shadow, latewood shallower and lighter, halo, edge burnt or sanded, finish). After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
 5. `scene.ts` (three.js) shows the extruded 4 mm label on the furniture front (no handle). Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
 6. `svgExport.ts` writes the laser file.
 
 **Fonts**: ten free fonts (OFL) in `FONT_CATALOG`, each with its own three weights (Zen Kaku/Maru Gothic: 400/500/700, others 400/500/600); `nearestWeight` adjusts the weight on a font change. Cap height is measured from the glyph H. Shippori Mincho has fine hairlines and needs about 7 mm cap height.
 
-**House design Kura**: Kura is the Beyer house design for all wood labels and the start state; it is the first entry in `PRESETS`. Its definition, principles, rationale, specification and vocabulary are in `BEYER-DESIGN-GUIDELINES.md` (section „Hausdesign Kura“); keep that section and the preset in sync.
+**Kura** (`src/lib/kura`): `kura.json` is the single design definition: typeface, the text role „Zeichen“ (case, tracking, alignment), proportion rules and the expression for larch. `parseKura` validates it and reports all violations; `signCapHeight` and `maxSignWidth` are the rules products derive from. Principles, rationale, specification and vocabulary are in `BEYER-DESIGN-GUIDELINES.md` (section „Hausdesign Kura“); keep that section and `kura.json` in sync. There are no presets and no free design controls on product pages; design changes go into `kura.json`.
 
-**Presets** (`utils/wood/presets.ts`): Kura, then Japandi alternatives for the fronts in the house (Agave, Anthrazit, Columba Grey): Tatami, Sumi, Washi, Hinoki, Mincho, Ishi. A preset sets design and front; with `size` (Kura: 64 × 24 mm) a fixed size, otherwise automatic size. Text, grain, view and light stay. Every preset must stay free of fabrication warnings (tested). Tests use `testSettings.ts` (Tatami, automatic size) as a fixed base instead of the start state.
+**Product wood label** (`src/lib/products/woodLabel.ts`): sub-rules are the two fixed formats (series 64 × 24 mm, long 90 × 24 mm), one word, no sub line. Cap height follows the series format. Every word of the Kura vocabulary must stay free of hints in the series format (tested).
+
+**Engine tests** use `testSettings.ts` (Sora capitals, dark engraving, automatic size) as a fixed base independent of Kura. The engine still supports what Kura does not use today (automatic size, inverse, frame, pill, oval), because the workbench will be able to set it.
 
 **Calibration**: all colours, depths, gloss, light, layout padding and warning thresholds are in `utils/wood/calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving. The front colours (Agave, Anthrazit, Columba Grey) are estimates; match them to a sample.
 

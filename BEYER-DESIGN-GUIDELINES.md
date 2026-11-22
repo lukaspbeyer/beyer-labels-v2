@@ -11,7 +11,9 @@ Ein minimalistisches Design-System inspiriert von vietnamesisch-japanischer Äst
 
 ## Hausdesign Kura
 
-**Kura ist das Hausdesign der Familie Beyer für alle Holzlabels im Haus** (Küche, Bad, Schlafzimmer). In `/holz` ist Kura die erste Vorlage und der Startzustand. Die Abschnitte ab „Typografie“ gelten für Papier-Etiketten und Druck.
+**Kura ist das Hausdesign der Familie Beyer und das einzige Design für alle Produkte**: Holzlabels, Papierlabels und weitere Drucksachen. Die Definition steht in `src/lib/kura/kura.json`; diese Datei und dieser Abschnitt bleiben im Gleichklang. Die Abschnitte ab „Typografie“ beschreiben das frühere Papier-System und werden mit der Umstellung des Papierdrucks auf Kura ersetzt.
+
+Kura besteht aus einem **Kern**, der für jedes Produkt gilt (Schrift, Schreibweise, Laufweite, Ausrichtung, Verhältnis von Schrift zu Fläche, Wortschatz), und einer **Ausprägung je Medium** (Lärche: Gravur, Oberfläche, Form, Kante). Produkte leiten ihre Maße aus dem Kern ab und ergänzen eigene Unterregeln wie ein festes Format; sie überschreiben Kura nie.
 
 Der Name: *Kura* (蔵) ist das japanische Speicherhaus, der Ort, an dem Vorräte und Wertvolles geordnet lagern. Genau das beschriften die Labels: Schränke, Schubladen, Vorräte.
 
@@ -30,27 +32,42 @@ Der Name: *Kura* (蔵) ist das japanische Speicherhaus, der Ort, an dem Vorräte
 - **Die Fronten sind graugrün (Agave), grifflos und ruhig;** dazu Lehmputz, eine helle Holzdecke, dunkler Steinboden und außen Schiefer. Schwarz gefüllte Schrift nimmt die schwarze Arbeitsplatte, den Boden und den Schiefer auf.
 - **Vorbild sind japanische Hausschilder aus Holz:** naturbelassenes Holz, scharfe Ecken, saubere Kanten, kleine, weit gesperrte Schrift, meist schwarz gefüllt, viel freie Fläche. Kura überträgt diese Haltung auf kleine Labels für Schränke.
 - **Kleinbuchstaben statt Versalien:** Im direkten Vergleich mit Jost in Versalien wirkt die Kleinschrift leiser und moderner; Ober- und Unterlängen geben dem Wort eine eigene Gestalt.
-- **Jost statt Sora:** Jost ist eine geometrische Grotesk mit Futura-Anmutung (einstöckiges a) und kommt den Vorbildern am nächsten. Sora bleibt die Schrift der Papier-Etiketten.
+- **Jost statt Sora:** Jost ist eine geometrische Grotesk mit Futura-Anmutung (einstöckiges a) und kommt den Vorbildern am nächsten.
 - **Festes Querformat statt Kompakt oder Quadrat:** Kompakt verliert die freie Fläche und wirkt wie ein Etikett aus dem Drucker. Ein Quadrat wirkt auf einer großen Front wie ein aufgesetztes Objekt. Das Querformat nimmt die waagerechten Kanten der Fronten und die waagerechte Maserung auf.
 - **Größe zwischen leisem Detail und ausgewogen:** auf einer 50–60 cm breiten Front etwa ein Zehntel der Breite; aus der Nähe ein Detail, aus 1–2 m lesbar.
 
 ### Spezifikation
 
+Kern (gilt für jedes Produkt):
+
+| Merkmal | Kura |
+|---|---|
+| Schrift | Jost Regular (400) |
+| Zeichen (das einzelne Wort) | Kleinbuchstaben, Laufweite 22 %, mittig |
+| Versalhöhe | 9,375 % der Breite der Fläche, höchstens 25 % ihrer Höhe |
+| Breite des Zeichens | höchstens 70,3 % der Breite der Fläche |
+| Unterzeile | Abstand 0,6 Versalhöhen; je Produkt erlaubt oder nicht |
+
+Ausprägung Lärche:
+
 | Merkmal | Kura |
 |---|---|
 | Material | Lärche, 4 mm, Maserung waagerecht |
-| Format | 64 × 24 mm, fest für alle Wörter |
 | Form | Rechteck, Eckradius 0 mm, ohne Rahmenlinie |
 | Kante | hell geschliffen (nach dem Laserschnitt schleifen oder Platte sägen und nur gravieren) |
 | Oberfläche | geölt |
-| Schrift | Jost Regular (400), Kleinbuchstaben, einzeilig, mittig |
-| Schrifthöhe | Versalhöhe 6 mm |
-| Laufweite | 22 % |
 | Gravur | flach, schwarz gefüllt |
-| Front | Agave (graugrün) |
-| Schriftbreite | höchstens 45 mm, damit links und rechts mindestens 9,5 mm Holz bleiben |
 
-Langformat für die seltene Ausnahme eines unverzichtbar langen Wortes (etwa „servietten“): 90 × 24 mm, alles andere gleich.
+Produkt Holzlabel (Unterregeln):
+
+| Merkmal | Holzlabel |
+|---|---|
+| Format | Serienformat 64 × 24 mm, fest für alle Wörter |
+| Inhalt | ein Wort, keine Unterzeile |
+| Daraus abgeleitet | Versalhöhe 6 mm, Wort höchstens 45 mm breit, links und rechts mindestens 9,5 mm Holz |
+| Vorschau | Front Agave (graugrün), wahlweise Anthrazit oder Columba Grey |
+
+Langformat für die seltene Ausnahme eines unverzichtbar langen Wortes (etwa „servietten“): 90 × 24 mm, Versalhöhe weiter 6 mm, Wort höchstens 63,3 mm breit.
 
 ### Wortschatz
 
@@ -77,7 +94,7 @@ Kurze Wörter statt langer:
 | ladekabel | kabel |
 | klopapier | papier |
 
-Neue Wörter: in `/holz` mit der Vorlage Kura eingeben. Zeigt die Fertigungsprüfung einen Hinweis, ist das Wort zu lang; dann ein kürzeres wählen.
+Neue Wörter: in `/holz` eingeben. Erscheint ein Hinweis, ist das Wort zu lang; dann ein kürzeres wählen.
 
 ### Noch abzugleichen
 

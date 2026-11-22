@@ -1,12 +1,31 @@
-/** Feste Testgrundlage, unabhängig vom Startzustand: Vorlage Tatami (Sora, automatische Größe) mit „Teller“. */
-import { DEFAULT_WOOD_SETTINGS } from '$stores/wood';
-import { PRESETS, presetChanges } from './presets';
+/** Feste Testgrundlage der Gravur, unabhängig von Kura: Sora in Versalien, dunkel graviert, automatische Größe. */
 import type { WoodSettings } from './types';
 
-function tatamiSettings(): WoodSettings {
-	const tatami = PRESETS.find((p) => p.id === 'tatami');
-	if (!tatami) throw new Error('Vorlage Tatami fehlt');
-	return { ...DEFAULT_WOOD_SETTINGS, ...presetChanges(tatami), text: 'Teller' };
-}
-
-export const TEST_SETTINGS: WoodSettings = tatamiSettings();
+export const TEST_SETTINGS: WoodSettings = {
+	text: 'Teller',
+	subText: '',
+	uppercase: true,
+	font: 'sora',
+	weight: 400,
+	capHeight: 8,
+	tracking: 8,
+	lineSpacing: 0.6,
+	align: 'center',
+	grain: 'horizontal',
+	grainSeed: 1,
+	process: 'dark',
+	depth: 'medium',
+	burn: 'medium',
+	fillColor: 'black',
+	finish: 'oiled',
+	shape: 'rectangle',
+	cornerRadius: 2,
+	frame: false,
+	edge: 'burnt',
+	sizeMode: 'auto',
+	width: 64,
+	height: 24,
+	front: 'columba',
+	view: 'oblique',
+	lightAngle: 125
+};
