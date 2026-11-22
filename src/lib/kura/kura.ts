@@ -4,19 +4,9 @@
  * Produkte lesen Kura nur: Sie leiten ab und ergänzen, sie überschreiben nicht (docs/adr/0002).
  */
 import { err, ok, type Result } from '$utils/result';
-import { fontInfo, FONT_CATALOG } from '$utils/wood/fonts';
-import type {
-	EdgeFinish,
-	FillColor,
-	Finish,
-	FontId,
-	FontWeight,
-	GrainDirection,
-	Level,
-	Process,
-	Shape,
-	TextAlign
-} from '$utils/wood/types';
+import { fontInfo, FONT_CATALOG } from '$lib/typesetting/fonts';
+import type { FontId, FontWeight, Shape, TextAlign } from '$lib/typesetting/types';
+import type { EdgeFinish, FillColor, Finish, GrainDirection, Level, Process } from '$lib/media/wood/types';
 import values from './kura.json';
 
 export type LetterCase = 'lower' | 'upper' | 'as-typed';
@@ -38,6 +28,8 @@ interface KuraValues {
 		maxSignWidthRatio: number;
 	};
 	subLine: {
+		/** Versalhöhe der Unterzeile relativ zur Hauptzeile */
+		capRatio: number;
 		/** Abstand zur Unterzeile in Vielfachen der Versalhöhe */
 		lineSpacing: number;
 	};
@@ -53,6 +45,11 @@ interface KuraValues {
 		cornerRadius: number;
 		frame: boolean;
 		edge: EdgeFinish;
+	};
+	/** Ausprägung für das Medium Papier-Druck */
+	paper: {
+		/** Druckfarbe als #rrggbb */
+		ink: string;
 	};
 }
 
@@ -77,6 +74,7 @@ const RANGES = {
 	'proportion.capHeightPerWidth': [0.02, 0.3],
 	'proportion.capHeightPerHeight': [0.05, 0.6],
 	'proportion.maxSignWidthRatio': [0.2, 0.9],
+	'subLine.capRatio': [0.3, 1],
 	'subLine.lineSpacing': [0.3, 1.5],
 	'wood.cornerRadius': [0, 10]
 } as const;
@@ -96,6 +94,8 @@ export function parseKura(raw: unknown): Result<Kura, string[]> {
 		if (typeof value !== 'number' || !(value >= min && value <= max)) problems.push(`${path}: Zahl zwischen ${min} und ${max} erwartet`);
 	}
 	if (typeof at(raw, 'wood.frame') !== 'boolean') problems.push('wood.frame: true oder false erwartet');
+	const ink = at(raw, 'paper.ink');
+	if (typeof ink !== 'string' || !/^#[0-9a-f]{6}$/i.test(ink)) problems.push('paper.ink: Farbe als #rrggbb erwartet');
 	const font = at(raw, 'typeface.font');
 	const known = FONT_CATALOG.find((f) => f.id === font);
 	if (!known) problems.push(`typeface.font: erlaubt sind ${FONT_CATALOG.map((f) => f.id).join(', ')}`);

@@ -37,7 +37,7 @@
 		"wrangler": "^4.33.2"
 	},
 	"dependencies": {
-		"marked": "^17.0.1",
+		"@cantoo/pdf-lib": "^2.11.1",
 		"opentype.js": "^2.0.0",
 		"three": "^0.187.0"
 	}

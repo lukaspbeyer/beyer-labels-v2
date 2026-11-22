@@ -9,7 +9,6 @@ declare global {
 		interface Platform {
 			// Cloudflare Workers bindings exposed on platform.env
 			env?: {
-				OPENAI_API_KEY?: string;
 				// Add other bindings here as needed, or widen to Record<string, unknown>
 				[key: string]: unknown;
 			};

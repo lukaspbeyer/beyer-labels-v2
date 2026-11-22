@@ -4,9 +4,10 @@
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
 import { applyCase, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
-import { checkFabrication, formatMm } from '$utils/wood/checks';
-import { flattenPath, polylinesBox } from '$utils/wood/geometry';
-import type { FabricationWarning, FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$utils/wood/types';
+import { checkFabrication } from '$lib/media/wood/checks';
+import { formatMm } from '$lib/typesetting/format';
+import { flattenPath, polylinesBox } from '$lib/typesetting/geometry';
+import type { FabricationWarning, FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$lib/media/wood/types';
 
 export const WOOD_LABEL_FORMATS = {
 	standard: { width: 64, height: 24, name: 'Serie' },
@@ -50,6 +51,7 @@ export function woodLabelSettings(kura: Kura, input: WoodLabelInput): WoodSettin
 		weight: kura.typeface.weight,
 		capHeight: signCapHeight(kura, series.width, series.height),
 		tracking: kura.sign.trackingPercent,
+		subCapRatio: kura.subLine.capRatio,
 		lineSpacing: kura.subLine.lineSpacing,
 		align: kura.sign.align,
 		...kura.wood,

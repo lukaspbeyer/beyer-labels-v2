@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { KURA, parseKura } from '$lib/kura/kura';
 import kuraValues from '$lib/kura/kura.json';
-import { layoutLabel } from '$utils/wood/layout';
-import { loadTestFont } from '$utils/wood/testFonts';
+import { layoutLabel } from '$lib/media/wood/layout';
+import { loadTestFont } from '$lib/typesetting/testFonts';
 import { checkWoodLabel, DEFAULT_WOOD_LABEL_INPUT, woodLabelSettings, type WoodLabelInput } from './woodLabel';
 
 /** Wortschatz aus BEYER-DESIGN-GUIDELINES.md, Abschnitt „Hausdesign Kura“ */

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { WOOD_LABEL_FORMATS, type WoodLabelFormatId } from '$lib/products/woodLabel';
 	import { updateWoodLabel, woodLabelInput } from '$stores/wood';
-	import { calibration } from '$utils/wood/calibration';
-	import type { FrontColor } from '$utils/wood/types';
+	import { calibration } from '$lib/media/wood/calibration';
+	import type { FrontColor } from '$lib/media/wood/types';
 	import ControlGroup from './ControlGroup.svelte';
 	import Segmented from './Segmented.svelte';
 	import Slider from './Slider.svelte';

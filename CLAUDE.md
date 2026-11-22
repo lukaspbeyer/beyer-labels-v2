@@ -3,247 +3,136 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Beyer Labels - Mobile-optimized web application for creating elegant labels with optional AI-generated pictograms. Built with SvelteKit v2 and deployed on Cloudflare Workers.
 
-Everything follows one house design, **Kura**. Structure in three levels with one-way dependencies (see `GLOSSARY.md` and `docs/adr/`): design (Kura) → medium (larch engraving, paper print) → product (wood label, paper label, day sheet).
+Beyer Labels: printed matter and engraved signs for the Beyer family home, all in one house design, **Kura**. Mobile-optimized web application, built with SvelteKit v2 and deployed on Cloudflare Workers.
 
-Areas today:
-- **Holz** (`/holz`): product wood label. Door labels made of larch (Lärche), engraved with a CO₂ laser (xTool X1). Photorealistic 3D preview on a furniture front and SVG export for the laser software.
-- **Papier** (`/`): the old paper label system (own styles, pictograms). It is being replaced by paper products in Kura; do not extend it.
+Read `GLOSSARY.md` for the domain terms (Kura, Textrolle, Ausprägung, Medium, Produkt, Unterregel, Hinweis) and `docs/adr/` for the decisions that must not be re-litigated. The design itself is described in `BEYER-DESIGN-GUIDELINES.md`.
 
-Planned, in this order: paper print with PDF and the paper label; Kura workbench at `/` with previews of all products; day sheet; MCP server (list products, render product).
+Three levels with one-way dependencies (ADR 0001):
+
+- **Design** (`src/lib/kura`): Kura, the only design. Knows nothing but itself and the typesetting vocabulary.
+- **Medium** (`src/lib/media`): a way of making things, with its own output and fabrication limits. `wood` = larch engraving (laser SVG, 3D preview), `paper` = paper print (PDF).
+- **Product** (`src/lib/products`): a makeable thing in Kura on one medium, with its own format, content fields and sub-rules. Products derive from Kura and never override it (ADR 0002).
+
+Products today:
+- **Holzlabel** (`/holz`): door label of 4 mm larch, engraved with a CO₂ laser (xTool X1).
+- **Papierlabel** (`/papier`): printed label on a label sheet.
+
+Planned, in this order: Kura workbench at `/` with previews of all products (today `/` redirects to `/holz`); day sheet (Tagesübersicht, A4 portrait, content supplied by an agent); MCP server with two tools (list products, render product), PDF link valid for 24 hours, behind Cloudflare Access. The system stores no content (ADR 0004).
 
 ## Commands
 
 ```bash
-# Development
-npm run dev           # Start Vite dev server with SvelteKit
-npm run build         # Build for production with Cloudflare adapter
-npm run preview       # Preview production build locally
-
-# Deployment  
+npm install
+npm run dev           # Vite dev server
+npm run build         # Production build with the Cloudflare adapter
+npm run preview       # Preview the production build
+npm run check         # svelte-check with TypeScript
+npm run test:run      # Vitest (jsdom)
 wrangler deploy       # Deploy to Cloudflare Workers
 
-# Type checking
-npm run check         # Run svelte-check with TypeScript
-npm run check:watch   # Run svelte-check in watch mode
-
-# Tests
-npm run test:run      # Vitest (jsdom)
-
-# Larch texture for /holz (Python with Pillow and NumPy)
+# Larch texture (Python with Pillow and NumPy)
 python3 scripts/build-larch-texture.py <photo>   # writes static/textures/laerche-*.jpg
-
-# Setup
-npm install                          # Install dependencies
-wrangler secret put OPENAI_API_KEY  # Set OpenAI API key for pictogram generation
 ```
 
-## Architecture
+## Tech Stack
 
-### Tech Stack
-- **Runtime**: Cloudflare Workers (Edge)
-- **Framework**: SvelteKit v2 with TypeScript
-- **State Management**: Svelte Stores (reactive)
-- **Components**: Svelte Components with Tailwind CSS
-- **AI Integration**: OpenAI GPT-Image-1 for pictogram generation (transparent backgrounds)
-- **3D preview (/holz)**: three.js, loaded dynamically in the browser on `/holz` only
-- **Fonts as paths (/holz)**: opentype.js parses the local font files for layout and SVG export
-- **Styling**: Standard Tailwind CSS (Beyer Design only for print views)
-- **Build**: Vite + SvelteKit with Cloudflare adapter
+- **Runtime**: Cloudflare Workers; **Framework**: SvelteKit v2 with TypeScript (Svelte 5 runes in components)
+- **Styling**: Tailwind CSS v4, tokens in `src/app.css`
+- **Fonts as paths**: opentype.js parses the local font files; all output text is glyph outlines, never live text
+- **3D preview**: three.js, loaded dynamically in the browser on `/holz` only
+- **PDF**: `@cantoo/pdf-lib` (maintained fork of pdf-lib), loaded dynamically when a PDF is requested
+- **Build**: Vite + SvelteKit with `@sveltejs/adapter-cloudflare`
 
-### Project Structure
+## Project Structure
+
 ```
 src/
-├── routes/                    # SvelteKit file-based routing
-│   ├── +page.svelte          # Main application page (Papier)
-│   ├── holz/
-│   │   ├── +page.svelte      # Wood label configurator (Holz)
-│   │   └── holz.css          # @font-face rules for the local fonts
-│   ├── api/                  # Server-side API routes  
-│   │   ├── label-formats/
-│   │   │   └── +server.ts    # Label format configurations API
-│   │   └── generate-pictogram/
-│   │       └── +server.ts    # OpenAI pictogram generation API
-│   └── print/
-│       └── +server.ts        # Server-side print layout generation
-├── lib/
-│   ├── components/           # Svelte components
-│   │   ├── FormatSelector.svelte    # Format selection buttons
-│   │   ├── LabelForm.svelte         # Text input fields
-│   │   ├── GridSelector.svelte      # Position selector grid  
-│   │   ├── PictogramEditor.svelte   # AI pictogram generation
-│   │   ├── PrintSetup.svelte        # Print preparation
-│   │   └── wood/                    # /holz: WoodControls, WoodPreview, ControlGroup, Segmented, Slider
-│   ├── kura/                 # Kura: kura.json (the design), kura.ts (validation, derivation rules)
-│   ├── products/             # Products: woodLabel.ts (formats, input, derivation from Kura, hints)
-│   ├── stores/               # Svelte stores for state management
-│   │   ├── label.ts          # Label text and pictogram state (single label)
-│   │   ├── format.ts         # Format selection and label positioning
-│   │   ├── pictogram.ts      # AI pictogram management
-│   │   └── wood.ts           # /holz input (word, format, preview surroundings); settings are derived
-│   ├── types/opentype.d.ts   # Types for the used part of opentype.js
-│   └── utils/                # Shared utilities and types
-│       ├── types.ts          # Unified type definitions
-│       ├── result.ts         # Result<T, E> for expected errors
-│       ├── labelFormats.ts   # Label format configurations
-│       ├── imageProcessing.ts # Image trimming utilities
-│       └── wood/             # Medium larch engraving (see "Holzlabels")
-static/fonts/<font>/          # Local WOFF files (latin, three weights per font) + OFL.txt
-static/textures/              # Larch texture, latewood map, nachweis.txt (CC BY 2.0)
-scripts/build-larch-texture.py # Builds the larch texture from a photo
-
-svelte.config.js              # SvelteKit configuration with Cloudflare adapter
-wrangler.toml                 # Cloudflare Workers config
+├── app.css                    # Tailwind and UI tokens
+├── fonts.css                  # @font-face rules for the local fonts
+├── routes/
+│   ├── +layout.svelte         # Imports app.css
+│   ├── +page.ts               # Redirect to /holz until the Kura workbench exists
+│   ├── holz/+page.svelte      # Product page wood label
+│   └── papier/+page.svelte    # Product page paper label
+└── lib/
+    ├── kura/                  # kura.json (the design), kura.ts (validation, derivation rules)
+    ├── typesetting/           # Shared by all media: fonts, line and block setting, geometry, mm formatting
+    ├── media/
+    │   ├── wood/              # Larch engraving: layout, checks, surface, scene, svgExport, calibration
+    │   └── paper/             # Paper print: page model with SVG preview, PDF output
+    ├── products/              # woodLabel.ts, paperLabel.ts, hint.ts
+    ├── components/            # SiteHeader; wood/ (WoodControls, WoodPreview, ControlGroup, Segmented, Slider)
+    ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
+    ├── types/opentype.d.ts    # Types for the used part of opentype.js
+    └── utils/result.ts        # Result<T, E> for expected errors
+static/fonts/<font>/           # Local WOFF files (latin, three weights per font) + OFL.txt
+static/textures/               # Larch texture, latewood map, nachweis.txt (CC BY 2.0)
+docs/adr/                      # Architecture decisions
 ```
 
-### Available Label Formats (Papier)
+Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 
-- **105×74mm**: Standard labels (8 per A4 page)
-- **210×100mm**: Large signs (A5 landscape, 1 per page)
+## Kura (`src/lib/kura`)
 
-## Design System
+`kura.json` is the single design definition (ADR 0003): typeface, the text role „Zeichen“ (case, tracking, alignment), proportion rules, sub line, and one expression per medium (`wood`, `paper`). A design change is a change to this file plus the matching section in `BEYER-DESIGN-GUIDELINES.md`; keep both in sync.
 
-### Web UI /holz
-Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted`), one terracotta accent (`clay`), lines instead of shadows. Tokens in `src/app.css` (`@theme`), UI fonts `font-ui-head` (Sora) and `font-ui-body` (Noto Sans) from `static/fonts`. Every control is at least 44 px; no horizontal scrolling at 360 px.
+- `parseKura(raw)` validates a definition and reports all violations at once; `KURA` is the validated current design.
+- `signCapHeight(kura, width, height)`: cap height of the word on a surface, proportional to the width, capped by the height.
+- `maxSignWidth(kura, width)`: the widest the word may be.
+- `applyCase`: Kura writes the word in lower case.
 
-### Web UI (Standard Tailwind CSS)
-Uses **standard Tailwind CSS** for the web interface:
-- **Utility-First**: Standard Tailwind utility classes
-- **Default Design**: Clean, modern web UI using Tailwind's default design system
-- **Responsive**: Standard Tailwind responsive patterns
-- **Components**: Minimal custom components, primarily utility classes
+There are no presets and no design controls on product pages. Never put a design value (font, tracking, size ratio, colour) into a product or a page; change Kura instead.
 
-### Print Views (Beyer Design Guidelines) 
-**IMPORTANT**: Print views maintain the original Beyer Design Guidelines:
-- **Fonts**: Sora (400) for headlines, Noto Sans (400) for body text
-- **Typography**: Letter-spacing (0.05em), text-transform uppercase, precise line-heights
-- **Colors**: #3E342E (main text), #7D6B5D (sub text)
-- **Layout**: Exact mm measurements for precise label alignment
-- **Implementation**: Inline CSS in `/print/+server.ts` for print precision
+## Products (`src/lib/products`)
 
-## State Management Architecture
+Each product module holds its formats, its input type, the derivation from Kura and its hints (`Hint`: kind and a message saying what to change).
 
-### Single-Label Architecture
-**IMPORTANT**: The app is designed for **single-label printing only**. There is no multi-label support.
+**Wood label** (`woodLabel.ts`): formats series 64 × 24 mm and long 90 × 24 mm; one word, no sub line. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
 
-### Store Structure:
-```typescript
-// Label content and state
-label.ts: headline, body, pictogram settings, currentLabel (single label)
+**Paper label** (`paperLabel.ts`): formats label 105 × 74 mm (A4 portrait sheet, 2 × 4) and sign 210 × 100 mm (A5 landscape, top); one word, sub line allowed. `layoutPaperLabel` sets the lines, `checkPaperLabel` returns `sign-width` and `sub-width`, `paperLabelPage` places the label at its position on the sheet. The cell borders are shown in the preview only and are not printed.
 
-// Format selection and positioning  
-format.ts: selectedFormat, labelPosition (position of single label on grid)
+## Typesetting (`src/lib/typesetting`)
 
-// AI pictogram management
-pictogram.ts: generation state, error handling
-```
+All lengths in mm, y down. `fonts.ts`: ten free fonts (OFL) in `FONT_CATALOG`, each with three weights; `createFontLoader(fetchFn)` loads and caches; cap height is measured from the glyph H, the thinnest stroke per font and weight from I, H, E, O, n, o, e. `line.ts` sets one line glyph by glyph (kerning, tracking, no ligatures). `block.ts` stacks lines and centres the block in a rectangle. `geometry.ts` builds and measures paths. Tests load fonts through `testFonts.ts`.
 
-### Benefits of Svelte Stores:
-- ✅ Reactive updates across all components
-- ✅ No prop drilling through component tree  
-- ✅ Centralized state management
-- ✅ Better performance with selective subscriptions
-- ✅ TypeScript integration
+## Medium larch engraving (`src/lib/media/wood`)
 
-## Holzlabels (/holz)
+Pipeline per change:
+1. `layout.ts` sets main and sub line, determines the size and places the text.
+2. `checks.ts` returns fabrication warnings: cap height, thinnest stroke, margin to edge/frame/inverse rim, size limit.
+3. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps. After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
+4. `scene.ts` (three.js) shows the extruded 4 mm label on the furniture front. Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
+5. `svgExport.ts` writes the laser file.
 
-Pipeline per change (all lengths in mm, y down):
-1. `stores/wood.ts` holds the `WoodLabelInput` (word, format, front, grain cut, view, light). `products/woodLabel.ts` derives the engine's `WoodSettings` from Kura and that input (`woodLabelSettings`); the product never sets a design value itself. The page loads the font (`utils/wood/fonts.ts`, `createFontLoader`) and keeps layout and settings as a pair once the selected font is loaded.
-2. `layout.ts` sets main and sub line glyph by glyph (kerning, tracking, no ligatures), determines the size (auto: text + padding, whole mm, 20–200 × 10–100) and places the text. `geometry.ts` builds the shapes (rectangle with corner radius, pill, oval).
-3. `checks.ts` returns fabrication warnings: cap height, thinnest stroke (measured per font and weight from I, H, E, O, n, o, e), margin to edge/frame/inverse rim, size limit. `checkWoodLabel` adds the Kura rule for the width of the word (`sign-width`).
-4. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps (depth, wall taper, self shadow, latewood shallower and lighter, halo, edge burnt or sanded, finish). After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
-5. `scene.ts` (three.js) shows the extruded 4 mm label on the furniture front (no handle). Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
-6. `svgExport.ts` writes the laser file.
+The engine supports more than Kura uses today (automatic size, inverse engraving, frame, pill, oval), because the workbench will be able to set it. Engine tests use `testSettings.ts` (Sora capitals, dark engraving, automatic size) as a fixed base independent of Kura.
 
-**Fonts**: ten free fonts (OFL) in `FONT_CATALOG`, each with its own three weights (Zen Kaku/Maru Gothic: 400/500/700, others 400/500/600); `nearestWeight` adjusts the weight on a font change. Cap height is measured from the glyph H. Shippori Mincho has fine hairlines and needs about 7 mm cap height.
-
-**Kura** (`src/lib/kura`): `kura.json` is the single design definition: typeface, the text role „Zeichen“ (case, tracking, alignment), proportion rules and the expression for larch. `parseKura` validates it and reports all violations; `signCapHeight` and `maxSignWidth` are the rules products derive from. Principles, rationale, specification and vocabulary are in `BEYER-DESIGN-GUIDELINES.md` (section „Hausdesign Kura“); keep that section and `kura.json` in sync. There are no presets and no free design controls on product pages; design changes go into `kura.json`.
-
-**Product wood label** (`src/lib/products/woodLabel.ts`): sub-rules are the two fixed formats (series 64 × 24 mm, long 90 × 24 mm), one word, no sub line. Cap height follows the series format. Every word of the Kura vocabulary must stay free of hints in the series format (tested).
-
-**Engine tests** use `testSettings.ts` (Sora capitals, dark engraving, automatic size) as a fixed base independent of Kura. The engine still supports what Kura does not use today (automatic size, inverse, frame, pill, oval), because the workbench will be able to set it.
-
-**Calibration**: all colours, depths, gloss, light, layout padding and warning thresholds are in `utils/wood/calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving. The front colours (Agave, Anthrazit, Columba Grey) are estimates; match them to a sample.
+**Calibration**: colours, depths, gloss, light, layout padding and warning thresholds are in `calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving. The front colours (Agave, Anthrazit, Columba Grey) are estimates. The front is the surroundings of the preview, not part of the design.
 
 **SVG contract**: `width`/`height` in mm, `viewBox` 1 unit = 1 mm, text only as paths. Layers by colour: `g#gravur` black fill (engraving; inverse = field minus text, `evenodd`), `g#rahmen` blue `#0000FF` stroke (frame line), `g#schnitt` red `#FF0000` stroke (cut). File name `holzlabel-<text>-<w>x<h>mm.svg`.
 
-**Texture**: `static/textures/laerche-farbe.jpg` and `laerche-spaetholz.jpg` are built from a photo of planed larch boards (source and licence in `nachweis.txt`; the credit is shown on the page). Six lamellae stacked as a panel; the label sits inside one lamella when it fits across the grain. For own photos adjust `CROPS` in the script and `woodTexture` in `calibration.json`.
+**Texture**: `static/textures/laerche-farbe.jpg` and `laerche-spaetholz.jpg` are built from a photo of planed larch boards (source and licence in `nachweis.txt`; the credit is shown on the page). For own photos adjust `CROPS` in the script and `woodTexture` in `calibration.json`.
 
 **Diagnostics**: the preview element carries `data-mode` (`3d`, `fallback`, `loading`, `error`), `data-render-count`, `data-render-quality` (`quick`, `full`) and `data-render-ms`.
 
-## API Routes (SvelteKit Conventions)
+## Medium paper print (`src/lib/media/paper`)
 
-### Server Routes (+server.ts)
-- `GET /api/label-formats` - Format configurations
-- `POST /api/generate-pictogram` - OpenAI GPT-Image-1 integration  
-- `POST /print` - Server-side HTML generation for printing single label
+`page.ts`: a `PrintPage` is a size in mm and a list of filled or stroked paths; `pageSvg` draws it for the preview. `pdf.ts`: `renderPdf(pages, ink, title)` writes one PDF page per `PrintPage`, true to size in mm (1 mm = 72/25.4 pt, stroke widths in mm). It runs in the browser and is meant to run in the Worker for the MCP server; running it in the Worker is not yet tested. Print in one colour, the ink from Kura.
 
-### Environment Variables
-```bash
-# Development (.env)
-OPENAI_API_KEY=sk-your-key-here
+## Web UI
 
-# Production (Wrangler)
-wrangler secret put OPENAI_API_KEY
-```
+Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted`), one terracotta accent (`clay`), lines instead of shadows. Tokens in `src/app.css` (`@theme`), UI fonts `font-ui-head` (Sora) and `font-ui-body` (Noto Sans) from `static/fonts`. Every control is at least 44 px; no horizontal scrolling at 360 px. Use Tailwind utility classes; avoid custom CSS. The UI fonts are independent of Kura's typeface.
 
 ## Development Notes
 
-### Component Architecture
-- **Reactive Statements**: Use `$:` for computed values
-- **Store Subscriptions**: Use `$storeName` for reactive values
-- **Styling**: Standard Tailwind utility classes for web UI
-- **TypeScript**: Strict typing throughout
+- TypeScript everywhere, strict. Expected errors as `Result<T, E>` (`utils/result.ts`).
+- Components use Svelte 5 runes (`$state`, `$derived`, `$effect`, `$props`).
+- German for domain comments, test names and user-facing text; identifiers in English.
+- `vite.config.ts` sets `ssr.noExternal: ['opentype.js']`: opentype.js ships ESM only via the `module` field, so it is bundled for SSR.
+- Verify UI changes in a browser (dev server plus Playwright), not only with tests.
 
-### Print System  
-- Server-side HTML generation for consistent printing
-- Single label positioned on grid based on user selection
-- Exact mm measurements for label alignment
-- Supports both screen preview and print media queries
+## Wrangler Configuration (wrangler.toml)
 
-### Build Process
-1. **SvelteKit** compiles components and routes
-2. **Vite** handles bundling and optimization  
-3. **Cloudflare Adapter** generates Workers-compatible output
-4. **Wrangler** deploys to Cloudflare Workers
-
-### Best Practices
-- Always use Svelte stores for state management
-- Keep components focused and reactive
-- Use TypeScript for all files
-- **Web UI**: Use standard Tailwind utility classes, avoid custom CSS
-- **Print Views**: Use inline CSS in `/print/+server.ts` for Beyer Design precision  
-- Follow SvelteKit conventions for routing and API
-
-## Important Configurations
-
-### SvelteKit Configuration (svelte.config.js)
-```javascript
-import adapter from '@sveltejs/adapter-cloudflare';
-
-export default {
-  kit: {
-    adapter: adapter({
-      routes: {
-        include: ['/*'],
-        exclude: ['<all>']
-      }
-    }),
-    alias: {
-      $components: './src/lib/components',
-      $stores: './src/lib/stores', 
-      $utils: './src/lib/utils',
-      $server: './src/lib/server'
-    }
-  }
-};
-```
-
-### Vite Configuration (vite.config.ts)
-`ssr.noExternal: ['opentype.js']`: opentype.js ships ESM only via the `module` field, so it is bundled for SSR instead of being loaded as CommonJS.
-
-### Wrangler Configuration (wrangler.toml)
 ```toml
 name = "beyer-labels-v2"
 main = ".svelte-kit/cloudflare/_worker.js"
@@ -252,7 +141,6 @@ compatibility_date = "2025-01-01"
 [assets]
 directory = ".svelte-kit/cloudflare"
 binding = "ASSETS"
-
-[vars]
-ENVIRONMENT = "production"
 ```
+
+No secrets are needed today.

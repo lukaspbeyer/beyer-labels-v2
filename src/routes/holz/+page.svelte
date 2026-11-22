@@ -1,15 +1,14 @@
 <script lang="ts">
-	import '../../app.css';
-	import './holz.css';
+	import SiteHeader from '$components/SiteHeader.svelte';
 	import WoodControls from '$components/wood/WoodControls.svelte';
 	import WoodPreview from '$components/wood/WoodPreview.svelte';
 	import { KURA } from '$lib/kura/kura';
 	import { checkWoodLabel } from '$lib/products/woodLabel';
 	import { woodSettings } from '$stores/wood';
-	import { createFontLoader, type FontLoader, type LoadedFont } from '$utils/wood/fonts';
-	import { layoutLabel } from '$utils/wood/layout';
-	import type { LabelLayout, WoodSettings } from '$utils/wood/types';
-	import { buildSvg, exportFileName } from '$utils/wood/svgExport';
+	import { createFontLoader, type FontLoader, type LoadedFont } from '$lib/typesetting/fonts';
+	import { layoutLabel } from '$lib/media/wood/layout';
+	import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
+	import { buildSvg, exportFileName } from '$lib/media/wood/svgExport';
 
 	let loader: FontLoader | null = null;
 	// Schriftobjekte nicht reaktiv verpacken; nur der Austausch zählt
@@ -62,19 +61,13 @@
 </script>
 
 <svelte:head>
-	<title>Holzlabels · Beyer Labels</title>
+	<title>Holzlabel · Kura</title>
 	<meta name="description" content="Türlabels aus Lärche im Hausdesign Kura ansehen und als Laserdatei laden." />
 	<link rel="preload" href="/fonts/jost/jost-latin-400-normal.woff" as="font" type="font/woff" crossorigin="anonymous" />
 </svelte:head>
 
 <div class="min-h-screen bg-ivory font-ui-body text-ink">
-	<header class="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-4 sm:px-6">
-		<a href="/" class="flex min-h-11 items-center font-ui-head text-base tracking-tight text-ink">Beyer Labels</a>
-		<nav class="flex gap-1 rounded-full bg-sand p-1 text-sm" aria-label="Bereiche">
-			<a href="/" class="flex min-h-11 items-center rounded-full px-4 text-ink-muted hover:text-ink">Papier</a>
-			<a href="/holz" class="flex min-h-11 items-center rounded-full bg-white px-4 text-ink shadow-sm" aria-current="page">Holz</a>
-		</nav>
-	</header>
+	<SiteHeader />
 
 	<main class="mx-auto grid max-w-[1400px] grid-cols-1 gap-6 pb-16 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-6">
 		<section

@@ -10,6 +10,3 @@ binding = "ASSETS"
 # Environment variables (non-sensitive)
 [vars]
 ENVIRONMENT = "production"
-
-# Sensitive variables (set via: wrangler secret put OPENAI_API_KEY)
-# OPENAI_API_KEY = "your-key-here"
