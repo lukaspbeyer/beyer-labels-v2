@@ -59,6 +59,8 @@ export interface Calibration {
 	};
 	fill: { color: Record<FillColor, string>; roughness: number };
 	finish: Record<Finish, FinishCalibration>;
+	/** Holzton der schematischen Vorschau je Oberfläche */
+	previewTone: Record<Finish, string>;
 	limeColor: string;
 	/** Anteil der Lasur, der in der Gravur verbleibt */
 	limeInEngraving: number;

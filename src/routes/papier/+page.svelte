@@ -1,7 +1,7 @@
 <script lang="ts">
 	import SiteHeader from '$components/SiteHeader.svelte';
-	import ControlGroup from '$components/wood/ControlGroup.svelte';
-	import Segmented from '$components/wood/Segmented.svelte';
+	import ControlGroup from '$components/ControlGroup.svelte';
+	import Segmented from '$components/Segmented.svelte';
 	import { KURA } from '$lib/kura/kura';
 	import { pageSvg } from '$lib/media/paper/page';
 	import {

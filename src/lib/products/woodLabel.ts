@@ -4,9 +4,13 @@
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
 import { applyCase, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
+import { VOCABULARY } from '$lib/kura/vocabulary';
+import { calibration } from '$lib/media/wood/calibration';
+import { layoutLabel } from '$lib/media/wood/layout';
+import type { LoadedFont } from '$lib/typesetting/fonts';
 import { checkFabrication } from '$lib/media/wood/checks';
 import { formatMm } from '$lib/typesetting/format';
-import { flattenPath, polylinesBox } from '$lib/typesetting/geometry';
+import { flattenPath, polylinesBox, svgPathData } from '$lib/typesetting/geometry';
 import type { FabricationWarning, FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$lib/media/wood/types';
 
 export const WOOD_LABEL_FORMATS = {
@@ -79,4 +83,27 @@ export function checkWoodLabel(kura: Kura, layout: LabelLayout, settings: WoodSe
 			? [{ kind: 'sign-width', message: `Das Wort ist ${formatMm(width)} mm breit, Kura lässt auf diesem Format höchstens ${formatMm(limit)} mm zu. Kürzeres Wort oder Langformat wählen.` }]
 			: [];
 	return [...tooWide, ...checkFabrication(layout, settings)];
+}
+
+/** Wörter des Kura-Wortschatzes, die im Serienformat einen Hinweis auslösen. */
+export function vocabularyMisfits(kura: Kura, font: LoadedFont): string[] {
+	return VOCABULARY.filter((text) => {
+		const settings = woodLabelSettings(kura, { ...DEFAULT_WOOD_LABEL_INPUT, text });
+		return checkWoodLabel(kura, layoutLabel(settings, font), settings).length > 0;
+	});
+}
+
+/** Schematische Draufsicht als SVG (1 Einheit = 1 mm): Holzton, Gravur in ihrer Farbe. */
+export function woodLabelSketch(layout: LabelLayout, settings: WoodSettings): string {
+	const wood = calibration.previewTone[settings.finish];
+	const burn = calibration.engraving.burnColor[settings.burn];
+	const ink = settings.process === 'fill' ? calibration.fill.color[settings.fillColor] : settings.process === 'inverse' ? wood : burn;
+	const text = svgPathData(layout.lines.flatMap((l) => l.commands));
+	const parts = [
+		`<path fill="${wood}" d="${svgPathData(layout.outline)}"/>`,
+		layout.inverseField.length > 0 ? `<path fill="${burn}" d="${svgPathData(layout.inverseField)}"/>` : '',
+		layout.frame.length > 0 ? `<path fill="none" stroke="${burn}" stroke-width="${calibration.frame.lineWidthMm}" d="${svgPathData(layout.frame)}"/>` : '',
+		text ? `<path fill="${ink}" d="${text}"/>` : ''
+	];
+	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${layout.width} ${layout.height}">${parts.join('')}</svg>`;
 }

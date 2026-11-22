@@ -3,9 +3,9 @@
 	import { updateWoodLabel, woodLabelInput } from '$stores/wood';
 	import { calibration } from '$lib/media/wood/calibration';
 	import type { FrontColor } from '$lib/media/wood/types';
-	import ControlGroup from './ControlGroup.svelte';
-	import Segmented from './Segmented.svelte';
-	import Slider from './Slider.svelte';
+	import ControlGroup from '$components/ControlGroup.svelte';
+	import Segmented from '$components/Segmented.svelte';
+	import Slider from '$components/Slider.svelte';
 
 	const input = $derived($woodLabelInput);
 

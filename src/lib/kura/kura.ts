@@ -13,7 +13,7 @@ export type LetterCase = 'lower' | 'upper' | 'as-typed';
 
 type DeepReadonly<T> = { readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : T[K] };
 
-interface KuraValues {
+export interface KuraValues {
 	/** Eine Schrift für alles */
 	typeface: { font: FontId; weight: FontWeight };
 	/** Textrolle „Zeichen“: das einzelne, gesperrte Wort */
@@ -56,7 +56,8 @@ interface KuraValues {
 export type Kura = DeepReadonly<KuraValues>;
 
 const LEVELS = ['low', 'medium', 'high'] as const;
-const ENUMS = {
+/** Zulässige Werte der Auswahlfelder */
+export const KURA_OPTIONS = {
 	'sign.case': ['lower', 'upper', 'as-typed'],
 	'sign.align': ['left', 'center', 'right'],
 	'wood.grain': ['horizontal', 'vertical'],
@@ -69,7 +70,7 @@ const ENUMS = {
 	'wood.edge': ['burnt', 'sanded']
 } as const;
 /** Zulässige Bereiche der Zahlenwerte: [kleinster, größter] */
-const RANGES = {
+export const KURA_RANGES = {
 	'sign.trackingPercent': [0, 40],
 	'proportion.capHeightPerWidth': [0.02, 0.3],
 	'proportion.capHeightPerHeight': [0.05, 0.6],
@@ -86,10 +87,10 @@ function at(raw: unknown, path: string): unknown {
 /** Prüft eine Kura-Definition, etwa aus kura.json; liefert alle Verstöße auf einmal. */
 export function parseKura(raw: unknown): Result<Kura, string[]> {
 	const problems: string[] = [];
-	for (const [path, allowed] of Object.entries(ENUMS)) {
+	for (const [path, allowed] of Object.entries(KURA_OPTIONS)) {
 		if (!(allowed as readonly unknown[]).includes(at(raw, path))) problems.push(`${path}: erlaubt sind ${allowed.join(', ')}`);
 	}
-	for (const [path, [min, max]] of Object.entries(RANGES)) {
+	for (const [path, [min, max]] of Object.entries(KURA_RANGES)) {
 		const value = at(raw, path);
 		if (typeof value !== 'number' || !(value >= min && value <= max)) problems.push(`${path}: Zahl zwischen ${min} und ${max} erwartet`);
 	}

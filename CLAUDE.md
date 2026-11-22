@@ -18,7 +18,9 @@ Products today:
 - **Holzlabel** (`/holz`): door label of 4 mm larch, engraved with a CO₂ laser (xTool X1).
 - **Papierlabel** (`/papier`): printed label on a label sheet.
 
-Planned, in this order: Kura workbench at `/` with previews of all products (today `/` redirects to `/holz`); day sheet (Tagesübersicht, A4 portrait, content supplied by an agent); MCP server with two tools (list products, render product), PDF link valid for 24 hours, behind Cloudflare Access. The system stores no content (ADR 0004).
+The **Kura workbench** at `/` shows every product in the current design and lets you try changes on a working copy.
+
+Planned, in this order: day sheet (Tagesübersicht, A4 portrait, content supplied by an agent); MCP server with two tools (list products, render product), PDF link valid for 24 hours, behind Cloudflare Access. The system stores no content (ADR 0004).
 
 ## Commands
 
@@ -52,17 +54,17 @@ src/
 ├── fonts.css                  # @font-face rules for the local fonts
 ├── routes/
 │   ├── +layout.svelte         # Imports app.css
-│   ├── +page.ts               # Redirect to /holz until the Kura workbench exists
+│   ├── +page.svelte           # Kura workbench: working copy of Kura, examples of all products
 │   ├── holz/+page.svelte      # Product page wood label
 │   └── papier/+page.svelte    # Product page paper label
 └── lib/
-    ├── kura/                  # kura.json (the design), kura.ts (validation, derivation rules)
+    ├── kura/                  # kura.json (the design), kura.ts (validation, derivation rules), vocabulary.ts
     ├── typesetting/           # Shared by all media: fonts, line and block setting, geometry, mm formatting
     ├── media/
     │   ├── wood/              # Larch engraving: layout, checks, surface, scene, svgExport, calibration
     │   └── paper/             # Paper print: page model with SVG preview, PDF output
-    ├── products/              # woodLabel.ts, paperLabel.ts, hint.ts
-    ├── components/            # SiteHeader; wood/ (WoodControls, WoodPreview, ControlGroup, Segmented, Slider)
+    ├── products/              # woodLabel.ts, paperLabel.ts, registry.ts, hint.ts
+    ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview)
     ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
     ├── types/opentype.d.ts    # Types for the used part of opentype.js
     └── utils/result.ts        # Result<T, E> for expected errors
@@ -81,12 +83,18 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 - `signCapHeight(kura, width, height)`: cap height of the word on a surface, proportional to the width, capped by the height.
 - `maxSignWidth(kura, width)`: the widest the word may be.
 - `applyCase`: Kura writes the word in lower case.
+- `KURA_OPTIONS` and `KURA_RANGES`: allowed values; validation and the workbench controls both read them.
+- `vocabulary.ts`: the Kura vocabulary (short words for cupboards and drawers).
+
+**Workbench** (`src/routes/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`.
 
 There are no presets and no design controls on product pages. Never put a design value (font, tracking, size ratio, colour) into a product or a page; change Kura instead.
 
 ## Products (`src/lib/products`)
 
 Each product module holds its formats, its input type, the derivation from Kura and its hints (`Hint`: kind and a message saying what to change).
+
+**Registry** (`registry.ts`): `PRODUCTS` lists every product with examples drawn for a given Kura. A new product registers here and then appears on the workbench without further changes. Every product must be free of hints in the committed Kura (tested).
 
 **Wood label** (`woodLabel.ts`): formats series 64 × 24 mm and long 90 × 24 mm; one word, no sub line. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
 
@@ -105,7 +113,7 @@ Pipeline per change:
 4. `scene.ts` (three.js) shows the extruded 4 mm label on the furniture front. Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
 5. `svgExport.ts` writes the laser file.
 
-The engine supports more than Kura uses today (automatic size, inverse engraving, frame, pill, oval), because the workbench will be able to set it. Engine tests use `testSettings.ts` (Sora capitals, dark engraving, automatic size) as a fixed base independent of Kura.
+The engine supports more than Kura uses today (inverse engraving, frame, pill, oval, automatic size); the workbench can set all of it except the size. Engine tests use `testSettings.ts` (Sora capitals, dark engraving, automatic size) as a fixed base independent of Kura.
 
 **Calibration**: colours, depths, gloss, light, layout padding and warning thresholds are in `calibration.json` (typed in `calibration.ts`). Adjust there after a test engraving. The front colours (Agave, Anthrazit, Columba Grey) are estimates. The front is the surroundings of the preview, not part of the design.
 

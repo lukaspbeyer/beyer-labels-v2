@@ -40,6 +40,7 @@
 		"lacquer": { "gamma": 1.08, "saturation": 1.06, "tint": "#fbeedd", "lime": 0, "roughness": 0.5, "clearcoat": 0.55, "clearcoatRoughness": 0.38, "burnDarken": 0.93 },
 		"limed": { "gamma": 1, "saturation": 0.75, "tint": "#ffffff", "lime": 0.5, "roughness": 0.82, "clearcoat": 0, "clearcoatRoughness": 0.6, "burnDarken": 1 }
 	},
+	"previewTone": { "raw": "#e4c3a2", "oiled": "#d9a476", "lacquer": "#d6a273", "limed": "#ece6dc" },
 	"limeColor": "#f4f1ea",
 	"limeInEngraving": 0.3,
 	"edge": {
