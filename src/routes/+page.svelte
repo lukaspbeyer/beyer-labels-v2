@@ -223,6 +223,7 @@
 				<Slider label="Laufweite" unit="%" min={R['text.trackingPercent'][0]} max={R['text.trackingPercent'][1]} step={1} value={draft.text.trackingPercent} onchange={(v) => (draft.text.trackingPercent = v)} />
 				<Slider label="Lesegröße auf Papier (Versalhöhe)" unit="mm" min={R['paper.textCapHeight'][0]} max={R['paper.textCapHeight'][1]} step={0.1} decimals={1} value={draft.paper.textCapHeight} onchange={(v) => (draft.paper.textCapHeight = v)} />
 				<Slider label="Feine Linien" unit="mm" min={R['paper.ruleWidth'][0]} max={R['paper.ruleWidth'][1]} step={0.05} decimals={2} value={draft.paper.ruleWidth} onchange={(v) => (draft.paper.ruleWidth = v)} />
+				<Slider label="Linien und Überschriften (Tonwert der Druckfarbe)" unit="%" min={R['paper.quietTonePercent'][0]} max={R['paper.quietTonePercent'][1]} step={5} value={draft.paper.quietTonePercent} onchange={(v) => (draft.paper.quietTonePercent = v)} />
 			</ControlGroup>
 
 			<ControlGroup title="Schrift zu Fläche" summary={`${(draft.proportion.capHeightPerWidth * 100).toFixed(1).replace('.', ',')} % der Breite`}>

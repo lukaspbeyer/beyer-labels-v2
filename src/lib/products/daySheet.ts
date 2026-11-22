@@ -117,6 +117,8 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	const hints: Hint[] = [];
 	const cap = kura.paper.textCapHeight;
 	const rule = kura.paper.ruleWidth;
+	// Linien, Kästchen und Überschriften treten hinter den Inhalt zurück
+	const quiet = kura.paper.quietTonePercent / 100;
 	const left = SHEET.margin;
 	const width = SHEET.width - 2 * SHEET.margin;
 	const right = left + width;
@@ -131,7 +133,7 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	const inset = box + cap * 0.9;
 
 	/** Setzt einen Einzeiler; `anchor` ist die linke oder rechte Kante, `y` die Grundlinie. */
-	function put(text: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, side: 'left' | 'right' = 'left'): number {
+	function put(text: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, side: 'left' | 'right' = 'left', tone = 1): number {
 		const shown = applyCase(kura[role].case, text);
 		if (!shown) return 0;
 		const unsupported = Array.from(shown).filter((ch) => ch !== ' ' && font.font.charToGlyph(ch).index === 0);
@@ -141,7 +143,7 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 		if (!Number.isFinite(set.ink.maxX)) return 0;
 		const inkWidth = set.ink.maxX - set.ink.minX;
 		const x = side === 'left' ? anchor - set.ink.minX : anchor - set.ink.maxX;
-		items.push({ kind: 'fill', commands: translatePath(set.commands, x, y) });
+		items.push({ kind: 'fill', commands: translatePath(set.commands, x, y), tone });
 		return inkWidth;
 	}
 
@@ -157,15 +159,15 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 			{ type: 'M', x: x1, y },
 			{ type: 'L', x: x2, y }
 		];
-		items.push({ kind: 'stroke', commands, widthMm: rule });
+		items.push({ kind: 'stroke', commands, widthMm: rule, tone: quiet });
 	}
 
 	function checkbox(x: number, baseline: number, size = box): void {
-		items.push({ kind: 'stroke', commands: roundedRectPath(x, baseline - size + (size - cap) / 2, size, size, 0), widthMm: rule });
+		items.push({ kind: 'stroke', commands: roundedRectPath(x, baseline - size + (size - cap) / 2, size, size, 0), widthMm: rule, tone: quiet });
 	}
 
 	function heading(text: string, x: number, y: number): number {
-		put(text, 'sign', headingCap, x, y + headingCap);
+		put(text, 'sign', headingCap, x, y + headingCap, 'left', quiet);
 		return y + headingCap + headingGap;
 	}
 
@@ -198,7 +200,7 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	line(left, right, y + focusRow);
 	y += focusRow + headingGap;
 	const stepLabel = left + focusInset;
-	put('erster schritt', 'sign', headingCap, stepLabel, y + row - cap * 0.9);
+	put('erster schritt', 'sign', headingCap, stepLabel, y + row - cap * 0.9, 'left', quiet);
 	const stepX = stepLabel + cap * 9.5;
 	entry(input.focus.firstStep, cap, stepX, y + row - cap * 0.9, right - stepX, 'focus.firstStep');
 	line(stepX, right, y + row);

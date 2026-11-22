@@ -58,6 +58,7 @@ Ausprägung Papier:
 |---|---|
 | Druckfarbe | Schwarz, keine weitere Farbe |
 | Gliederung | nur über Größe, Abstand und feine Linien (0,25 mm) |
+| Tonwert | Linien, Kästchen und Überschriften von Zonen in 100 % der Druckfarbe; ein kleinerer Wert lässt sie hinter den Inhalt zurücktreten (gerastert, weiter eine Farbe) |
 | Lesegröße | Versalhöhe 3,4 mm für Text |
 
 Produkt Holzlabel (Unterregeln):

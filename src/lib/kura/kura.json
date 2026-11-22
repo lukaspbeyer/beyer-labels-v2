@@ -16,5 +16,5 @@
 		"frame": false,
 		"edge": "sanded"
 	},
-	"paper": { "ink": "#000000", "textCapHeight": 3.4, "ruleWidth": 0.25 }
+	"paper": { "ink": "#000000", "textCapHeight": 3.4, "ruleWidth": 0.25, "quietTonePercent": 100 }
 }

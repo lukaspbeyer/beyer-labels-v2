@@ -56,6 +56,8 @@ export interface KuraValues {
 		textCapHeight: number;
 		/** Stärke feiner Linien in mm */
 		ruleWidth: number;
+		/** Tonwert zurücktretender Teile (Linien, Kästchen, Überschriften von Zonen) in Prozent der Druckfarbe; 100 = voll */
+		quietTonePercent: number;
 	};
 }
 
@@ -88,7 +90,8 @@ export const KURA_RANGES = {
 	'subLine.lineSpacing': [0.3, 1.5],
 	'wood.cornerRadius': [0, 10],
 	'paper.textCapHeight': [2.5, 6],
-	'paper.ruleWidth': [0.1, 1]
+	'paper.ruleWidth': [0.1, 1],
+	'paper.quietTonePercent': [25, 100]
 } as const;
 
 function at(raw: unknown, path: string): unknown {

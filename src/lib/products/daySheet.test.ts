@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { KURA } from '$lib/kura/kura';
+import { pageSvg } from '$lib/media/paper/page';
 import { pathBox } from '$lib/typesetting/geometry';
 import { loadTestFont } from '$lib/typesetting/testFonts';
 import { DAY_SHEET_EXAMPLE, daySheetFileName, layoutDaySheet, parseDaySheet, type DaySheetInput } from './daySheet';
@@ -80,5 +81,19 @@ describe('Tagesübersicht: Blatt', () => {
 
 	it('benennt die Datei nach dem Tag', () => {
 		expect(daySheetFileName(DAY_SHEET_EXAMPLE)).toBe('tagesuebersicht-2026-11-26.pdf');
+	});
+});
+
+describe('Tagesübersicht: Tonwert', () => {
+	it('setzt Linien, Kästchen und Überschriften im Tonwert aus Kura, den Inhalt voll', () => {
+		const { page } = layoutDaySheet({ ...KURA, paper: { ...KURA.paper, quietTonePercent: 45 } }, DAY_SHEET_EXAMPLE, font);
+		const strokes = page.items.filter((item) => item.kind === 'stroke');
+		expect(strokes.length).toBeGreaterThan(0);
+		expect(strokes.every((item) => item.tone === 0.45)).toBe(true);
+		const fills = page.items.filter((item) => item.kind === 'fill');
+		// Sieben Überschriften und „erster schritt“ treten zurück, alles andere bleibt voll
+		expect(fills.filter((item) => item.tone === 0.45)).toHaveLength(8);
+		expect(fills.filter((item) => (item.tone ?? 1) === 1).length).toBeGreaterThan(10);
+		expect(pageSvg(page, '#000000')).toContain('stroke="#8c8c8c"');
 	});
 });
