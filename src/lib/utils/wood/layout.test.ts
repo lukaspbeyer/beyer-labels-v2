@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_WOOD_SETTINGS } from '$stores/wood';
+import { TEST_SETTINGS } from './testSettings';
 import { calibration } from './calibration';
 import { FONT_CATALOG } from './fonts';
 import { flattenPath, pathBox, polylinesBox, shapePath, signedDistance } from './geometry';
@@ -10,7 +10,7 @@ import type { WoodSettings } from './types';
 const sora = loadTestFont('sora', 400);
 
 function settings(changes: Partial<WoodSettings> = {}): WoodSettings {
-	return { ...DEFAULT_WOOD_SETTINGS, ...changes };
+	return { ...TEST_SETTINGS, ...changes };
 }
 
 describe('Schriften', () => {

@@ -1,6 +1,6 @@
 /**
  * Gestaltungsvorlagen im Japandi-Stil für die Fronten im Haus (Agave, Anthrazit, Columba Grey).
- * Eine Vorlage setzt Gestaltung und Front, mit `size` zusätzlich ein festes Format;
+ * Eine Vorlage setzt Gestaltung und Front, mit `size` ein festes Format, sonst die automatische Größe;
  * Text, Maserung, Ansicht und Licht bleiben.
  */
 import type { WoodSettings } from './types';
@@ -33,11 +33,35 @@ export interface WoodPreset {
 	size?: { width: number; height: number };
 }
 
+/** Die erste Vorlage ist das Hausdesign Kura und der Startzustand (BEYER-DESIGN-GUIDELINES.md). */
 export const PRESETS: readonly WoodPreset[] = [
+	{
+		id: 'kura',
+		name: 'Kura',
+		description: 'Unser Hausdesign: Jost klein und gesperrt, schwarz gefüllt, Kante geschliffen, 64 × 24 mm.',
+		settings: {
+			uppercase: false,
+			font: 'jost',
+			weight: 400,
+			capHeight: 6,
+			tracking: 22,
+			process: 'fill',
+			depth: 'low',
+			burn: 'medium',
+			fillColor: 'black',
+			finish: 'oiled',
+			shape: 'rectangle',
+			cornerRadius: 0,
+			frame: false,
+			edge: 'sanded',
+			front: 'agave'
+		},
+		size: { width: 64, height: 24 }
+	},
 	{
 		id: 'tatami',
 		name: 'Tatami',
-		description: 'Sora, dunkel graviert, geölt. Der Beyer-Klassiker.',
+		description: 'Sora, dunkel graviert, geölt.',
 		settings: {
 			uppercase: true,
 			font: 'sora',
@@ -165,35 +189,12 @@ export const PRESETS: readonly WoodPreset[] = [
 			edge: 'burnt',
 			front: 'agave'
 		}
-	},
-	{
-		id: 'kura',
-		name: 'Kura',
-		description: 'Jost klein und gesperrt, schwarz gefüllt, Kante geschliffen. Feste 64 × 24 mm für Schränke.',
-		settings: {
-			uppercase: false,
-			font: 'jost',
-			weight: 400,
-			capHeight: 6,
-			tracking: 22,
-			process: 'fill',
-			depth: 'low',
-			burn: 'medium',
-			fillColor: 'black',
-			finish: 'oiled',
-			shape: 'rectangle',
-			cornerRadius: 0,
-			frame: false,
-			edge: 'sanded',
-			front: 'agave'
-		},
-		size: { width: 64, height: 24 }
 	}
 ];
 
-/** Änderungen, die eine Vorlage an den Einstellungen vornimmt. */
+/** Änderungen, die eine Vorlage an den Einstellungen vornimmt: festes Format oder automatische Größe. */
 export function presetChanges(preset: WoodPreset): Partial<WoodSettings> {
-	return preset.size ? { ...preset.settings, sizeMode: 'manual', ...preset.size } : { ...preset.settings };
+	return preset.size ? { ...preset.settings, sizeMode: 'manual', ...preset.size } : { ...preset.settings, sizeMode: 'auto' };
 }
 
 /** Stimmen die Einstellungen in allen Feldern der Vorlage überein? */

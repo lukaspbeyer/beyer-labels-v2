@@ -46,7 +46,7 @@
 							font-family: '{fontInfo(preset.settings.font).cssFamily}'; font-weight: {preset.settings.weight};
 							letter-spacing: {preset.settings.tracking / 100}em"
 					>
-						{preset.settings.uppercase ? 'TELLER' : 'Teller'}
+						{preset.settings.uppercase ? 'TELLER' : 'teller'}
 					</span>
 				</span>
 				<span class="px-1">

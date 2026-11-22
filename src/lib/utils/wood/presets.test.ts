@@ -37,8 +37,16 @@ describe('Vorlagen', () => {
 		expect(checkFabrication(layout, settings)).toEqual([]);
 	});
 
-	it('Startzustand entspricht der Vorlage Tatami', () => {
+	it('Vorlage ohne festes Format kehrt von Kura zur automatischen Größe zurück', () => {
+		for (const preset of PRESETS.filter((p) => !p.size)) {
+			expect({ ...DEFAULT_WOOD_SETTINGS, ...presetChanges(preset) }.sizeMode).toBe('auto');
+		}
+	});
+
+	it('Startzustand ist das Hausdesign Kura im festen Format', () => {
+		expect(PRESETS[0].id).toBe('kura');
 		expect(matchesPreset(DEFAULT_WOOD_SETTINGS, PRESETS[0])).toBe(true);
+		expect([DEFAULT_WOOD_SETTINGS.sizeMode, DEFAULT_WOOD_SETTINGS.width, DEFAULT_WOOD_SETTINGS.height]).toEqual(['manual', 64, 24]);
 	});
 });
 

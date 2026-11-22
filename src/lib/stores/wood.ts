@@ -5,12 +5,12 @@ import { writable } from 'svelte/store';
 import { PRESETS, presetChanges, type WoodPreset } from '$utils/wood/presets';
 import type { WoodSettings } from '$utils/wood/types';
 
-const TATAMI = PRESETS[0].settings;
+const HOUSE_DESIGN = PRESETS[0];
 
-/** Startzustand: Vorlage „Tatami“ mit dem Text „Teller“. */
+/** Startzustand: Hausdesign Kura mit dem Text „teller“. */
 export const DEFAULT_WOOD_SETTINGS: WoodSettings = {
-	...TATAMI,
-	text: 'Teller',
+	...HOUSE_DESIGN.settings,
+	text: 'teller',
 	subText: '',
 	lineSpacing: 0.6,
 	align: 'center',
@@ -20,7 +20,8 @@ export const DEFAULT_WOOD_SETTINGS: WoodSettings = {
 	width: 80,
 	height: 30,
 	view: 'oblique',
-	lightAngle: 125
+	lightAngle: 125,
+	...presetChanges(HOUSE_DESIGN)
 };
 
 export const woodSettings = writable<WoodSettings>({ ...DEFAULT_WOOD_SETTINGS });
