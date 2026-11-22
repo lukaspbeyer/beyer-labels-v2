@@ -6,6 +6,7 @@ import type { Kura } from '$lib/kura/kura';
 import { pageSvg } from '$lib/media/paper/page';
 import { calibration } from '$lib/media/wood/calibration';
 import { layoutLabel } from '$lib/media/wood/layout';
+import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { DAY_SHEET_EXAMPLE, layoutDaySheet } from './daySheet';
 import type { Hint } from './hint';
@@ -21,6 +22,8 @@ export interface ProductExample {
 	hints: Hint[];
 	/** Farbe der Umgebung, vor der die Sache hängt oder liegt; gehört nicht zur Gestaltung */
 	backdrop?: string;
+	/** Bei Lärche: woraus der Renderer im Browser die Oberfläche rechnet; `svg` steht, bis das Holz geladen ist */
+	wood?: { layout: LabelLayout; settings: WoodSettings };
 }
 
 export interface ProductEntry {
@@ -40,7 +43,7 @@ export interface ProductEntry {
 function woodExample(kura: Kura, font: LoadedFont, input: Partial<WoodLabelInput>, caption: string): ProductExample {
 	const settings = woodLabelSettings(kura, { ...DEFAULT_WOOD_LABEL_INPUT, ...input });
 	const layout = layoutLabel(settings, font);
-	return { caption, svg: woodLabelSketch(layout, settings), width: layout.width, height: layout.height, hints: checkWoodLabel(kura, layout, settings), backdrop: calibration.front.color.agave };
+	return { caption, svg: woodLabelSketch(layout, settings), width: layout.width, height: layout.height, hints: checkWoodLabel(kura, layout, settings), backdrop: calibration.front.color.agave, wood: { layout, settings } };
 }
 
 function paperExample(kura: Kura, font: LoadedFont, input: Omit<PaperLabelInput, 'position'>): ProductExample {

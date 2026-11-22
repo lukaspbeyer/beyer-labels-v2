@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SiteHeader from '$components/SiteHeader.svelte';
+	import WoodTopView from '$components/wood/WoodTopView.svelte';
 	import { KURA } from '$lib/kura/kura';
 	import { PRODUCTS } from '$lib/products/registry';
 	import { createFontLoader, fontInfo, type LoadedFont } from '$lib/typesetting/fonts';
@@ -47,13 +48,17 @@
 						<div class="relative aspect-[4/3]" style="background: {example?.backdrop ?? 'var(--color-sand)'}">
 							{#if example}
 								<div class="absolute inset-6 flex items-center justify-center sm:inset-8">
-								<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
-								<div
-									class="bg-white [&>svg]:block [&>svg]:h-full [&>svg]:w-full {example.backdrop ? '' : 'ring-1 ring-line'}"
-									style="aspect-ratio: {example.width} / {example.height}; {example.width / example.height > 4 / 3 ? 'width: 100%' : 'height: 100%'}"
-								>
-									{@html example.svg}
-								</div>
+									<div
+										class={example.wood ? '' : 'bg-white ring-1 ring-line [&>svg]:block [&>svg]:h-full [&>svg]:w-full'}
+										style="aspect-ratio: {example.width} / {example.height}; {example.width / example.height > 4 / 3 ? 'width: 100%' : 'height: 100%'}"
+									>
+										{#if example.wood}
+											<WoodTopView layout={example.wood.layout} settings={example.wood.settings} sketch={example.svg} />
+										{:else}
+											<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
+											{@html example.svg}
+										{/if}
+									</div>
 								</div>
 							{/if}
 						</div>

@@ -2,6 +2,7 @@
 	import ControlGroup from '$components/ControlGroup.svelte';
 	import Segmented from '$components/Segmented.svelte';
 	import SiteHeader from '$components/SiteHeader.svelte';
+	import WoodTopView from '$components/wood/WoodTopView.svelte';
 	import Slider from '$components/Slider.svelte';
 	import { KURA_RANGES, parseKura, type KuraValues } from '$lib/kura/kura';
 	import current from '$lib/kura/kura.json';
@@ -115,8 +116,12 @@
 						<div class="flex flex-wrap items-end gap-x-6 gap-y-5 rounded-xl p-4 sm:p-6" style="background: {examples[0]?.backdrop ?? 'var(--color-sand)'}">
 							{#each examples as example (example.caption)}
 								<figure class="flex flex-col gap-2" style="width: min(100%, {example.width * 3}px)">
-									<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
-									<div class="bg-white [&>svg]:block [&>svg]:h-auto [&>svg]:w-full {example.backdrop ? '' : 'ring-1 ring-line'}">{@html example.svg}</div>
+									{#if example.wood}
+										<WoodTopView layout={example.wood.layout} settings={example.wood.settings} sketch={example.svg} />
+									{:else}
+										<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
+										<div class="bg-white ring-1 ring-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full">{@html example.svg}</div>
+									{/if}
 									<figcaption class="flex flex-col gap-2 text-xs {example.backdrop ? 'text-ink' : 'text-ink-muted'}">
 										{example.caption}
 										{#each example.hints as hint (hint.message)}
@@ -330,7 +335,7 @@
 				/>
 			</ControlGroup>
 
-			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt immer in Schwarz. Holzlabels zeigt diese Seite als Draufsicht ohne Tiefe und Licht; die fotorealistische Ansicht steht auf der Produktseite.</p>
+			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt immer in Schwarz. Holzlabels zeigt diese Seite als beleuchtete Draufsicht aus demselben Renderer wie die Produktseite; die räumliche Ansicht steht dort.</p>
 		</aside>
 	</main>
 </div>
