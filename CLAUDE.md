@@ -83,7 +83,7 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 
 ## Kura (`src/lib/kura`)
 
-`kura.json` is the single design definition (ADR 0003): typeface, the text roles „Zeichen“ (`sign`: the single tracked word, also zone headings) and „Text“ (`text`: list entries; its alignment also places zone headings), proportion rules, sub line, and one expression per medium (`wood`; `paper` with ink, reading size, rule width and the tone of quiet parts). A design change is a change to this file plus the matching section in `BEYER-DESIGN-GUIDELINES.md`; keep both in sync.
+`kura.json` is the single design definition (ADR 0003): typeface, the text roles „Zeichen“ (`sign`: the single tracked word, also zone headings) and „Text“ (`text`: list entries; its alignment also places zone headings), proportion rules, sub line, and one expression per medium (`wood`; `paper` with ink, reading size and rule width). A design change is a change to this file plus the matching section in `BEYER-DESIGN-GUIDELINES.md`; keep both in sync.
 
 - `parseKura(raw)` validates a definition and reports all violations at once; `KURA` is the validated current design.
 - `signCapHeight(kura, width, height)`: cap height of the word on a surface, proportional to the width, capped by the height.
