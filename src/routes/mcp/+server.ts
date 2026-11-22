@@ -27,7 +27,10 @@ const handle: RequestHandler = async ({ request, platform, fetch, url }) => {
 		origin: url.origin,
 		async loadFont() {
 			if (!font) {
-				const loaded = await createFontLoader(fetch).load(KURA.typeface.font, KURA.typeface.weight);
+				// Im Worker direkt aus den statischen Dateien lesen: Der Weg über die eigene Adresse endet an der Anmeldung der Seiten
+				const assets = env?.ASSETS as { fetch: typeof fetch } | undefined;
+				const read: typeof fetch = assets && !dev ? (input) => assets.fetch(new URL(String(input), url.origin)) : fetch;
+				const loaded = await createFontLoader(read).load(KURA.typeface.font, KURA.typeface.weight);
 				if (loaded.ok) font = loaded.value;
 			}
 			return font;
