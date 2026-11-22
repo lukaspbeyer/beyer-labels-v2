@@ -18,6 +18,8 @@ export interface KuraValues {
 	typeface: { font: FontId; weight: FontWeight };
 	/** Textrolle „Zeichen“: das einzelne, gesperrte Wort */
 	sign: { case: LetterCase; trackingPercent: number; align: TextAlign };
+	/** Textrolle „Text“: Listeneinträge und Angaben; ihre Ausrichtung gilt auch für Überschriften von Zonen */
+	text: { case: LetterCase; trackingPercent: number; align: TextAlign };
 	/** Verhältnis von Schrift zu Fläche */
 	proportion: {
 		/** Versalhöhe des Zeichens je mm Breite der Fläche */
@@ -50,6 +52,10 @@ export interface KuraValues {
 	paper: {
 		/** Druckfarbe als #rrggbb */
 		ink: string;
+		/** Versalhöhe von Lesetext in mm */
+		textCapHeight: number;
+		/** Stärke feiner Linien in mm */
+		ruleWidth: number;
 	};
 }
 
@@ -60,6 +66,8 @@ const LEVELS = ['low', 'medium', 'high'] as const;
 export const KURA_OPTIONS = {
 	'sign.case': ['lower', 'upper', 'as-typed'],
 	'sign.align': ['left', 'center', 'right'],
+	'text.case': ['lower', 'upper', 'as-typed'],
+	'text.align': ['left', 'center', 'right'],
 	'wood.grain': ['horizontal', 'vertical'],
 	'wood.process': ['dark', 'inverse', 'fill'],
 	'wood.depth': LEVELS,
@@ -72,12 +80,15 @@ export const KURA_OPTIONS = {
 /** Zulässige Bereiche der Zahlenwerte: [kleinster, größter] */
 export const KURA_RANGES = {
 	'sign.trackingPercent': [0, 40],
+	'text.trackingPercent': [0, 20],
 	'proportion.capHeightPerWidth': [0.02, 0.3],
 	'proportion.capHeightPerHeight': [0.05, 0.6],
 	'proportion.maxSignWidthRatio': [0.2, 0.9],
 	'subLine.capRatio': [0.3, 1],
 	'subLine.lineSpacing': [0.3, 1.5],
-	'wood.cornerRadius': [0, 10]
+	'wood.cornerRadius': [0, 10],
+	'paper.textCapHeight': [2.5, 6],
+	'paper.ruleWidth': [0.1, 1]
 } as const;
 
 function at(raw: unknown, path: string): unknown {

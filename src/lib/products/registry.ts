@@ -6,6 +6,7 @@ import type { Kura } from '$lib/kura/kura';
 import { pageSvg } from '$lib/media/paper/page';
 import { layoutLabel } from '$lib/media/wood/layout';
 import type { LoadedFont } from '$lib/typesetting/fonts';
+import { DAY_SHEET_EXAMPLE, layoutDaySheet } from './daySheet';
 import type { Hint } from './hint';
 import { checkPaperLabel, layoutPaperLabel, PAPER_LABEL_FORMATS, type PaperLabelInput } from './paperLabel';
 import { checkWoodLabel, DEFAULT_WOOD_LABEL_INPUT, vocabularyMisfits, woodLabelSettings, woodLabelSketch, type WoodLabelInput } from './woodLabel';
@@ -71,5 +72,14 @@ export const PRODUCTS: readonly ProductEntry[] = [
 			paperExample(kura, font, { text: 'gewürze', subText: '', format: 'small' }),
 			paperExample(kura, font, { text: 'winter', subText: 'mützen · schals', format: 'large' })
 		]
+	},
+	{
+		id: 'tagesuebersicht',
+		name: 'Tagesübersicht',
+		medium: 'Papier-Druck',
+		examples: (kura, font) => {
+			const { page, hints } = layoutDaySheet(kura, DAY_SHEET_EXAMPLE, font);
+			return [{ caption: 'A4 hoch, Inhalt kommt von einem Agenten', svg: pageSvg(page, kura.paper.ink), width: page.width, height: page.height, hints }];
+		}
 	}
 ];

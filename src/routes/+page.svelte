@@ -209,6 +209,22 @@
 				/>
 			</ControlGroup>
 
+			<ControlGroup title="Text" summary={`${draft.text.trackingPercent} % gesperrt · ${draft.paper.textCapHeight.toFixed(1).replace('.', ',')} mm`}>
+				<Segmented
+					label="Schreibweise"
+					options={[
+						{ value: 'as-typed', label: 'Wie eingegeben' },
+						{ value: 'lower', label: 'klein' },
+						{ value: 'upper', label: 'VERSAL' }
+					]}
+					value={draft.text.case}
+					onchange={(v) => (draft.text.case = v)}
+				/>
+				<Slider label="Laufweite" unit="%" min={R['text.trackingPercent'][0]} max={R['text.trackingPercent'][1]} step={1} value={draft.text.trackingPercent} onchange={(v) => (draft.text.trackingPercent = v)} />
+				<Slider label="Lesegröße auf Papier (Versalhöhe)" unit="mm" min={R['paper.textCapHeight'][0]} max={R['paper.textCapHeight'][1]} step={0.1} decimals={1} value={draft.paper.textCapHeight} onchange={(v) => (draft.paper.textCapHeight = v)} />
+				<Slider label="Feine Linien" unit="mm" min={R['paper.ruleWidth'][0]} max={R['paper.ruleWidth'][1]} step={0.05} decimals={2} value={draft.paper.ruleWidth} onchange={(v) => (draft.paper.ruleWidth = v)} />
+			</ControlGroup>
+
 			<ControlGroup title="Schrift zu Fläche" summary={`${(draft.proportion.capHeightPerWidth * 100).toFixed(1).replace('.', ',')} % der Breite`}>
 				<Slider label="Versalhöhe je Breite" unit="%" min={R['proportion.capHeightPerWidth'][0] * 100} max={R['proportion.capHeightPerWidth'][1] * 100} step={0.125} decimals={3} value={draft.proportion.capHeightPerWidth * 100} onchange={(v) => (draft.proportion.capHeightPerWidth = v / 100)} />
 				<Slider label="Versalhöhe höchstens je Höhe" unit="%" min={R['proportion.capHeightPerHeight'][0] * 100} max={R['proportion.capHeightPerHeight'][1] * 100} step={1} value={draft.proportion.capHeightPerHeight * 100} onchange={(v) => (draft.proportion.capHeightPerHeight = v / 100)} />

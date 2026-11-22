@@ -17,10 +17,11 @@ Three levels with one-way dependencies (ADR 0001):
 Products today:
 - **Holzlabel** (`/holz`): door label of 4 mm larch, engraved with a CO₂ laser (xTool X1).
 - **Papierlabel** (`/papier`): printed label on a label sheet.
+- **Tagesübersicht** (no page of its own; example on the workbench): one A4 portrait sheet per day, ADHD-friendly, content supplied by an agent.
 
 The **Kura workbench** at `/` shows every product in the current design and lets you try changes on a working copy.
 
-Planned, in this order: day sheet (Tagesübersicht, A4 portrait, content supplied by an agent); MCP server with two tools (list products, render product), PDF link valid for 24 hours, behind Cloudflare Access. The system stores no content (ADR 0004).
+Planned: MCP server with two tools (list products, render product), PDF link valid for 24 hours, behind Cloudflare Access. The system stores no content (ADR 0004).
 
 ## Commands
 
@@ -63,7 +64,7 @@ src/
     ├── media/
     │   ├── wood/              # Larch engraving: layout, checks, surface, scene, svgExport, calibration
     │   └── paper/             # Paper print: page model with SVG preview, PDF output
-    ├── products/              # woodLabel.ts, paperLabel.ts, registry.ts, hint.ts
+    ├── products/              # woodLabel.ts, paperLabel.ts, daySheet.ts, registry.ts, hint.ts
     ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview)
     ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
     ├── types/opentype.d.ts    # Types for the used part of opentype.js
@@ -77,7 +78,7 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 
 ## Kura (`src/lib/kura`)
 
-`kura.json` is the single design definition (ADR 0003): typeface, the text role „Zeichen“ (case, tracking, alignment), proportion rules, sub line, and one expression per medium (`wood`, `paper`). A design change is a change to this file plus the matching section in `BEYER-DESIGN-GUIDELINES.md`; keep both in sync.
+`kura.json` is the single design definition (ADR 0003): typeface, the text roles „Zeichen“ (`sign`: the single tracked word, also zone headings) and „Text“ (`text`: list entries; its alignment also places zone headings), proportion rules, sub line, and one expression per medium (`wood`; `paper` with ink, reading size and rule width). A design change is a change to this file plus the matching section in `BEYER-DESIGN-GUIDELINES.md`; keep both in sync.
 
 - `parseKura(raw)` validates a definition and reports all violations at once; `KURA` is the validated current design.
 - `signCapHeight(kura, width, height)`: cap height of the word on a surface, proportional to the width, capped by the height.
@@ -93,6 +94,8 @@ There are no presets and no design controls on product pages. Never put a design
 ## Products (`src/lib/products`)
 
 Each product module holds its formats, its input type, the derivation from Kura and its hints (`Hint`: kind and a message saying what to change).
+
+**Day sheet** (`daySheet.ts`): fixed zones in fixed order (weekday and date, heute wichtig with erster Schritt, morgens/mittags/abends, außerdem, termine, mitnehmen) with limits per zone (`DAY_SHEET_LIMITS`). `parseDaySheet(raw)` validates content from outside and reports every violation; `layoutDaySheet` sets the sheet and reports entries that are too long (`too-long`, never wrapped) and characters the font lacks (`character`). All sizes are multiples of Kura's reading size. The zones keep their place on an empty day. The layout is a first draft that still needs feedback from its user.
 
 **Registry** (`registry.ts`): `PRODUCTS` lists every product with examples drawn for a given Kura. A new product registers here and then appears on the workbench without further changes. Every product must be free of hints in the committed Kura (tested).
 

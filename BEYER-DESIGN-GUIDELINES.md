@@ -36,7 +36,8 @@ Kern (gilt für jedes Produkt):
 | Merkmal | Kura |
 |---|---|
 | Schrift | Jost Regular (400) |
-| Zeichen (das einzelne Wort) | Kleinbuchstaben, Laufweite 22 %, mittig |
+| Zeichen (das einzelne Wort, auch Überschriften von Zonen) | Kleinbuchstaben, Laufweite 22 %; allein auf der Fläche mittig |
+| Text (Listeneinträge, Angaben) | wie eingegeben, Laufweite 3 %, linksbündig; Überschriften von Zonen stehen ebenfalls links |
 | Versalhöhe | 9,375 % der Breite der Fläche, höchstens 25 % ihrer Höhe |
 | Breite des Zeichens | höchstens 70,3 % der Breite der Fläche |
 | Unterzeile | 55 % der Versalhöhe, Abstand 0,6 Versalhöhen, gesetzt wie das Zeichen; je Produkt erlaubt oder nicht |
@@ -56,7 +57,8 @@ Ausprägung Papier:
 | Merkmal | Kura |
 |---|---|
 | Druckfarbe | Schwarz, keine weitere Farbe |
-| Gliederung | nur über Größe, Abstand und feine Linien |
+| Gliederung | nur über Größe, Abstand und feine Linien (0,25 mm) |
+| Lesegröße | Versalhöhe 3,4 mm für Text |
 
 Produkt Holzlabel (Unterregeln):
 
@@ -77,6 +79,19 @@ Produkt Papierlabel (Unterregeln):
 | Inhalt | ein Wort, Unterzeile erlaubt |
 | Daraus abgeleitet | Versalhöhe 9,8 mm (Etikett) und 19,7 mm (Schild), Wort höchstens 73,8 mm und 147,7 mm breit |
 | Druck | in Originalgröße (100 %), Schwarz |
+
+Produkt Tagesübersicht (Unterregeln):
+
+| Merkmal | Tagesübersicht |
+|---|---|
+| Format | A4 hoch, Rand 18 mm, ein Blatt je Tag |
+| Zonen, immer in dieser Reihenfolge | Wochentag und Datum · heute wichtig mit erstem Schritt · morgens, mittags, abends · außerdem · termine · mitnehmen |
+| Obergrenzen | eine Hauptsache, je Tagesabschnitt 4 Routinen, 3 weitere Aufgaben, 4 Termine, 3 Dinge zum Mitnehmen |
+| Einträge | jeder Eintrag eine Zeile; zu lange Einträge werden gemeldet, nicht umbrochen |
+| Daraus abgeleitet | Wochentag als Zeichen 10 mm, Hauptsache 1,55-fache Lesegröße, Überschriften 0,72-fache Lesegröße |
+| Leere Plätze | bei „außerdem“ und „termine“ bleiben die Zeilen zum Schreiben stehen; Routinen zeigen nur, was gilt |
+
+Das Blatt soll beim Anfangen helfen (eine Hauptsache, kleinster erster Schritt), Routinen sichtbar halten und das Zeitgefühl stützen (Dauer je Aufgabe, „los“-Zeit je Termin). Der Inhalt kommt von einem Agenten; dieses System speichert ihn nicht.
 
 ### Wortschatz
 
