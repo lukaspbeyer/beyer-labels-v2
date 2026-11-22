@@ -21,7 +21,7 @@ Products today:
 
 The **Kura workbench** at `/` shows every product in the current design and lets you try changes on a working copy.
 
-Planned: MCP server with two tools (list products, render product), PDF link valid for 24 hours, behind Cloudflare Access. The system stores no content (ADR 0004).
+Agents order products through the **MCP server** at `/mcp` (list products, render product). The system stores no content (ADR 0004); a generated file stays available for 24 hours under an unguessable link. Access is controlled by Cloudflare Access (ADR 0005).
 
 ## Commands
 
@@ -44,7 +44,8 @@ python3 scripts/build-larch-texture.py <photo>   # writes static/textures/laerch
 - **Styling**: Tailwind CSS v4, tokens in `src/app.css`
 - **Fonts as paths**: opentype.js parses the local font files; all output text is glyph outlines, never live text
 - **3D preview**: three.js, loaded dynamically in the browser on `/holz` only
-- **PDF**: `@cantoo/pdf-lib` (maintained fork of pdf-lib), loaded dynamically when a PDF is requested
+- **PDF**: `@cantoo/pdf-lib` (maintained fork of pdf-lib), loaded dynamically in the browser when a PDF is requested
+- **MCP**: `@modelcontextprotocol/server` (official SDK v2, stateless Streamable HTTP) with `zod` for the tool input; `jose` verifies the Access token
 - **Build**: Vite + SvelteKit with `@sveltejs/adapter-cloudflare`
 
 ## Project Structure
@@ -57,14 +58,18 @@ src/
 │   ├── +layout.svelte         # Imports app.css
 │   ├── +page.svelte           # Kura workbench: working copy of Kura, examples of all products
 │   ├── holz/+page.svelte      # Product page wood label
-│   └── papier/+page.svelte    # Product page paper label
+│   ├── papier/+page.svelte    # Product page paper label
+│   ├── mcp/+server.ts         # MCP endpoint (checks Access, wires fonts and file store)
+│   └── d/[key]/[name]/        # Download of a generated file, no sign-in, 24 hours
+├── hooks.server.ts            # Requires a valid Access token for pages once Access is configured
 └── lib/
     ├── kura/                  # kura.json (the design), kura.ts (validation, derivation rules), vocabulary.ts
     ├── typesetting/           # Shared by all media: fonts, line and block setting, geometry, mm formatting
     ├── media/
     │   ├── wood/              # Larch engraving: layout, checks, surface, scene, svgExport, calibration
     │   └── paper/             # Paper print: page model with SVG preview, PDF output
-    ├── products/              # woodLabel.ts, paperLabel.ts, daySheet.ts, registry.ts, hint.ts
+    ├── products/              # woodLabel.ts, paperLabel.ts, daySheet.ts, registry.ts (workbench), orders.ts (agents), hint.ts
+    ├── server/                # mcp.ts (tools), files.ts (24 h store), access.ts (Cloudflare Access)
     ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview)
     ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
     ├── types/opentype.d.ts    # Types for the used part of opentype.js
@@ -128,7 +133,19 @@ The engine supports more than Kura uses today (inverse engraving, frame, pill, o
 
 ## Medium paper print (`src/lib/media/paper`)
 
-`page.ts`: a `PrintPage` is a size in mm and a list of filled or stroked paths; `pageSvg` draws it for the preview. `pdf.ts`: `renderPdf(pages, ink, title)` writes one PDF page per `PrintPage`, true to size in mm (1 mm = 72/25.4 pt, stroke widths in mm). It runs in the browser and is meant to run in the Worker for the MCP server; running it in the Worker is not yet tested. Print in one colour, the ink from Kura.
+`page.ts`: a `PrintPage` is a size in mm and a list of filled or stroked paths; `pageSvg` draws it for the preview. `pdf.ts`: `renderPdf(pages, ink, title)` writes one PDF page per `PrintPage`, true to size in mm (1 mm = 72/25.4 pt, stroke widths in mm). It runs in the browser and in the Worker (verified with `wrangler dev`). Print in one colour, the ink from Kura.
+
+## Orders and MCP server
+
+`products/orders.ts` is what agents see: `listProducts()` returns per product its fields, limits, output format and a valid example; `makeProduct(kura, id, content, font)` returns the file (`OrderFile`) or the hints. Any hint means no file. Every example in the list must produce a file, and the list must contain the same products as the workbench registry (both tested). A new product needs an entry in `registry.ts` and in `orders.ts`.
+
+`server/mcp.ts` exposes two tools over `createMcpHandler` (a fresh server per request, no session): `list_products` and `render_product({ product, content })`. The result is a JSON text with `url`, `fileName`, `mimeType`, `validForHours`, plus a `resource_link`; on a rule violation `created: false` with `hints` and `isError`. The day sheet accepts one day or `{ days: [...] }` with up to seven days.
+
+`server/files.ts` stores a file in Workers KV (binding `FILES`) with a TTL of 24 hours under a 48-digit random hex key; `/d/<key>/<name>` serves it without sign-in.
+
+`server/access.ts` verifies `Cf-Access-Jwt-Assertion` against the team's keys and the application's audience (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`). `/mcp` answers 503 while these are unset and 401 without a valid token; only the dev server (`npm run dev`) is open. Never add a switch that opens `/mcp` in production. Once Access is configured, `hooks.server.ts` also requires the token for all pages except `/d/` and `/mcp` (which checks itself).
+
+Local test of the endpoint: `npm run dev`, then POST JSON-RPC to `/mcp` with `Accept: application/json, text/event-stream`. `wrangler dev` runs the built Worker in the real runtime, where `/mcp` stays closed without Access.
 
 ## Web UI
 
@@ -144,14 +161,4 @@ Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted
 
 ## Wrangler Configuration (wrangler.toml)
 
-```toml
-name = "beyer-labels-v2"
-main = ".svelte-kit/cloudflare/_worker.js"
-compatibility_date = "2025-01-01"
-
-[assets]
-directory = ".svelte-kit/cloudflare"
-binding = "ASSETS"
-```
-
-No secrets are needed today.
+`compatibility_flags = ["nodejs_compat"]` (the MCP SDK imports `node:async_hooks`). KV namespace `FILES` for generated files; `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` as vars. The steps to set these up in Cloudflare are in `README.md` (section „Einrichtung bei Cloudflare“). No secrets are needed.

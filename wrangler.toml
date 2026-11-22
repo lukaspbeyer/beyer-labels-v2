@@ -1,6 +1,7 @@
 name = "beyer-labels-v2"
 main = ".svelte-kit/cloudflare/_worker.js"
 compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
 
 # Assets configuration (replaces [site])
 [assets]
@@ -10,3 +11,12 @@ binding = "ASSETS"
 # Environment variables (non-sensitive)
 [vars]
 ENVIRONMENT = "production"
+# Cloudflare Access: ohne diese beiden Werte bleibt /mcp geschlossen
+# ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"
+# ACCESS_AUD = "<Application Audience Tag>"
+
+# Ablage erzeugter Dateien für 24 Stunden (MCP, Download-Links unter /d/)
+# Anlegen: wrangler kv namespace create FILES, dann die ausgegebene id hier eintragen
+[[kv_namespaces]]
+binding = "FILES"
+id = "HIER_DIE_ID_EINTRAGEN"
