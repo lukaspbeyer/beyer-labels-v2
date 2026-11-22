@@ -76,7 +76,7 @@ Produkt Papierlabel (Unterregeln):
 | Merkmal | Papierlabel |
 |---|---|
 | Formate | Etikett 105 × 74 mm (Bogen A4 hoch, 2 × 4), Schild 210 × 100 mm (A5 quer, oben) |
-| Inhalt | ein Wort, Unterzeile erlaubt |
+| Inhalt | je Etikett ein Wort, Unterzeile erlaubt; ein Bogen trägt ein oder mehrere Etiketten, freie Plätze bleiben unbedruckt |
 | Daraus abgeleitet | Versalhöhe 9,8 mm (Etikett) und 19,7 mm (Schild), Wort höchstens 73,8 mm und 147,7 mm breit |
 | Druck | in Originalgröße (100 %), Schwarz |
 
@@ -92,7 +92,7 @@ Produkt Tagesübersicht (Unterregeln):
 | Daraus abgeleitet | Wochentag als Zeichen 7,5 mm, Hauptsache 1,55-fache Lesegröße, Überschriften 0,72-fache Lesegröße |
 | Leere Plätze | bei „außerdem“ und „termine“ bleiben die Zeilen zum Schreiben stehen; Routinen zeigen nur, was gilt |
 
-Das Blatt soll beim Anfangen helfen (eine Hauptsache, kleinster erster Schritt), Routinen sichtbar halten und das Zeitgefühl stützen (Dauer je Aufgabe, „los“-Zeit je Termin). Der Inhalt kommt von einem Agenten; dieses System speichert ihn nicht.
+Das Blatt soll beim Anfangen helfen (eine Hauptsache, kleinster erster Schritt), Routinen sichtbar halten und das Zeitgefühl stützen (Dauer je Aufgabe, „los“-Zeit je Termin). Der Inhalt kommt von einem Agenten oder zum Ausprobieren aus der Seite `/tag`; dieses System speichert ihn nicht.
 
 ### Wortschatz
 

@@ -3,7 +3,9 @@
 Drucksachen und gravierte Schilder für das Haus, alle im Hausdesign **Kura**.
 
 - `/holz`: Holzlabel aus Lärche, 3D-Vorschau und SVG für den Laser
-- `/`: Kura-Werkbank mit allen Produkten
+- `/`: Übersicht aller Produkte
+- `/werkbank`: Kura-Werkbank, das Design an einer Arbeitskopie verändern
+- `/tag`: Tagesübersicht mit eigenem Inhalt ausprobieren, PDF für den Druck
 - `/papier`: Papierlabel auf dem Etikettenbogen, PDF für den Druck
 - `/mcp`: MCP-Server für Agenten (Produkte auflisten, Produkt erzeugen)
 

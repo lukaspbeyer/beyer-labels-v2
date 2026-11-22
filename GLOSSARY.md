@@ -19,7 +19,7 @@ Der Teil von Kura, der nur für ein Medium gilt, etwa Gravurverfahren und Kante 
 _Avoid_: Variante, Theme
 
 **Werkbank**:
-Die Seite, auf der Kura an einer Arbeitskopie verändert und an allen Produkten zugleich geprüft wird. Die Arbeitskopie gilt erst, wenn sie als neue Kura-Definition übernommen ist.
+Die Seite `/werkbank`, auf der Kura an einer Arbeitskopie verändert und an allen Produkten zugleich geprüft wird. Die Arbeitskopie gilt erst, wenn sie als neue Kura-Definition übernommen ist.
 _Avoid_: Editor, Einstellungen
 
 ### Herstellung
@@ -49,10 +49,14 @@ Ein Türlabel aus 4 mm Lärche mit einem einzelnen Wort, im Serienformat oder im
 Das feste Format aller Holzlabels, damit eine Reihe von Fronten einheitlich wirkt. Das Langformat ist die Ausnahme für ein unverzichtbar langes Wort.
 
 **Papierlabel**:
-Ein gedrucktes Etikett auf einem Etikettenbogen, mit Wort und optionaler Unterzeile.
+Ein gedrucktes Etikett auf einem Etikettenbogen, mit Wort und optionaler Unterzeile. Ein Bogen trägt ein oder mehrere Etiketten.
+
+**Platz**:
+Die Stelle eines Etiketts auf dem Bogen, angegeben als Spalte und Zeile ab 1 von links oben. Freie Plätze bleiben unbedruckt, damit ein angebrochener Bogen weiter genutzt werden kann.
+_Avoid_: Position, Zelle, Feld
 
 **Tagesübersicht**:
-Ein Blatt A4 hochkant für einen Tag mit festen Zonen und Obergrenzen je Zone. Der Inhalt kommt von einem Agenten, nicht aus diesem System.
+Ein Blatt A4 hochkant für einen Tag mit festen Zonen und Obergrenzen je Zone. Der Inhalt kommt von einem Agenten oder zum Ausprobieren aus der Seite `/tag`; dieses System speichert ihn nicht.
 _Avoid_: Tagesplan, To-do-Liste
 
 **Front**:

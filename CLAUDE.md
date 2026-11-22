@@ -17,9 +17,9 @@ Three levels with one-way dependencies (ADR 0001):
 Products today:
 - **Holzlabel** (`/holz`): door label of 4 mm larch, engraved with a CO₂ laser (xTool X1).
 - **Papierlabel** (`/papier`): printed label on a label sheet.
-- **Tagesübersicht** (no page of its own; example on the workbench): one A4 portrait sheet per day, ADHD-friendly, content supplied by an agent.
+- **Tagesübersicht** (`/tag`): one A4 portrait sheet per day, ADHD-friendly, content supplied by an agent; the page lets you try it with your own content.
 
-The **Kura workbench** at `/` shows every product in the current design and lets you try changes on a working copy.
+The **overview** at `/` shows one tile per product. The **Kura workbench** at `/werkbank` shows every product in the current design and lets you try changes on a working copy.
 
 Agents order products through the **MCP server** at `/mcp` (list products, render product). The system stores no content (ADR 0004); a generated file stays available for 24 hours under an unguessable link. Access is controlled by Cloudflare Access (ADR 0005).
 
@@ -56,9 +56,11 @@ src/
 ├── fonts.css                  # @font-face rules for the local fonts
 ├── routes/
 │   ├── +layout.svelte         # Imports app.css
-│   ├── +page.svelte           # Kura workbench: working copy of Kura, examples of all products
+│   ├── +page.svelte           # Overview: one tile per registered product
+│   ├── werkbank/+page.svelte  # Kura workbench: working copy of Kura, examples of all products
 │   ├── holz/+page.svelte      # Product page wood label
-│   ├── papier/+page.svelte    # Product page paper label
+│   ├── papier/+page.svelte    # Product page paper label (one sheet, several labels)
+│   ├── tag/+page.svelte       # Product page day sheet (form, preview, PDF)
 │   ├── mcp/+server.ts         # MCP endpoint (checks Access, wires fonts and file store)
 │   └── d/[key]/[name]/        # Download of a generated file, no sign-in, 24 hours
 ├── hooks.server.ts            # Requires a valid Access token for pages once Access is configured
@@ -73,7 +75,7 @@ src/
     ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview)
     ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
     ├── types/opentype.d.ts    # Types for the used part of opentype.js
-    └── utils/result.ts        # Result<T, E> for expected errors
+    └── utils/                 # result.ts (Result<T, E> for expected errors), download.ts (save a file from the browser)
 static/fonts/<font>/           # Local WOFF files (latin, three weights per font) + OFL.txt
 static/textures/               # Larch texture, latewood map, nachweis.txt (CC BY 2.0)
 docs/adr/                      # Architecture decisions
@@ -83,7 +85,7 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 
 ## Kura (`src/lib/kura`)
 
-`kura.json` is the single design definition (ADR 0003): typeface, the text roles „Zeichen“ (`sign`: the single tracked word, also zone headings) and „Text“ (`text`: list entries; its alignment also places zone headings), proportion rules, sub line, and one expression per medium (`wood`; `paper` with ink, reading size and rule width). A design change is a change to this file plus the matching section in `BEYER-DESIGN-GUIDELINES.md`; keep both in sync.
+`kura.json` is the single design definition (ADR 0003): typeface, the text roles „Zeichen“ (`sign`: the single tracked word, also zone headings) and „Text“ (`text`: list entries, lower case like the sign but with little tracking; its alignment also places zone headings), proportion rules, sub line, and one expression per medium (`wood`; `paper` with ink, reading size and rule width). A design change is a change to this file plus the matching section in `BEYER-DESIGN-GUIDELINES.md`; keep both in sync.
 
 - `parseKura(raw)` validates a definition and reports all violations at once; `KURA` is the validated current design.
 - `signCapHeight(kura, width, height)`: cap height of the word on a surface, proportional to the width, capped by the height.
@@ -92,7 +94,7 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 - `KURA_OPTIONS` and `KURA_RANGES`: allowed values; validation and the workbench controls both read them.
 - `vocabulary.ts`: the Kura vocabulary (short words for cupboards and drawers).
 
-**Workbench** (`src/routes/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`.
+**Workbench** (`src/routes/werkbank/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`.
 
 There are no presets and no design controls on product pages. Never put a design value (font, tracking, size ratio, colour) into a product or a page; change Kura instead.
 
@@ -100,13 +102,13 @@ There are no presets and no design controls on product pages. Never put a design
 
 Each product module holds its formats, its input type, the derivation from Kura and its hints (`Hint`: kind and a message saying what to change).
 
-**Day sheet** (`daySheet.ts`): fixed zones in fixed order (weekday and date, heute wichtig with erster Schritt, morgens/mittags/abends, außerdem, termine, mitnehmen) with limits per zone (`DAY_SHEET_LIMITS`). `parseDaySheet(raw)` validates content from outside and reports every violation; `layoutDaySheet` sets the sheet and reports entries that are too long (`too-long`, never wrapped) and characters the font lacks (`character`). All sizes are multiples of Kura's reading size. The zones keep their place on an empty day. The layout is a first draft that still needs feedback from its user.
+**Day sheet** (`daySheet.ts`): fixed zones in fixed order (weekday and date, heute wichtig with erster Schritt, morgens/mittags/abends, außerdem, termine, mitnehmen) with limits per zone (`DAY_SHEET_LIMITS`). `parseDaySheet(raw)` validates content from outside and reports every violation; `layoutDaySheet` sets the sheet and reports entries that are too long (`too-long`, never wrapped) and characters the font lacks (`character`). All sizes are multiples of Kura's reading size. The zones keep their place on an empty day. Two edges for the whole sheet: weekday, headings, checkboxes and times at the left one, every entry at the second (appointments set their text in a column of their own); the weekday follows the alignment of the text role because it does not stand alone. The page `/tag` feeds a form through the same `parseDaySheet` an agent's content goes through and keeps nothing.
 
-**Registry** (`registry.ts`): `PRODUCTS` lists every product with examples drawn for a given Kura. A new product registers here and then appears on the workbench without further changes. Every product must be free of hints in the committed Kura (tested).
+**Registry** (`registry.ts`): `PRODUCTS` lists every product with a summary, its page and examples drawn for a given Kura. A new product registers here and then appears on the overview and the workbench without further changes. Every product must be free of hints in the committed Kura (tested).
 
 **Wood label** (`woodLabel.ts`): formats series 64 × 24 mm and long 90 × 24 mm; one word, no sub line. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
 
-**Paper label** (`paperLabel.ts`): formats label 105 × 74 mm (A4 portrait sheet, 2 × 4) and sign 210 × 100 mm (A5 landscape, top); one word, sub line allowed. `layoutPaperLabel` sets the lines, `checkPaperLabel` returns `sign-width` and `sub-width`, `paperLabelPage` places the label at its position on the sheet. The cell borders are shown in the preview only and are not printed.
+**Paper label** (`paperLabel.ts`): formats label 105 × 74 mm (A4 portrait sheet, 2 × 4) and sign 210 × 100 mm (A5 landscape, top); one word per label, sub line allowed. `layoutPaperLabel` sets the lines of one label, `checkPaperLabel` returns `sign-width` and `sub-width`, `paperSheetPage` places any number of labels at their places on one sheet (`positionAt`/`placeOf` convert between column/row from 1 and the row-wise position from 0); free places stay unprinted. The cell borders are shown in the preview only and are not printed.
 
 ## Typesetting (`src/lib/typesetting`)
 
@@ -139,11 +141,11 @@ The engine supports more than Kura uses today (inverse engraving, frame, pill, o
 
 `products/orders.ts` is what agents see: `listProducts()` returns per product its fields, limits, output format and a valid example; `makeProduct(kura, id, content, font)` returns the file (`OrderFile`) or the hints. Any hint means no file. Every example in the list must produce a file, and the list must contain the same products as the workbench registry (both tested). A new product needs an entry in `registry.ts` and in `orders.ts`.
 
-`server/mcp.ts` exposes two tools over `createMcpHandler` (a fresh server per request, no session): `list_products` and `render_product({ product, content })`. The result is a JSON text with `url`, `fileName`, `mimeType`, `validForHours`, plus a `resource_link`; on a rule violation `created: false` with `hints` and `isError`. The day sheet accepts one day or `{ days: [...] }` with up to seven days.
+`server/mcp.ts` exposes two tools over `createMcpHandler` (a fresh server per request, no session): `list_products` and `render_product({ product, content })`. The result is a JSON text with `url`, `fileName`, `mimeType`, `validForHours`, plus a `resource_link`; on a rule violation `created: false` with `hints` and `isError`. The day sheet accepts one day or `{ days: [...] }` with up to seven days. The paper label accepts one label (place as `column`/`row` or `position`, from 1) or `{ format, labels: [...] }` for several on one sheet; labels without a place fill the free places in order, a place named twice is a hint.
 
 `server/files.ts` stores a file in Workers KV (binding `FILES`) with a TTL of 24 hours under a 48-digit random hex key; `/d/<key>/<name>` serves it without sign-in.
 
-`server/access.ts` verifies `Cf-Access-Jwt-Assertion` against the team's keys and the application's audience (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`). `/mcp` answers 503 while these are unset and 401 without a valid token; only the dev server (`npm run dev`) is open. Never add a switch that opens `/mcp` in production. Once Access is configured, `hooks.server.ts` also requires the token for all pages except `/d/` and `/mcp` (which checks itself).
+`server/access.ts` verifies `Cf-Access-Jwt-Assertion` against the team's keys and the application's audience (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`). `/mcp` answers 503 while these are unset and 401 without a valid token; only the dev server (`npm run dev`) is open, for pages and `/mcp`, because it reads the Access vars from `wrangler.toml` but has no Access in front. Never add a switch that opens `/mcp` in production. Once Access is configured, `hooks.server.ts` also requires the token for all pages except `/d/` and `/mcp` (which checks itself).
 
 Local test of the endpoint: `npm run dev`, then POST JSON-RPC to `/mcp` with `Accept: application/json, text/event-stream`. `wrangler dev` runs the built Worker in the real runtime, where `/mcp` stays closed without Access.
 

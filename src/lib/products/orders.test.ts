@@ -34,6 +34,19 @@ describe('Bestellbare Produkte', () => {
 		expect(!outside.ok && outside.error.map((h) => h.kind)).toEqual(['position']);
 	});
 
+	it('Papierlabel: nimmt Spalte und Zeile und setzt mehrere Etiketten auf einen Bogen', async () => {
+		expect((await make('papierlabel', { text: 'gewürze', column: 1, row: 2 })).ok).toBe(true);
+		const outside = await make('papierlabel', { text: 'gewürze', column: 3, row: 1 });
+		expect(!outside.ok && outside.error.map((h) => h.kind)).toEqual(['position']);
+		const sheet = await make('papierlabel', { labels: [{ text: 'tee' }, { text: 'kaffee', column: 1, row: 1 }, { text: 'müsli', subText: 'regal 2' }] });
+		expect(sheet.ok && sheet.value.fileName).toBe('papierlabel-tee-und-2-weitere-105x74mm.pdf');
+		const clash = await make('papierlabel', { labels: [{ text: 'tee', position: 3 }, { text: 'kaffee', column: 1, row: 2 }, { text: 'weihnachtsdekoration' }] });
+		expect(!clash.ok && clash.error.map((h) => h.kind)).toEqual(['position', 'sign-width']);
+		expect(!clash.ok && clash.error[1].message.startsWith('labels[2]')).toBe(true);
+		const tooMany = await make('papierlabel', { format: 'large', labels: [{ text: 'a' }, { text: 'b' }] });
+		expect(!tooMany.ok && tooMany.error.map((h) => h.kind)).toEqual(['too-many']);
+	});
+
 	it('Tagesübersicht: mehrere Tage ergeben ein PDF, Hinweise nennen den Tag', async () => {
 		const week = await make('tagesuebersicht', { days: [DAY_SHEET_EXAMPLE, { ...DAY_SHEET_EXAMPLE, date: '2026-11-27' }] });
 		expect(week.ok && week.value.fileName).toBe('tagesuebersicht-2026-11-26-bis-2026-11-27.pdf');
