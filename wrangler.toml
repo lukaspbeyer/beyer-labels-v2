@@ -1,7 +1,12 @@
-name = "beyer-labels-v2"
+name = "kura"
 main = ".svelte-kit/cloudflare/_worker.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
+
+# Erreichbar nur unter der eigenen Domain; davor liegt Cloudflare Access
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "kura.lukasbeyer.com", custom_domain = true }]
 
 # Assets configuration (replaces [site])
 [assets]
@@ -11,12 +16,11 @@ binding = "ASSETS"
 # Environment variables (non-sensitive)
 [vars]
 ENVIRONMENT = "production"
-# Cloudflare Access: ohne diese beiden Werte bleibt /mcp geschlossen
-# ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"
-# ACCESS_AUD = "<Application Audience Tag>"
+# Cloudflare Access (Anwendung „Kura“): ohne diese beiden Werte bleibt /mcp geschlossen
+ACCESS_TEAM_DOMAIN = "super-leaf-a189.cloudflareaccess.com"
+ACCESS_AUD = "412c922a3d7fb808e5493e5344e3371457ef5d1d64f67b6500799f85183b386b"
 
-# Ablage erzeugter Dateien für 24 Stunden (MCP, Download-Links unter /d/)
-# Anlegen: wrangler kv namespace create FILES, dann die ausgegebene id hier eintragen
+# Ablage erzeugter Dateien für 24 Stunden (MCP, Download-Links unter /d/); KV-Namespace „kura-files“
 [[kv_namespaces]]
 binding = "FILES"
-id = "HIER_DIE_ID_EINTRAGEN"
+id = "6700ce4b0b66471196cf43d3ea4e7930"

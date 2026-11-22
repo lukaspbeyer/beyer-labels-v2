@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Beyer Labels: printed matter and engraved signs for the Beyer family home, all in one house design, **Kura**. Mobile-optimized web application, built with SvelteKit v2 and deployed on Cloudflare Workers.
+Kura: printed matter and engraved signs for the Beyer family home, all in one house design, **Kura**. Mobile-optimized web application, built with SvelteKit v2 and deployed on Cloudflare Workers.
 
 Read `GLOSSARY.md` for the domain terms (Kura, Textrolle, Ausprägung, Medium, Produkt, Unterregel, Hinweis) and `docs/adr/` for the decisions that must not be re-litigated. The design itself is described in `BEYER-DESIGN-GUIDELINES.md`.
 
@@ -159,6 +159,6 @@ Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted
 - `vite.config.ts` sets `ssr.noExternal: ['opentype.js']`: opentype.js ships ESM only via the `module` field, so it is bundled for SSR.
 - Verify UI changes in a browser (dev server plus Playwright), not only with tests.
 
-## Wrangler Configuration (wrangler.toml)
+## Deployment (wrangler.toml)
 
-`compatibility_flags = ["nodejs_compat"]` (the MCP SDK imports `node:async_hooks`). KV namespace `FILES` for generated files; `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` as vars. The steps to set these up in Cloudflare are in `README.md` (section „Einrichtung bei Cloudflare“). No secrets are needed.
+Worker `kura` on the custom domain `kura.lukasbeyer.com`; `workers_dev` is off. `compatibility_flags = ["nodejs_compat"]` (the MCP SDK imports `node:async_hooks`). KV namespace `kura-files` bound as `FILES`; `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` as vars (not secrets). Two Access applications sit in front: „Kura“ (allow policy, Managed OAuth) and „Kura · Download-Links“ (bypass for `/d/*`). Details in `README.md`, section „Betrieb bei Cloudflare“. Deploying publishes to production; do it only when asked.

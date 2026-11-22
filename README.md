@@ -1,4 +1,4 @@
-# Beyer Labels
+# Kura
 
 Drucksachen und gravierte Schilder für das Haus, alle im Hausdesign **Kura**.
 
@@ -18,16 +18,17 @@ npm run build      # Build für Cloudflare Workers
 wrangler deploy    # Veröffentlichen
 ```
 
-## Einrichtung bei Cloudflare
+## Betrieb bei Cloudflare
 
-Der MCP-Server bleibt geschlossen, bis diese Schritte erledigt sind.
+Adresse: `https://kura.lukasbeyer.com`, für Agenten `https://kura.lukasbeyer.com/mcp`. Die `workers.dev`-Adresse ist abgeschaltet.
 
-1. **Ablage anlegen:** `wrangler kv namespace create FILES` ausführen und die ausgegebene `id` in `wrangler.toml` unter `[[kv_namespaces]]` eintragen.
-2. **Eigene Domain:** Dem Worker im Cloudflare-Dashboard eine Subdomain zuweisen (Workers & Pages → Worker → Settings → Domains & Routes), etwa `kura.<domain>`.
-3. **Access-Anwendung:** Zero Trust → Access → Applications → „Self-hosted“ für diese Subdomain anlegen. Richtlinie „Allow“ für die Familie. Unter „Advanced settings“ Managed OAuth einschalten, Dynamic Client Registration erlauben und als Redirect-URI `https://claude.ai/api/mcp/auth_callback` zulassen.
-4. **Download-Links ausnehmen:** Eine zweite Access-Anwendung für den Pfad `kura.<domain>/d/*` mit der Richtlinie „Bypass“ für alle anlegen.
-5. **Service Token für den Bot:** Zero Trust → Access → Service Auth → Service Token anlegen; in der Anwendung aus Schritt 3 eine Richtlinie „Service Auth“ für dieses Token ergänzen. Der Bot sendet die Kopfzeilen `CF-Access-Client-Id` und `CF-Access-Client-Secret`.
-6. **Werte eintragen:** In `wrangler.toml` unter `[vars]` `ACCESS_TEAM_DOMAIN` (etwa `<team>.cloudflareaccess.com`) und `ACCESS_AUD` (Application Audience Tag der Anwendung aus Schritt 3) setzen.
-7. **Veröffentlichen:** `npm run build`, dann `wrangler deploy`.
+| Was | Wo |
+|---|---|
+| Worker | `kura`, eigene Domain `kura.lukasbeyer.com` |
+| Dateiablage | KV-Namespace `kura-files`, Bindung `FILES` |
+| Anmeldung | Access-Anwendung „Kura“ mit der Richtlinie „lukas-and-tran“ und Managed OAuth (Redirect-URI für claude.ai zugelassen) |
+| Download-Links | Access-Anwendung „Kura · Download-Links“ für `/d/*` mit „Bypass“ |
 
-Adresse für Agenten: `https://kura.<domain>/mcp`.
+Veröffentlichen: `npm run build`, dann `wrangler deploy`.
+
+**Zugang für einen Bot ohne Browser:** Zero Trust → Access → Service Auth → Service Token anlegen, dann in der Anwendung „Kura“ eine Richtlinie „Service Auth“ für dieses Token ergänzen. Der Bot sendet die Kopfzeilen `CF-Access-Client-Id` und `CF-Access-Client-Secret`.

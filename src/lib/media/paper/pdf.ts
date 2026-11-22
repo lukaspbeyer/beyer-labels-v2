@@ -14,7 +14,7 @@ function inkColor(hex: string) {
 export async function renderPdf(pages: readonly PrintPage[], ink: string, title: string): Promise<Uint8Array> {
 	const doc = await PDFDocument.create();
 	doc.setTitle(title);
-	doc.setCreator('Beyer Labels · Kura');
+	doc.setCreator('Kura');
 	const color = inkColor(ink);
 	for (const page of pages) {
 		const sheet = doc.addPage([page.width * PT_PER_MM, page.height * PT_PER_MM]);

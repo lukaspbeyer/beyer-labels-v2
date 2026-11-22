@@ -1,4 +1,4 @@
-# Beyer Labels
+# Kura
 
 Drucksachen und gravierte Schilder für das Haus der Familie Beyer, alle in einem gemeinsamen Hausdesign.
 
