@@ -1,7 +1,7 @@
 /** Feste Testgrundlage der Gravur, unabhängig von Kura: Sora in Versalien, dunkel graviert, automatische Größe. */
-import type { WoodSettings } from './types';
+import type { WoodEngraving, WoodSurroundings } from './types';
 
-export const TEST_SETTINGS: WoodSettings = {
+export const TEST_ENGRAVING: WoodEngraving = {
 	text: 'Teller',
 	subText: '',
 	uppercase: true,
@@ -13,7 +13,6 @@ export const TEST_SETTINGS: WoodSettings = {
 	lineSpacing: 0.6,
 	align: 'center',
 	grain: 'horizontal',
-	grainSeed: 1,
 	process: 'dark',
 	depth: 'medium',
 	burn: 'medium',
@@ -25,8 +24,13 @@ export const TEST_SETTINGS: WoodSettings = {
 	edge: 'burnt',
 	sizeMode: 'auto',
 	width: 64,
-	height: 24,
+	height: 24
+};
+
+/** Feste Umgebung der Vorschau für Tests der Oberfläche */
+export const TEST_SURROUNDINGS: WoodSurroundings = {
 	front: 'columba',
 	view: 'oblique',
-	lightAngle: 125
+	lightAngle: 125,
+	grainSeed: 1
 };

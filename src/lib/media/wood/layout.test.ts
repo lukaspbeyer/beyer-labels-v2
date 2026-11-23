@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { TEST_SETTINGS } from './testSettings';
+import { TEST_ENGRAVING } from './testEngraving';
 import { calibration } from './calibration';
 import { FONT_CATALOG } from '$lib/typesetting/fonts';
 import { flattenPath, pathBox, polylinesBox, shapePath, signedDistance } from '$lib/typesetting/geometry';
 import { layoutLabel } from './layout';
 import { setLine } from '$lib/typesetting/line';
 import { loadTestFont } from '$lib/typesetting/testFonts';
-import type { WoodSettings } from './types';
+import type { WoodEngraving } from './types';
 
 const sora = loadTestFont('sora', 400);
 
-function settings(changes: Partial<WoodSettings> = {}): WoodSettings {
-	return { ...TEST_SETTINGS, ...changes };
+function engraving(changes: Partial<WoodEngraving> = {}): WoodEngraving {
+	return { ...TEST_ENGRAVING, ...changes };
 }
 
 describe('Schriften', () => {
@@ -50,8 +50,8 @@ describe('Zeilensatz', () => {
 	});
 
 	it('Versalien wandeln deutsche Wörter um', () => {
-		const layout = layoutLabel(settings({ text: 'Gewürze', uppercase: true }), sora);
-		const lower = layoutLabel(settings({ text: 'Gewürze', uppercase: false }), sora);
+		const layout = layoutLabel(engraving({ text: 'Gewürze', uppercase: true }), sora);
+		const lower = layoutLabel(engraving({ text: 'Gewürze', uppercase: false }), sora);
 		expect(pathBox(layout.lines[0].commands).maxX).not.toBeCloseTo(pathBox(lower.lines[0].commands).maxX, 1);
 	});
 });
@@ -59,7 +59,7 @@ describe('Zeilensatz', () => {
 describe('Labelgröße und Platzierung', () => {
 	it('automatische Größe ist ganzzahlig, innerhalb der Grenzen und enthält den Text mit Abstand', () => {
 		for (const shape of ['rectangle', 'pill', 'oval'] as const) {
-			const s = settings({ shape, subText: 'Assiettes' });
+			const s = engraving({ shape, subText: 'Assiettes' });
 			const layout = layoutLabel(s, sora);
 			expect(Number.isInteger(layout.width)).toBe(true);
 			expect(Number.isInteger(layout.height)).toBe(true);
@@ -73,15 +73,15 @@ describe('Labelgröße und Platzierung', () => {
 	});
 
 	it('zentriert die Hauptzeile horizontal und an der Versalhöhe vertikal', () => {
-		const layout = layoutLabel(settings({ text: 'TELLER' }), sora);
+		const layout = layoutLabel(engraving({ text: 'TELLER' }), sora);
 		const box = pathBox(layout.lines[0].commands);
 		expect((box.minX + box.maxX) / 2).toBeCloseTo(layout.width / 2, 2);
 		expect((box.minY + box.maxY) / 2).toBeCloseTo(layout.height / 2, 1);
 	});
 
 	it('manuelle Größe wird übernommen, Ausrichtung links und rechts halten den Innenabstand', () => {
-		const left = layoutLabel(settings({ sizeMode: 'manual', width: 120, height: 40, align: 'left' }), sora);
-		const right = layoutLabel(settings({ sizeMode: 'manual', width: 120, height: 40, align: 'right' }), sora);
+		const left = layoutLabel(engraving({ sizeMode: 'manual', width: 120, height: 40, align: 'left' }), sora);
+		const right = layoutLabel(engraving({ sizeMode: 'manual', width: 120, height: 40, align: 'right' }), sora);
 		expect(left.width).toBe(120);
 		expect(left.height).toBe(40);
 		const pad = Math.max(calibration.layout.minPadding, calibration.layout.paddingX * 8);
@@ -90,13 +90,13 @@ describe('Labelgröße und Platzierung', () => {
 	});
 
 	it('begrenzt sehr lange Texte auf die Höchstmaße und meldet das', () => {
-		const layout = layoutLabel(settings({ text: 'Frühstücksgeschirr und Vorräte', capHeight: 14 }), sora);
+		const layout = layoutLabel(engraving({ text: 'Frühstücksgeschirr und Vorräte', capHeight: 14 }), sora);
 		expect(layout.width).toBe(calibration.layout.maxWidth);
 		expect(layout.clamped).toBe(true);
 	});
 
 	it('Rahmen und inverses Gravurfeld liegen innerhalb der Kontur', () => {
-		const layout = layoutLabel(settings({ frame: true, process: 'inverse' }), sora);
+		const layout = layoutLabel(engraving({ frame: true, process: 'inverse' }), sora);
 		const outline = polylinesBox(flattenPath(layout.outline));
 		const frame = polylinesBox(flattenPath(layout.frame));
 		const field = polylinesBox(flattenPath(layout.inverseField));

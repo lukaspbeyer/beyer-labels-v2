@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { TEST_SETTINGS } from './testSettings';
+import { TEST_ENGRAVING } from './testEngraving';
 import { checkFabrication, textMargin } from './checks';
 import { layoutLabel } from './layout';
 import { loadTestFont } from '$lib/typesetting/testFonts';
-import type { WoodSettings } from './types';
+import type { WoodEngraving } from './types';
 
 const sora = loadTestFont('sora', 400);
 const manrope = loadTestFont('manrope', 400);
 
-function warningsFor(changes: Partial<WoodSettings>, font = sora): string[] {
-	const s = { ...TEST_SETTINGS, ...changes };
+function warningsFor(changes: Partial<WoodEngraving>, font = sora): string[] {
+	const s = { ...TEST_ENGRAVING, ...changes };
 	return checkFabrication(layoutLabel(s, font), s).map((w) => w.kind);
 }
 
@@ -43,8 +43,8 @@ describe('Fertigungswarnungen', () => {
 	});
 
 	it('misst den Randabstand bei Rahmen bis zur Rahmenlinie', () => {
-		const s: WoodSettings = { ...TEST_SETTINGS, sizeMode: 'manual', width: 70, height: 20 };
-		const withFrame: WoodSettings = { ...s, frame: true };
+		const s: WoodEngraving = { ...TEST_ENGRAVING, sizeMode: 'manual', width: 70, height: 20 };
+		const withFrame: WoodEngraving = { ...s, frame: true };
 		expect(textMargin(layoutLabel(withFrame, sora), withFrame)).toBeLessThan(textMargin(layoutLabel(s, sora), s));
 	});
 

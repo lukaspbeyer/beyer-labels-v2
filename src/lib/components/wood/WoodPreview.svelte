@@ -1,17 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { calibration } from '$lib/media/wood/calibration';
+	import { frontColor } from '$lib/media/wood/surroundings';
+	import type { SheetLabel } from '$lib/media/wood/svgExport';
 	import type { LabelScene } from '$lib/media/wood/scene';
 	import { drawFlat } from '$lib/media/wood/surface';
 	import { createSurfaceView, recordFrame, sharedWoodSource, type SurfaceView } from '$lib/media/wood/surfaceView';
-	import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
+	import type { WoodSurroundings } from '$lib/media/wood/types';
 
 	interface Props {
-		layout: LabelLayout | null;
-		settings: WoodSettings;
+		/** Das gesetzte Label; bis es gesetzt ist, steht nur die Front */
+		label: SheetLabel | null;
+		/** Front, Blickwinkel, Licht und Holzausschnitt; gehört der Seite, nicht dem Label */
+		surroundings: WoodSurroundings;
 	}
 
-	let { layout, settings }: Props = $props();
+	let { label, surroundings }: Props = $props();
+	const layout = $derived(label?.layout ?? null);
 
 	type Mode = 'loading' | '3d' | 'fallback' | 'error';
 	let mode = $state<Mode>('loading');
@@ -59,8 +64,8 @@
 			mode = created ? '3d' : 'fallback';
 			view = createSurfaceView({
 				wood: source.value,
-				show(frame, l, s) {
-					if (scene) scene.update(l, frame.maps, s);
+				show(frame, l, e, s) {
+					if (scene) scene.update(l, frame.maps, e, s);
 					else drawFlat(fallbackCanvas, frame.maps, s.lightAngle);
 					recordFrame(root, frame);
 				},
@@ -77,14 +82,14 @@
 	});
 
 	$effect(() => {
-		if (layout && view) view.update(layout, settings);
+		if (label && view) view.update(label.layout, label.engraving, surroundings);
 	});
 </script>
 
 <div
 	bind:this={root}
 	class="relative h-full w-full overflow-hidden"
-	style="background: {calibration.front.color[settings.front]}"
+	style="background: {frontColor(surroundings.front)}"
 	data-mode={mode}
 >
 	<div bind:this={stage} class="absolute inset-0" class:invisible={mode === 'fallback'}></div>

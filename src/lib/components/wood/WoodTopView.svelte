@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { drawFlat } from '$lib/media/wood/surface';
 	import { createSurfaceView, recordFrame, sharedWoodSource, type SurfaceView } from '$lib/media/wood/surfaceView';
-	import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
+	import type { LabelLayout, WoodEngraving, WoodSurroundings } from '$lib/media/wood/types';
 
 	interface Props {
 		layout: LabelLayout;
-		settings: WoodSettings;
+		engraving: WoodEngraving;
+		/** Licht und Holzausschnitt der Draufsicht; die Front malt der Aufrufer dahinter */
+		surroundings: WoodSurroundings;
 		/** Draufsicht als SVG; steht, bis das Holz geladen ist, und bleibt, wenn es nicht lädt */
 		sketch: string;
 	}
 
-	let { layout, settings, sketch }: Props = $props();
+	let { layout, engraving, surroundings, sketch }: Props = $props();
 
 	let view = $state.raw<SurfaceView | null>(null);
 	let canvas: HTMLCanvasElement | undefined = $state();
@@ -25,7 +27,7 @@
 			// Dieselbe Oberfläche wie auf der Produktseite, als beleuchtete Draufsicht; außerhalb der Kontur bleibt das Bild leer
 			created = createSurfaceView({
 				wood: loaded.value,
-				show(frame, l, s) {
+				show(frame, l, _engraving, s) {
 					if (drawFlat(canvas, frame.maps, s.lightAngle, l.outline)) drawn = true;
 					recordFrame(root, frame);
 				}
@@ -39,7 +41,7 @@
 	});
 
 	$effect(() => {
-		if (view && canvas) view.update(layout, settings);
+		if (view && canvas) view.update(layout, engraving, surroundings);
 	});
 </script>
 

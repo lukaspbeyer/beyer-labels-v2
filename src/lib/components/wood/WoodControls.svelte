@@ -1,17 +1,28 @@
 <script lang="ts">
 	import { caseInWords, KURA } from '$lib/kura/kura';
-	import { WOOD_LABEL_FORMAT_IDS, WOOD_LABEL_FORMATS } from '$lib/products/woodLabel';
-	import { updateWoodLabel, woodLabelInput } from '$stores/wood';
-	import { calibration } from '$lib/media/wood/calibration';
-	import type { FrontColor } from '$lib/media/wood/types';
+	import { WOOD_LABEL_FORMAT_IDS, WOOD_LABEL_FORMATS, type WoodLabelInput } from '$lib/products/woodLabel';
+	import { FRONT_COLORS, FRONT_NAMES, frontColor } from '$lib/media/wood/surroundings';
+	import type { WoodSurroundings } from '$lib/media/wood/types';
 	import ControlGroup from '$components/ControlGroup.svelte';
 	import Segmented from '$components/Segmented.svelte';
 	import Slider from '$components/Slider.svelte';
 
-	const input = $derived($woodLabelInput);
+	interface Props {
+		/** Wort und Format des Labels */
+		input: WoodLabelInput;
+		/** Umgebung der Vorschau: Front, Blickwinkel, Licht, Holzausschnitt */
+		surroundings: WoodSurroundings;
+	}
 
-	const FRONT_LABEL = { agave: 'Agave', anthracite: 'Anthrazit', columba: 'Columba Grey' } as const;
-	const FRONTS: readonly FrontColor[] = ['agave', 'anthracite', 'columba'];
+	let { input = $bindable(), surroundings = $bindable() }: Props = $props();
+
+	function setInput(changes: Partial<WoodLabelInput>): void {
+		input = { ...input, ...changes };
+	}
+
+	function setSurroundings(changes: Partial<WoodSurroundings>): void {
+		surroundings = { ...surroundings, ...changes };
+	}
 	const formatOptions = WOOD_LABEL_FORMAT_IDS.map((value) => {
 		const format = WOOD_LABEL_FORMATS[value];
 		return { value, label: `${format.name} ${format.width} × ${format.height}` };
@@ -32,26 +43,26 @@
 				value={input.text}
 				maxlength="40"
 				autocapitalize="none"
-				oninput={(e) => updateWoodLabel({ text: textValue(e) })}
+				oninput={(e) => setInput({ text: textValue(e) })}
 			/>
 		</label>
-		<Segmented label="Format (mm)" options={formatOptions} value={input.format} onchange={(format) => updateWoodLabel({ format })} />
+		<Segmented label="Format (mm)" options={formatOptions} value={input.format} onchange={(format) => setInput({ format })} />
 	</ControlGroup>
 
-	<ControlGroup title="Vorschau" summary={FRONT_LABEL[input.front]}>
+	<ControlGroup title="Vorschau" summary={FRONT_NAMES[surroundings.front]}>
 		<div class="flex flex-col gap-2" role="group" aria-label="Möbelfront">
 			<span class="text-sm text-ink-muted">Möbelfront</span>
 			<div class="grid grid-cols-3 gap-2">
-				{#each FRONTS as front (front)}
+				{#each FRONT_COLORS as front (front)}
 					<button
 						type="button"
 						class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border p-2 text-xs transition-colors
-							{front === input.front ? 'border-clay bg-clay-soft text-ink' : 'border-line bg-white text-ink-muted hover:border-ink-muted'}"
-						aria-pressed={front === input.front}
-						onclick={() => updateWoodLabel({ front })}
+							{front === surroundings.front ? 'border-clay bg-clay-soft text-ink' : 'border-line bg-white text-ink-muted hover:border-ink-muted'}"
+						aria-pressed={front === surroundings.front}
+						onclick={() => setSurroundings({ front })}
 					>
-						<span class="h-6 w-6 rounded-full ring-1 ring-black/10" style="background: {calibration.front.color[front]}"></span>
-						{FRONT_LABEL[front]}
+						<span class="h-6 w-6 rounded-full ring-1 ring-black/10" style="background: {frontColor(front)}"></span>
+						{FRONT_NAMES[front]}
 					</button>
 				{/each}
 			</div>
@@ -59,7 +70,7 @@
 		<button
 			type="button"
 			class="min-h-11 rounded-xl border border-line bg-white px-4 text-sm text-ink hover:border-ink-muted"
-			onclick={() => updateWoodLabel({ grainSeed: input.grainSeed + 1 })}
+			onclick={() => setSurroundings({ grainSeed: surroundings.grainSeed + 1 })}
 		>
 			Anderer Holzausschnitt
 		</button>
@@ -69,9 +80,9 @@
 				{ value: 'front', label: 'Frontal' },
 				{ value: 'oblique', label: 'Schräg' }
 			]}
-			value={input.view}
-			onchange={(view) => updateWoodLabel({ view })}
+			value={surroundings.view}
+			onchange={(view) => setSurroundings({ view })}
 		/>
-		<Slider label="Lichtrichtung" unit="°" min={0} max={359} step={1} value={input.lightAngle} onchange={(lightAngle) => updateWoodLabel({ lightAngle })} />
+		<Slider label="Lichtrichtung" unit="°" min={0} max={359} step={1} value={surroundings.lightAngle} onchange={(lightAngle) => setSurroundings({ lightAngle })} />
 	</ControlGroup>
 </div>

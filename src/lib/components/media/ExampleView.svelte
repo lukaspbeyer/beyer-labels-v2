@@ -16,7 +16,7 @@
 -->
 <div class="w-full" data-medium={view.medium}>
 	{#if view.medium === 'wood'}
-		<WoodTopView layout={view.layout} settings={view.settings} sketch={view.sketch} />
+		<WoodTopView layout={view.layout} engraving={view.engraving} surroundings={view.surroundings} sketch={view.sketch} />
 	{:else if view.medium === 'paper'}
 		<PaperSheet {view} />
 	{/if}

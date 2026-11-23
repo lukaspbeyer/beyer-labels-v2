@@ -9,7 +9,11 @@ export type SizeMode = 'auto' | 'manual';
 export type FrontColor = 'agave' | 'anthracite' | 'columba';
 export type ViewAngle = 'front' | 'oblique';
 
-export interface WoodSettings {
+/**
+ * Was graviert wird: Format, Text und die Ausprägung von Kura in Lärche.
+ * Satz, Fertigungsprüfung und Laserdatei lesen nur dies; wie das Label zu sehen ist, steht in `WoodSurroundings`.
+ */
+export interface WoodEngraving {
 	text: string;
 	subText: string;
 	uppercase: boolean;
@@ -25,8 +29,6 @@ export interface WoodSettings {
 	lineSpacing: number;
 	align: TextAlign;
 	grain: GrainDirection;
-	/** Startwert für die Wahl des Holzausschnitts */
-	grainSeed: number;
 	process: Process;
 	depth: Level;
 	burn: Level;
@@ -39,10 +41,20 @@ export interface WoodSettings {
 	sizeMode: SizeMode;
 	width: number;
 	height: number;
+}
+
+/**
+ * Wie das Label in der Vorschau zu sehen ist: die Umgebung, nicht die Gestaltung (GLOSSARY „Front“).
+ * Nur die Vorschau liest sie (Oberfläche, Szene, Draufsicht, Beispielansicht), nie Satz, Prüfung oder Laserdatei.
+ */
+export interface WoodSurroundings {
+	/** Möbelfront hinter dem Label */
 	front: FrontColor;
 	view: ViewAngle;
 	/** Lichtrichtung in Grad, 0 = von rechts, 90 = von oben */
 	lightAngle: number;
+	/** Startwert für die Wahl des Holzausschnitts */
+	grainSeed: number;
 }
 
 export interface TextLine {

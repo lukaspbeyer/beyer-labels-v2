@@ -5,7 +5,7 @@
 import { err, ok, type Result } from '$utils/result';
 import { calibration } from './calibration';
 import { tracePath } from '$lib/typesetting/geometry';
-import type { LabelLayout, PathCommand, WoodSettings } from './types';
+import type { LabelLayout, PathCommand, WoodEngraving, WoodSurroundings } from './types';
 
 export interface WoodSource {
 	color: CanvasImageSource;
@@ -22,6 +22,12 @@ export interface SurfaceMaps {
 }
 
 export type SurfaceError = { kind: 'canvas-unavailable' } | { kind: 'image-load'; url: string };
+
+/**
+ * Was die Texturen außer der Gravur bestimmt: der Holzausschnitt und die Lichtrichtung (Eigenschatten der Gravur).
+ * Front und Blickwinkel gehören nicht dazu.
+ */
+export type SurfaceSurroundings = Pick<WoodSurroundings, 'grainSeed' | 'lightAngle'>;
 
 /** Pixel des Labels als Gleitkommafelder (0..1). */
 export interface SurfaceInput {
@@ -72,11 +78,11 @@ export interface GrainWindow {
  * Wählt einen Ausschnitt der Lärchenplatte. Passt das Label quer zur Faser in eine Lamelle,
  * liegt es vollständig darin (keine Leimfuge, keine Wiederholung).
  */
-export function chooseGrainWindow(settings: WoodSettings, widthMm: number, heightMm: number): GrainWindow {
+export function chooseGrainWindow(engraving: WoodEngraving, grainSeed: number, widthMm: number, heightMm: number): GrainWindow {
 	const t = calibration.woodTexture;
-	const rng = seededRandom(settings.grainSeed);
-	const alongPx = (settings.grain === 'horizontal' ? widthMm : heightMm) / t.mmPerPx;
-	const acrossPx = (settings.grain === 'horizontal' ? heightMm : widthMm) / t.mmPerPx;
+	const rng = seededRandom(grainSeed);
+	const alongPx = (engraving.grain === 'horizontal' ? widthMm : heightMm) / t.mmPerPx;
+	const acrossPx = (engraving.grain === 'horizontal' ? heightMm : widthMm) / t.mmPerPx;
 	const fitting = t.lamellae.filter((l) => l.length === 2 && l[1] - l[0] >= acrossPx + 4);
 	const x = Math.max(0, rng() * (t.widthPx - alongPx));
 	if (fitting.length > 0) {
@@ -166,8 +172,8 @@ interface FinishProfile {
 	limeAmount: number;
 }
 
-function finishProfile(settings: WoodSettings, limeShare: number): FinishProfile {
-	const f = calibration.finish[settings.finish];
+function finishProfile(engraving: WoodEngraving, limeShare: number): FinishProfile {
+	const f = calibration.finish[engraving.finish];
 	const gamma = new Float32Array(LUT_SIZE + 1);
 	for (let i = 0; i <= LUT_SIZE; i++) gamma[i] = Math.pow(i / LUT_SIZE, f.gamma);
 	return {
@@ -263,35 +269,35 @@ export function shadowField(height: Float32Array, w: number, h: number, pxPerMm:
 }
 
 /** Berechnet Farbe, Normalen und Rauheit aus den gerasterten Feldern. */
-export function composeSurface(input: SurfaceInput, settings: WoodSettings): Omit<SurfaceMaps, 'width' | 'height' | 'pxPerMm'> {
+export function composeSurface(input: SurfaceInput, engraving: WoodEngraving, surroundings: SurfaceSurroundings): Omit<SurfaceMaps, 'width' | 'height' | 'pxPerMm'> {
 	const { width: w, height: h, pxPerMm } = input;
 	const e = calibration.engraving;
-	const finish = calibration.finish[settings.finish];
-	const isBurn = settings.process !== 'fill';
-	const burnBase = hexToRgb(e.burnColor[settings.burn]);
-	const paint = hexToRgb(calibration.fill.color[settings.fillColor]);
-	const woodFinish = finishProfile(settings, 1);
-	const burnFinish = finishProfile(settings, calibration.limeInEngraving);
+	const finish = calibration.finish[engraving.finish];
+	const isBurn = engraving.process !== 'fill';
+	const burnBase = hexToRgb(e.burnColor[engraving.burn]);
+	const paint = hexToRgb(calibration.fill.color[engraving.fillColor]);
+	const woodFinish = finishProfile(engraving, 1);
+	const burnFinish = finishProfile(engraving, calibration.limeInEngraving);
 
-	const depth = e.depthMm[settings.depth];
+	const depth = e.depthMm[engraving.depth];
 	const depthShare = depth / Math.max(e.depthMm.low, e.depthMm.medium, e.depthMm.high);
 	// Gravurwände werden mit der Tiefe breiter (Strahlkegel)
 	const walls = blurField(input.engraved, w, h, Math.max(0.6, Math.max(e.beamBlurMm, depth * e.wallTaper) * pxPerMm), 2);
 	const cavity = blurField(input.engraved, w, h, depth * 1.2 * pxPerMm, 2);
 	const halo = isBurn ? blurField(input.engraved, w, h, e.haloRadiusMm * pxPerMm / 1.4, 2) : null;
-	const edgeCal = calibration.edge[settings.edge];
+	const edgeCal = calibration.edge[engraving.edge];
 	const edge = blurField(input.inside, w, h, edgeCal.topBurnWidthMm * pxPerMm, 1);
-	const horizontal = settings.grain === 'horizontal';
-	const fibers = fiberProfile(horizontal ? h : w, pxPerMm, settings.grainSeed);
+	const horizontal = engraving.grain === 'horizontal';
+	const fibers = fiberProfile(horizontal ? h : w, pxPerMm, surroundings.grainSeed);
 	const fiberDetail = calibration.woodTexture.fiberDetail;
 	const lighten = e.latewoodColorLighten;
-	const sealed = settings.finish === 'oiled' || settings.finish === 'lacquer';
+	const sealed = engraving.finish === 'oiled' || engraving.finish === 'lacquer';
 	const engravedRough = isBurn ? e.roughness : calibration.fill.roughness;
 	const insideRough = sealed ? Math.min(engravedRough, finish.roughness + 0.18) : engravedRough;
 
 	const height = heightField(input, walls, depth);
 	const normal = normalMap(height, w, h, pxPerMm);
-	const shadow = shadowField(height, w, h, pxPerMm, settings.lightAngle, depth);
+	const shadow = shadowField(height, w, h, pxPerMm, surroundings.lightAngle, depth);
 	const albedo = new ImageData(w, h);
 	const roughness = new ImageData(w, h);
 	const wood = new Float32Array(3);
@@ -390,11 +396,11 @@ function alphaField(ctx: CanvasRenderingContext2D, w: number, h: number): Float3
 	return out;
 }
 
-function rasterizeEngraving(ctx: CanvasRenderingContext2D, layout: LabelLayout, settings: WoodSettings, scale: number): void {
+function rasterizeEngraving(ctx: CanvasRenderingContext2D, layout: LabelLayout, engraving: WoodEngraving, scale: number): void {
 	const text = layout.lines.flatMap((l) => l.commands);
 	ctx.fillStyle = '#fff';
 	ctx.strokeStyle = '#fff';
-	if (settings.process === 'inverse') {
+	if (engraving.process === 'inverse') {
 		ctx.beginPath();
 		tracePath(ctx, layout.inverseField, scale);
 		ctx.fill();
@@ -419,14 +425,14 @@ function rasterizeEngraving(ctx: CanvasRenderingContext2D, layout: LabelLayout, 
 function sampleWood(
 	ctx: CanvasRenderingContext2D,
 	image: CanvasImageSource,
-	settings: WoodSettings,
+	engraving: WoodEngraving,
 	window: GrainWindow,
 	pxPerMm: number
 ): void {
 	const s = pxPerMm * calibration.woodTexture.mmPerPx;
 	ctx.imageSmoothingEnabled = true;
 	ctx.imageSmoothingQuality = 'high';
-	if (settings.grain === 'horizontal') ctx.setTransform(s, 0, 0, s, -s * window.x, -s * window.y);
+	if (engraving.grain === 'horizontal') ctx.setTransform(s, 0, 0, s, -s * window.x, -s * window.y);
 	// senkrecht: Textur transponiert, Faser entlang der Höhe
 	else ctx.setTransform(0, s, s, 0, -s * window.y, -s * window.x);
 	ctx.drawImage(image, 0, 0);
@@ -439,7 +445,8 @@ function sampleWood(
  */
 export function renderSurface(
 	layout: LabelLayout,
-	settings: WoodSettings,
+	engraving: WoodEngraving,
+	surroundings: SurfaceSurroundings,
 	wood: WoodSource,
 	maxPxPerMm = Infinity
 ): Result<SurfaceMaps, SurfaceError> {
@@ -451,15 +458,15 @@ export function renderSurface(
 	const [engravingCtx, insideCtx, colorCtx, latewoodCtx] = contexts;
 	if (!engravingCtx.ok || !insideCtx.ok || !colorCtx.ok || !latewoodCtx.ok) return err({ kind: 'canvas-unavailable' });
 
-	rasterizeEngraving(engravingCtx.value, layout, settings, scaleX);
+	rasterizeEngraving(engravingCtx.value, layout, engraving, scaleX);
 	insideCtx.value.fillStyle = '#fff';
 	insideCtx.value.beginPath();
 	tracePath(insideCtx.value, layout.outline, scaleX);
 	insideCtx.value.fill();
 
-	const window = chooseGrainWindow(settings, layout.width, layout.height);
-	sampleWood(colorCtx.value, wood.color, settings, window, scaleX);
-	sampleWood(latewoodCtx.value, wood.latewood, settings, window, scaleX);
+	const window = chooseGrainWindow(engraving, surroundings.grainSeed, layout.width, layout.height);
+	sampleWood(colorCtx.value, wood.color, engraving, window, scaleX);
+	sampleWood(latewoodCtx.value, wood.latewood, engraving, window, scaleX);
 
 	const colorData = colorCtx.value.getImageData(0, 0, w, h).data;
 	const lateData = latewoodCtx.value.getImageData(0, 0, w, h).data;
@@ -481,7 +488,8 @@ export function renderSurface(
 			latewood,
 			wood: woodRgb
 		},
-		settings
+		engraving,
+		surroundings
 	);
 	return ok({ width: w, height: h, pxPerMm: scaleX, ...maps });
 }

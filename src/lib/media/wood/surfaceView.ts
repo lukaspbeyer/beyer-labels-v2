@@ -5,8 +5,8 @@
  */
 import type { Result } from '$utils/result';
 import { calibration } from './calibration';
-import { loadWoodSource, renderSurface, type SurfaceError, type SurfaceMaps, type WoodSource } from './surface';
-import type { LabelLayout, WoodSettings } from './types';
+import { loadWoodSource, renderSurface, type SurfaceError, type SurfaceMaps, type SurfaceSurroundings, type WoodSource } from './surface';
+import type { LabelLayout, WoodEngraving, WoodSurroundings } from './types';
 
 export interface SurfaceFrame {
 	maps: SurfaceMaps;
@@ -19,7 +19,8 @@ export interface SurfaceFrame {
 
 export interface SurfaceViewOptions {
 	wood: WoodSource;
-	show(frame: SurfaceFrame, layout: LabelLayout, settings: WoodSettings): void;
+	/** Zeigt ein Bild mit dem Stand, für den es gerechnet oder aufgerufen wurde, samt Umgebung (Front, Blickwinkel, Licht) */
+	show(frame: SurfaceFrame, layout: LabelLayout, engraving: WoodEngraving, surroundings: WoodSurroundings): void;
 	/** Das schnelle Bild ließ sich nicht rechnen; ohne Angabe bleibt stehen, was zu sehen war */
 	fail?(error: SurfaceError): void;
 	/** Für Tests ersetzbar */
@@ -28,15 +29,14 @@ export interface SurfaceViewOptions {
 }
 
 export interface SurfaceView {
-	/** Neuer Stand von Layout oder Einstellungen. Ändert sich nur die Umgebung (Front, Blickwinkel), wird nicht neu gerechnet. */
-	update(layout: LabelLayout, settings: WoodSettings): void;
+	/** Neuer Stand von Gravur oder Umgebung. Ändern sich nur Front oder Blickwinkel, wird nicht neu gerechnet, nur neu gezeigt. */
+	update(layout: LabelLayout, engraving: WoodEngraving, surroundings: WoodSurroundings): void;
 	dispose(): void;
 }
 
-/** Alles, was die Texturen bestimmt. Front und Blickwinkel gehören nicht dazu, die Lichtrichtung schon (Eigenschatten der Gravur). */
-export function surfaceKey(layout: LabelLayout, settings: WoodSettings): string {
-	const { front: _front, view: _view, ...surface } = settings;
-	return JSON.stringify([surface, layout.width, layout.height, layout.lines.map((line) => line.commands.length)]);
+/** Alles, was die Texturen bestimmt: die Gravur, ihr Layout und aus der Umgebung Holzausschnitt und Lichtrichtung. */
+export function surfaceKey(layout: LabelLayout, engraving: WoodEngraving, surroundings: SurfaceSurroundings): string {
+	return JSON.stringify([engraving, surroundings.grainSeed, surroundings.lightAngle, layout.width, layout.height, layout.lines.map((line) => line.commands.length)]);
 }
 
 export function createSurfaceView(options: SurfaceViewOptions): SurfaceView {
@@ -46,9 +46,9 @@ export function createSurfaceView(options: SurfaceViewOptions): SurfaceView {
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let count = 0;
 
-	function show(maps: SurfaceMaps, quality: SurfaceFrame['quality'], start: number, layout: LabelLayout, settings: WoodSettings): void {
+	function show(maps: SurfaceMaps, quality: SurfaceFrame['quality'], start: number, layout: LabelLayout, engraving: WoodEngraving, surroundings: WoodSurroundings): void {
 		count += 1;
-		options.show({ maps, quality, ms: now() - start, count }, layout, settings);
+		options.show({ maps, quality, ms: now() - start, count }, layout, engraving, surroundings);
 	}
 
 	function cancel(): void {
@@ -57,27 +57,27 @@ export function createSurfaceView(options: SurfaceViewOptions): SurfaceView {
 	}
 
 	return {
-		update(layout, settings) {
+		update(layout, engraving, surroundings) {
 			cancel();
 			const start = now();
-			const key = surfaceKey(layout, settings);
+			const key = surfaceKey(layout, engraving, surroundings);
 			if (cached?.key === key) {
-				show(cached.maps, 'full', start, layout, settings);
+				show(cached.maps, 'full', start, layout, engraving, surroundings);
 				return;
 			}
-			const quick = render(layout, settings, options.wood, calibration.render.quickPxPerMm);
+			const quick = render(layout, engraving, surroundings, options.wood, calibration.render.quickPxPerMm);
 			if (!quick.ok) {
 				options.fail?.(quick.error);
 				return;
 			}
-			show(quick.value, 'quick', start, layout, settings);
+			show(quick.value, 'quick', start, layout, engraving, surroundings);
 			timer = setTimeout(() => {
 				timer = null;
 				const refineStart = now();
-				const full = render(layout, settings, options.wood);
+				const full = render(layout, engraving, surroundings, options.wood);
 				if (!full.ok) return;
 				cached = { key, maps: full.value };
-				show(full.value, 'full', refineStart, layout, settings);
+				show(full.value, 'full', refineStart, layout, engraving, surroundings);
 			}, calibration.render.refineDelayMs);
 		},
 		dispose: cancel

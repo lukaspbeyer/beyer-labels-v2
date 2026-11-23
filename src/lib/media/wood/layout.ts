@@ -3,30 +3,30 @@ import { calibration } from './calibration';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { setLine } from '$lib/typesetting/line';
 import { flattenPath, shapePath, signedDistance, translatePath } from '$lib/typesetting/geometry';
-import type { LabelLayout, Point, TextLine, WoodSettings } from './types';
+import type { LabelLayout, Point, TextLine, WoodEngraving } from './types';
 
 interface LineSpec {
 	text: string;
 	capHeight: number;
 }
 
-export function displayText(text: string, uppercase: boolean): string {
+function displayText(text: string, uppercase: boolean): string {
 	const trimmed = text.trim();
 	return uppercase ? trimmed.toLocaleUpperCase('de-DE') : trimmed;
 }
 
-function lineSpecs(settings: WoodSettings): LineSpec[] {
-	const main = displayText(settings.text, settings.uppercase);
-	const sub = displayText(settings.subText, settings.uppercase);
-	const specs: LineSpec[] = [{ text: main, capHeight: settings.capHeight }];
-	if (sub) specs.push({ text: sub, capHeight: settings.capHeight * settings.subCapRatio });
+function lineSpecs(engraving: WoodEngraving): LineSpec[] {
+	const main = displayText(engraving.text, engraving.uppercase);
+	const sub = displayText(engraving.subText, engraving.uppercase);
+	const specs: LineSpec[] = [{ text: main, capHeight: engraving.capHeight }];
+	if (sub) specs.push({ text: sub, capHeight: engraving.capHeight * engraving.subCapRatio });
 	return specs;
 }
 
 /** Breite des Randes, den der Text zusätzlich zum Innenabstand freihalten muss. */
-export function borderWidth(settings: WoodSettings): number {
-	const frame = settings.frame ? calibration.frame.insetMm + calibration.frame.lineWidthMm : 0;
-	const rim = settings.process === 'inverse' ? calibration.engraving.inverseRimMm : 0;
+export function borderWidth(engraving: WoodEngraving): number {
+	const frame = engraving.frame ? calibration.frame.insetMm + calibration.frame.lineWidthMm : 0;
+	const rim = engraving.process === 'inverse' ? calibration.engraving.inverseRimMm : 0;
 	return Math.max(frame, rim);
 }
 
@@ -36,8 +36,8 @@ function padding(capHeight: number): { x: number; y: number } {
 }
 
 /** Prüft, ob ein zentrierter Inhaltsblock mit den nötigen Abständen in die Form passt. */
-function contentFits(settings: WoodSettings, width: number, height: number, content: { w: number; h: number }, pad: { x: number; y: number }, border: number): boolean {
-	const outline = flattenPath(shapePath(settings.shape, width, height, settings.cornerRadius));
+function contentFits(engraving: WoodEngraving, width: number, height: number, content: { w: number; h: number }, pad: { x: number; y: number }, border: number): boolean {
+	const outline = flattenPath(shapePath(engraving.shape, width, height, engraving.cornerRadius));
 	const left = (width - content.w) / 2;
 	const top = (height - content.h) / 2;
 	const right = left + content.w;
@@ -54,16 +54,16 @@ function contentFits(settings: WoodSettings, width: number, height: number, cont
 	return checks.every(({ p, need }) => signedDistance(p, outline) >= need - 1e-6);
 }
 
-function autoSize(settings: WoodSettings, content: { w: number; h: number }): { width: number; height: number } {
-	const pad = padding(settings.capHeight);
-	const border = borderWidth(settings);
+function autoSize(engraving: WoodEngraving, content: { w: number; h: number }): { width: number; height: number } {
+	const pad = padding(engraving.capHeight);
+	const border = borderWidth(engraving);
 	let width = content.w + 2 * (pad.x + border);
 	let height = content.h + 2 * (pad.y + border);
-	for (let i = 0; i < 400 && !contentFits(settings, width, height, content, pad, border); i++) {
-		if (settings.shape === 'oval') {
+	for (let i = 0; i < 400 && !contentFits(engraving, width, height, content, pad, border); i++) {
+		if (engraving.shape === 'oval') {
 			width *= 1.02;
 			height *= 1.02;
-		} else if (settings.shape === 'pill') {
+		} else if (engraving.shape === 'pill') {
 			width += 0.5;
 		} else {
 			width += 0.5;
@@ -81,14 +81,14 @@ function clampSize(width: number, height: number): { width: number; height: numb
 }
 
 /** Setzt alle Zeilen, bestimmt die Labelgröße und platziert den Text. */
-export function layoutLabel(settings: WoodSettings, font: LoadedFont): LabelLayout {
-	const specs = lineSpecs(settings);
-	const set = specs.map((s) => setLine(font, s.text, s.capHeight, settings.tracking));
+export function layoutLabel(engraving: WoodEngraving, font: LoadedFont): LabelLayout {
+	const specs = lineSpecs(engraving);
+	const set = specs.map((s) => setLine(font, s.text, s.capHeight, engraving.tracking));
 
 	// Grundlinien untereinander; die erste liegt bei 0, Versalhöhe oberhalb
 	const baselines = set.reduce<number[]>((acc, line, i) => {
 		if (i === 0) return [0];
-		const gap = settings.lineSpacing * settings.capHeight;
+		const gap = engraving.lineSpacing * engraving.capHeight;
 		return [...acc, acc[i - 1] + gap + line.capHeight];
 	}, []);
 	const capTop = -set[0].capHeight;
@@ -100,13 +100,13 @@ export function layoutLabel(settings: WoodSettings, font: LoadedFont): LabelLayo
 	const contentWidth = Math.max(...set.map((l) => (Number.isFinite(l.ink.maxX) ? l.ink.maxX - l.ink.minX : 0)));
 
 	const requested =
-		settings.sizeMode === 'auto'
-			? autoSize(settings, { w: contentWidth, h: 2 * halfHeight })
-			: { width: settings.width, height: settings.height };
+		engraving.sizeMode === 'auto'
+			? autoSize(engraving, { w: contentWidth, h: 2 * halfHeight })
+			: { width: engraving.width, height: engraving.height };
 	const { width, height, clamped } = clampSize(requested.width, requested.height);
 
-	const pad = padding(settings.capHeight);
-	const border = borderWidth(settings);
+	const pad = padding(engraving.capHeight);
+	const border = borderWidth(engraving);
 	const innerLeft = border + pad.x;
 	const innerRight = width - border - pad.x;
 	const dy = height / 2 - capCenter;
@@ -114,9 +114,9 @@ export function layoutLabel(settings: WoodSettings, font: LoadedFont): LabelLayo
 	const lines: TextLine[] = set.map((line, i) => {
 		const inkWidth = line.ink.maxX - line.ink.minX;
 		const x =
-			settings.align === 'left'
+			engraving.align === 'left'
 				? innerLeft - line.ink.minX
-				: settings.align === 'right'
+				: engraving.align === 'right'
 					? innerRight - line.ink.maxX
 					: width / 2 - line.ink.minX - inkWidth / 2;
 		return {
@@ -130,11 +130,11 @@ export function layoutLabel(settings: WoodSettings, font: LoadedFont): LabelLayo
 	return {
 		width,
 		height,
-		outline: shapePath(settings.shape, width, height, settings.cornerRadius),
-		frame: settings.frame ? shapePath(settings.shape, width, height, settings.cornerRadius, insetMm + lineWidthMm / 2) : [],
+		outline: shapePath(engraving.shape, width, height, engraving.cornerRadius),
+		frame: engraving.frame ? shapePath(engraving.shape, width, height, engraving.cornerRadius, insetMm + lineWidthMm / 2) : [],
 		inverseField:
-			settings.process === 'inverse'
-				? shapePath(settings.shape, width, height, settings.cornerRadius, calibration.engraving.inverseRimMm)
+			engraving.process === 'inverse'
+				? shapePath(engraving.shape, width, height, engraving.cornerRadius, calibration.engraving.inverseRimMm)
 				: [],
 		lines,
 		clamped

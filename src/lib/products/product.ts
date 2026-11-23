@@ -111,8 +111,8 @@ interface ProductDefinition<L extends string, Order extends OrderOf<L>, S extend
 	 * so zeigt und prüft die Werkbank eine Änderung an Kura auf demselben Weg.
 	 */
 	examples: readonly { caption: string; order: Order }[];
-	/** Wie das Medium den Satz eines Beispiels zeigt */
-	exampleView(kura: Kura, setting: S): ExampleView;
+	/** Wie das Medium den Satz eines Beispiels zeigt; `index` ist die Stelle des Beispiels in `examples` */
+	exampleView(kura: Kura, setting: S, index: number): ExampleView;
 	/** Hinweise, die für das Produkt als Ganzes gelten */
 	notes?(kura: Kura, font: LoadedFont): Hint[];
 }
@@ -174,9 +174,9 @@ export function defineProduct<L extends string, Order extends OrderOf<L>, S exte
 		summary,
 		href,
 		examples: (kura, font) =>
-			definition.examples.map(({ caption, order }) => {
+			definition.examples.map(({ caption, order }, index) => {
 				const setting = definition.set(kura, order, font);
-				return { caption, hints: setting[list].flatMap((piece) => piece.hints), view: definition.exampleView(kura, setting) };
+				return { caption, hints: setting[list].flatMap((piece) => piece.hints), view: definition.exampleView(kura, setting, index) };
 			}),
 		notes: (kura, font) => definition.notes?.(kura, font) ?? [],
 		spec: (kura) => ({ id, name, medium: medium.name, output: medium.output, ...definition.order(kura) }),

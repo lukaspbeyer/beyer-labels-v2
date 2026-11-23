@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { calibration } from './calibration';
 import { blurField, chooseGrainWindow, composeSurface, seededRandom, shadeFlat, shadowField, surfaceResolution, type SurfaceInput } from './surface';
-import { TEST_SETTINGS } from './testSettings';
+import { TEST_ENGRAVING, TEST_SURROUNDINGS } from './testEngraving';
 
 // jsdom kennt ImageData nicht; die Rechnung braucht davon nur Maße und Daten
 beforeAll(() => {
@@ -28,9 +28,9 @@ const luminance = (data: Uint8ClampedArray, pixel: number) => data[pixel * 4] + 
 describe('Oberfläche: Rechnung', () => {
 	it('wählt den Holzausschnitt je Startwert gleich und innerhalb einer Lamelle', () => {
 		const t = calibration.woodTexture;
-		const a = chooseGrainWindow({ ...TEST_SETTINGS, grainSeed: 3 }, 64, 24);
-		expect(chooseGrainWindow({ ...TEST_SETTINGS, grainSeed: 3 }, 64, 24)).toEqual(a);
-		expect(chooseGrainWindow({ ...TEST_SETTINGS, grainSeed: 4 }, 64, 24)).not.toEqual(a);
+		const a = chooseGrainWindow(TEST_ENGRAVING, 3, 64, 24);
+		expect(chooseGrainWindow(TEST_ENGRAVING, 3, 64, 24)).toEqual(a);
+		expect(chooseGrainWindow(TEST_ENGRAVING, 4, 64, 24)).not.toEqual(a);
 		const across = 24 / t.mmPerPx;
 		expect(a.x).toBeGreaterThanOrEqual(0);
 		expect(a.x + 64 / t.mmPerPx).toBeLessThanOrEqual(t.widthPx);
@@ -76,7 +76,7 @@ describe('Oberfläche: Rechnung', () => {
 
 	it('färbt die Gravur dunkel und lässt das Holz daneben hell', () => {
 		const source = input();
-		const maps = composeSurface(source, { ...TEST_SETTINGS, process: 'fill', fillColor: 'black' });
+		const maps = composeSurface(source, { ...TEST_ENGRAVING, process: 'fill', fillColor: 'black' }, TEST_SURROUNDINGS);
 		const centre = 6 * source.width + 12;
 		const wood = 1 * source.width + 2;
 		expect(maps.albedo.data).toHaveLength(source.width * source.height * 4);
@@ -87,7 +87,7 @@ describe('Oberfläche: Rechnung', () => {
 
 	it('beleuchtet die flache Ansicht aus den Normalen, ohne Farben zu erfinden', () => {
 		const source = input();
-		const maps = { width: source.width, height: source.height, pxPerMm: source.pxPerMm, ...composeSurface(source, TEST_SETTINGS) };
+		const maps = { width: source.width, height: source.height, pxPerMm: source.pxPerMm, ...composeSurface(source, TEST_ENGRAVING, TEST_SURROUNDINGS) };
 		const lit = shadeFlat(maps, 125);
 		const wood = 1 * source.width + 2;
 		expect(lit.data[wood * 4 + 3]).toBe(255);

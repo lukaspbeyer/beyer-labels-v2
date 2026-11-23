@@ -4,17 +4,22 @@
 	import WoodControls from '$components/wood/WoodControls.svelte';
 	import WoodPreview from '$components/wood/WoodPreview.svelte';
 	import { KURA } from '$lib/kura/kura';
-	import { woodLabel, type WoodLabelProof } from '$lib/products/woodLabel';
+	import { DEFAULT_WOOD_SURROUNDINGS } from '$lib/media/wood/surroundings';
+	import type { WoodSurroundings } from '$lib/media/wood/types';
+	import { DEFAULT_WOOD_LABEL_INPUT, woodLabel, type WoodLabelInput, type WoodLabelProof } from '$lib/products/woodLabel';
 	import { useFont } from '$lib/typesetting/fontState.svelte';
 	import { fontUrl } from '$lib/typesetting/fonts';
-	import { woodLabelInput, woodSettings } from '$stores/wood';
 	import { saveFile } from '$utils/download';
 
+	// Die Seite hält nur ihre Eingabe: ein Label (Wort, Format) und die Umgebung der Vorschau. Beides beginnt bei jedem Besuch neu.
+	let input = $state<WoodLabelInput>({ ...DEFAULT_WOOD_LABEL_INPUT });
+	let surroundings = $state<WoodSurroundings>({ ...DEFAULT_WOOD_SURROUNDINGS });
+
 	const kuraFont = useFont(() => KURA.typeface);
-	// Bis die Schrift geladen ist, bleibt der letzte Stand stehen
+	// Bis die Schrift geladen ist, bleibt der letzte Stand stehen; die Vorschau zeigt so lange die Front
 	let lastProof: WoodLabelProof | null = null;
 	const proof = $derived.by(() => {
-		if (kuraFont.font) lastProof = woodLabel.set(KURA, { labels: [$woodLabelInput] }, kuraFont.font);
+		if (kuraFont.font) lastProof = woodLabel.set(KURA, { labels: [{ text: input.text, format: input.format }] }, kuraFont.font);
 		return lastProof;
 	});
 	const label = $derived(proof?.labels[0] ?? null);
@@ -42,7 +47,7 @@
 			aria-label="Vorschau"
 		>
 			<div class="h-full w-full overflow-hidden lg:rounded-3xl">
-				<WoodPreview layout={label?.layout ?? null} settings={label?.settings ?? $woodSettings} />
+				<WoodPreview {label} {surroundings} />
 			</div>
 		</section>
 
@@ -63,7 +68,7 @@
 				fileName={proof?.fileName ?? ''}
 			/>
 
-			<WoodControls />
+			<WoodControls bind:input bind:surroundings />
 
 			<footer class="flex flex-col gap-1 px-1 text-xs leading-relaxed text-ink-muted">
 				<p>

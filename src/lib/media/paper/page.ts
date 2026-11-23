@@ -14,8 +14,3 @@ export interface PrintPage {
 	height: number;
 	items: PrintItem[];
 }
-
-export const PAPER_SIZES = {
-	'A4 hoch': { width: 210, height: 297 },
-	'A5 quer': { width: 210, height: 148 }
-} as const;
