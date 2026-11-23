@@ -10,7 +10,7 @@ const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
 
 function label(input: Partial<PaperLabelInput>) {
 	const { format, ...rest } = { ...DEFAULT_PAPER_LABEL_INPUT, ...input };
-	const proof = paperLabel.set(KURA, { format, many: false, labels: [rest] }, font);
+	const proof = paperLabel.set(KURA, { format, labels: [rest] }, font);
 	return { layout: proof.labels[0].layout, hints: proof.hints, page: proof.page, proof };
 }
 
@@ -53,7 +53,7 @@ describe('Papierlabel', () => {
 	});
 
 	it('setzt mehrere Etiketten auf einen Bogen, die freien Plätze bleiben leer', () => {
-		const { page } = paperLabel.set(KURA, { format: 'label', many: true, labels: [{ text: 'tee', subText: '', position: 0 }, { text: 'tee', subText: '', position: 7 }] }, font);
+		const { page } = paperLabel.set(KURA, { format: 'label', labels: [{ text: 'tee', subText: '', position: 0 }, { text: 'tee', subText: '', position: 7 }] }, font);
 		expect(page.items).toHaveLength(2);
 		const [a, b] = page.items.map((item) => pathBox(item.commands));
 		expect(b.minX - a.minX).toBeCloseTo(105, 6);
@@ -72,15 +72,15 @@ describe('Papierlabel', () => {
 	});
 
 	it('vergibt freie Plätze der Reihe nach um die genannten herum', () => {
-		const { order } = paperLabel.parse({ labels: [{ text: 'tee' }, { text: 'kaffee', column: 1, row: 1 }, { text: 'müsli', position: 2 }, { text: 'reis' }] });
-		expect(order?.labels.map((l) => l.position)).toEqual([2, 0, 1, 3]);
+		const labels = [{ text: 'tee' }, { text: 'kaffee', position: 0 }, { text: 'müsli', position: 1 }, { text: 'reis' }].map((l) => ({ subText: '', ...l }));
+		expect(paperLabel.set(KURA, { format: 'label', labels }, font).labels.map((l) => l.position)).toEqual([2, 0, 1, 3]);
 	});
 
-	it('nennt bei einem doppelt genannten Platz und einer Unterzeile ohne Text das Etikett', () => {
-		const { hints } = paperLabel.parse({ labels: [{ text: 'tee', position: 3 }, { text: 'kaffee', column: 1, row: 2, subText: 7 }] });
-		expect(hints.map((h) => [h.kind, h.at])).toEqual([
-			['position', ['labels', 1]],
-			['type', ['labels', 1, 'subText']]
+	it('nennt bei einem doppelt genannten Platz und einer Unterzeile ohne Text das Etikett', async () => {
+		const made = await paperLabel.make(KURA, { labels: [{ text: 'tee', position: 3 }, { text: 'kaffee', column: 1, row: 2, subText: 7 }] }, font);
+		expect(!made.ok && made.error.map((h) => [h.kind, h.at])).toEqual([
+			['type', ['labels', 1, 'subText']],
+			['position', ['labels', 1]]
 		]);
 	});
 });

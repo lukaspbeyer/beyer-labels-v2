@@ -14,8 +14,8 @@ import type { FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$lib/medi
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { formatMm } from '$lib/typesetting/format';
 import { svgPathData } from '$lib/typesetting/geometry';
-import { hint, within, type Hint } from './hint';
-import { choice, defineProduct, record, type Parsed, type ProductExample, type Proof } from './product';
+import { hint, type Hint } from './hint';
+import { choice, defineProduct, record, type Parsed, type ProductExample } from './product';
 
 export const WOOD_LABEL_FORMATS = {
 	series: { width: 64, height: 24, name: 'Serie' },
@@ -50,16 +50,9 @@ export const DEFAULT_WOOD_LABEL_INPUT: WoodLabelInput = {
 	lightAngle: 125
 };
 
-/** Ein oder mehrere Labels für eine Laserdatei. `many`: Der Inhalt kam als Liste `labels`; Hinweise nennen dann das Label. */
+/** Ein oder mehrere Labels für eine Laserdatei, untereinander. */
 export interface WoodLabelOrder {
-	many: boolean;
-	/** `index`: Stelle des Labels im Inhalt, falls sie nicht die Stelle in dieser Liste ist */
-	labels: (WoodLabelInput & { index?: number })[];
-}
-
-export interface WoodLabelProof extends Proof {
-	/** Je Label Layout und Einstellungen der Gravur, in der Reihenfolge des Inhalts */
-	labels: { layout: LabelLayout; settings: WoodSettings; hints: Hint[] }[];
+	labels: WoodLabelInput[];
 }
 
 /** Leitet die Einstellungen der Gravur aus Kura und der Eingabe ab. */
@@ -99,35 +92,27 @@ function checkLabel(kura: Kura, font: LoadedFont, input: WoodLabelInput, layout:
 	return [...sign.hints, ...checkFabrication(layout, settings).map((w) => hint(w.kind, w.message))];
 }
 
-function parse(raw: unknown): Parsed<WoodLabelOrder> {
-	const source = record(raw);
-	const many = Array.isArray(source.labels);
-	const entries = many ? (source.labels as unknown[]).map(record) : [source];
-	const limit = calibration.laserSheet.maxLabels;
-	if (entries.length === 0 || entries.length > limit) return { order: null, hints: [hint('too-many', `1 bis ${limit} Labels je Datei.`, ['labels'])] };
+/** Liest ein Label; ein Format auf oberster Ebene gilt für jedes Label ohne eigenes. */
+function parseLabel(raw: unknown, _shared: unknown, top: Record<string, unknown>): Parsed<WoodLabelInput> {
+	const entry = record(raw);
 	const hints: Hint[] = [];
-	const labels = entries.flatMap((entry, index) => {
-		const here = (found: Hint[]) => hints.push(...(many ? within(['labels', index], found) : found));
-		const text = typeof entry.text === 'string' ? entry.text.trim() : '';
-		if (!text) here([hint('empty', 'Das Wort fehlt.', ['text'])]);
-		const format = choice(entry.format ?? source.format, WOOD_LABEL_FORMAT_IDS, 'series', 'format', FORMAT_ALIASES);
-		if (!format.ok) here(format.error);
-		return text && format.ok ? [{ ...DEFAULT_WOOD_LABEL_INPUT, text, format: format.value, index }] : [];
-	});
-	return { order: labels.length > 0 ? { many, labels } : null, hints };
+	const text = typeof entry.text === 'string' ? entry.text.trim() : '';
+	if (!text) hints.push(hint('empty', 'Das Wort fehlt.', ['text']));
+	const format = choice(entry.format ?? top.format, WOOD_LABEL_FORMAT_IDS, 'series', 'format', FORMAT_ALIASES);
+	if (!format.ok) hints.push(...format.error);
+	return { value: text && format.ok ? { ...DEFAULT_WOOD_LABEL_INPUT, text, format: format.value } : null, hints };
 }
 
-function set(kura: Kura, order: WoodLabelOrder, font: LoadedFont): WoodLabelProof {
-	const labels = order.labels.map((input, i) => {
+function set(kura: Kura, order: WoodLabelOrder, font: LoadedFont) {
+	const labels = order.labels.map((input) => {
 		const settings = woodLabelSettings(kura, input);
 		const layout = layoutLabel(settings, font);
-		const found = checkLabel(kura, font, input, layout, settings);
-		return { layout, settings, hints: order.many ? within(['labels', input.index ?? i], found) : found };
+		return { layout, settings, hints: checkLabel(kura, font, input, layout, settings) };
 	});
 	const fileName = labels.length > 0 ? exportFileName(labels[0].settings, labels[0].layout, labels.length) : '';
 	return {
+		/** Je Label Layout und Einstellungen der Gravur, in der Reihenfolge der Bestellung */
 		labels,
-		hints: labels.flatMap((l) => l.hints),
 		fileName,
 		file: async () => ({ fileName, mime: 'image/svg+xml', body: buildSheetSvg(labels) })
 	};
@@ -135,11 +120,11 @@ function set(kura: Kura, order: WoodLabelOrder, font: LoadedFont): WoodLabelProo
 
 /** Wörter des Kura-Wortschatzes, die im Serienformat einen Hinweis auslösen. */
 export function vocabularyMisfits(kura: Kura, font: LoadedFont): string[] {
-	return VOCABULARY.filter((text) => set(kura, { many: false, labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, text }] }, font).hints.length > 0);
+	return VOCABULARY.filter((text) => set(kura, { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, text }] }, font).labels[0].hints.length > 0);
 }
 
 function example(kura: Kura, font: LoadedFont, input: Partial<WoodLabelInput>, caption?: string): ProductExample {
-	const [label] = set(kura, { many: false, labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, ...input }] }, font).labels;
+	const [label] = set(kura, { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, ...input }] }, font).labels;
 	const { layout, settings, hints } = label;
 	const format = WOOD_LABEL_FORMATS[input.format ?? 'series'];
 	return {
@@ -181,7 +166,11 @@ export const woodLabel = defineProduct({
 			example: { text: 'teller' }
 		};
 	},
-	parse,
+	pieces: {
+		list: 'labels',
+		limit: () => ({ max: calibration.laserSheet.maxLabels, message: `1 bis ${calibration.laserSheet.maxLabels} Labels je Datei.` })
+	},
+	parse: parseLabel,
 	set,
 	examples: (kura, font) => [
 		example(kura, font, { text: 'teller' }),
@@ -193,6 +182,9 @@ export const woodLabel = defineProduct({
 		return misfits.length > 0 ? [hint('vocabulary', `${misfits.length} Wörter des Wortschatzes passen nicht mehr ins Serienformat: ${misfits.join(', ')}.`)] : [];
 	}
 });
+
+/** Der Satz eines oder mehrerer Labels mit der Laserdatei */
+export type WoodLabelProof = ReturnType<typeof woodLabel.set>;
 
 /**
  * Draufsicht als SVG (1 Einheit = 1 mm): ein Ausschnitt des Lärchenfotos im Ton der Oberfläche, Gravur in ihrer Farbe.

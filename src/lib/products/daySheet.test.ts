@@ -79,14 +79,12 @@ describe('Tagesübersicht: Blatt', () => {
 		expect(sheet({ remember: ['Schlüssel 🔑'] }).hints.map((h) => [h.kind, h.at])).toEqual([['character', ['remember']]]);
 	});
 
-	it('nennt bei mehreren Tagen den Tag vor dem Feld, auch bei Zeichen ohne Glyphe', () => {
-		const proof = daySheet.set(KURA, { many: true, days: [DAY_SHEET_EXAMPLE, { ...DAY_SHEET_EXAMPLE, date: '2026-11-27', remember: ['Schlüssel 🔑'] }] }, font);
-		expect(proof.pages).toHaveLength(2);
-		expect(proof.hints.map(hintText)).toEqual(['days[1].remember: „Schlüssel 🔑“ enthält Zeichen, die die Schrift nicht hat: 🔑. Ersetzen oder weglassen.']);
-		expect(proof.fileName).toBe('tagesuebersicht-2026-11-26-bis-2026-11-27.pdf');
+	it('nennt bei mehreren Tagen den Tag vor dem Feld, auch bei Zeichen ohne Glyphe', async () => {
+		const made = await daySheet.make(KURA, { days: [DAY_SHEET_EXAMPLE, { ...DAY_SHEET_EXAMPLE, date: '2026-11-27', remember: ['Schlüssel 🔑'] }] }, font);
+		expect(!made.ok && made.error.map(hintText)).toEqual(['days[1].remember: „Schlüssel 🔑“ enthält Zeichen, die die Schrift nicht hat: 🔑. Ersetzen oder weglassen.']);
 	});
 
 	it('benennt die Datei nach dem Tag', () => {
-		expect(daySheet.set(KURA, { many: false, days: [DAY_SHEET_EXAMPLE] }, font).fileName).toBe('tagesuebersicht-2026-11-26.pdf');
+		expect(daySheet.set(KURA, { days: [DAY_SHEET_EXAMPLE] }, font).fileName).toBe('tagesuebersicht-2026-11-26.pdf');
 	});
 });

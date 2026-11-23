@@ -21,7 +21,7 @@
 	// Bei einem Verstoß der Form bleibt das letzte gesetzte Blatt stehen
 	let lastProof: DaySheetProof | null = null;
 	const proof = $derived.by(() => {
-		if (kuraFont.font && parsed.ok) lastProof = daySheet.set(KURA, { many: false, days: [parsed.value] }, kuraFont.font);
+		if (kuraFont.font && parsed.ok) lastProof = daySheet.set(KURA, { days: [parsed.value] }, kuraFont.font);
 		return kuraFont.font ? lastProof : null;
 	});
 	const hints = $derived(parsed.ok ? (proof?.hints ?? []) : parsed.error);

@@ -11,8 +11,9 @@ import type { LoadedFont } from '$lib/typesetting/fonts';
 import { pageSvg } from '$lib/media/paper/page';
 import { fileSlug, formatMm } from '$lib/typesetting/format';
 import { translatePath } from '$lib/typesetting/geometry';
-import { hint, within, type Hint } from './hint';
-import { choice, defineProduct, record, type Parsed, type ProductExample, type Proof } from './product';
+import { hint, type Hint } from './hint';
+import { ok } from '$utils/result';
+import { choice, defineProduct, record, type Parsed, type ProductExample } from './product';
 
 export const PAPER_LABEL_FORMATS = {
 	/** Etikettenbogen A4 hoch mit 2 × 4 Etiketten */
@@ -37,20 +38,10 @@ export interface PaperLabelInput {
 
 export const DEFAULT_PAPER_LABEL_INPUT: PaperLabelInput = { text: 'gewürze', subText: '', format: 'label', position: 0 };
 
-/** Ein Bogen mit seinen Etiketten, jedes an seinem Platz. `many`: Der Inhalt kam als Liste `labels`; Hinweise nennen dann das Etikett. */
+/** Ein Bogen mit seinen Etiketten. Ein Etikett ohne `position` nimmt den ersten freien Platz. */
 export interface PaperLabelOrder {
 	format: PaperLabelFormatId;
-	many: boolean;
-	/** `index`: Stelle des Etiketts im Inhalt, falls sie nicht die Stelle in dieser Liste ist */
-	labels: (Omit<PaperLabelInput, 'format'> & { index?: number })[];
-}
-
-export interface PaperLabelProof extends Proof {
-	format: PaperLabelFormatId;
-	/** Je Etikett sein Platz und sein Satz, in der Reihenfolge des Inhalts */
-	labels: { position: number; layout: PaperLabelLayout; hints: Hint[] }[];
-	/** Der Druckbogen */
-	page: PrintPage;
+	labels: (Omit<PaperLabelInput, 'format' | 'position'> & { position?: number })[];
 }
 
 export interface PaperLabelLayout {
@@ -107,65 +98,61 @@ function fileNameOf(text: string, format: PaperLabelFormatId, count: number): st
 	return `papierlabel-${fileSlug(text)}${count > 1 ? `-und-${count - 1}-weitere` : ''}-${width}x${height}mm.pdf`;
 }
 
-/** Liest den Inhalt und vergibt die Plätze: erst die genannten, danach füllen die übrigen Etiketten die freien der Reihe nach. */
-function parse(raw: unknown): Parsed<PaperLabelOrder> {
-	const source = record(raw);
-	const chosen = choice(source.format, PAPER_LABEL_FORMAT_IDS, 'label', 'format', FORMAT_ALIASES);
-	if (!chosen.ok) return { order: null, hints: chosen.error };
-	const format = chosen.value;
-	const many = Array.isArray(source.labels);
-	const entries = many ? (source.labels as unknown[]).map(record) : [source];
+/** Liest ein Etikett mit seinem Platz, falls einer genannt ist; ein Platz, den es auf dem Bogen nicht gibt, lässt das Etikett wegfallen. */
+function parseLabel(raw: unknown, { format }: Omit<PaperLabelOrder, 'labels'>): Parsed<PaperLabelOrder['labels'][number]> {
+	const entry = record(raw);
+	const hints: Hint[] = [];
 	const { columns, rows } = PAPER_LABEL_FORMATS[format].sheet;
 	const places = positionCount(format);
-	if (entries.length === 0 || entries.length > places) return { order: null, hints: [hint('too-many', `1 bis ${places} Etiketten passen auf diesen Bogen.`, ['labels'])] };
-	const hints: Hint[] = [];
-	const here = (i: number, found: Hint[]) => hints.push(...(many ? within(['labels', i], found) : found));
-	const taken = new Map<number, number>();
-	const named = entries.map((entry, i): number | null => {
-		const hasCell = entry.column !== undefined || entry.row !== undefined;
-		if (!hasCell && (entry.position === undefined || entry.position === null)) return null;
-		const place = hasCell
-			? positionAt(format, entry.column as number, entry.row as number)
-			: typeof entry.position === 'number' && Number.isInteger(entry.position) && entry.position >= 1 && entry.position <= places
-				? entry.position - 1
-				: null;
-		if (place === null) {
-			here(i, [hasCell ? hint('position', `Spalte (column) 1 bis ${columns} und Zeile (row) 1 bis ${rows} angeben.`, ['column']) : hint('position', `Platz 1 bis ${places} angeben.`, ['position'])]);
-			return -1;
-		}
-		if (taken.has(place)) hints.push(hint('position', `Der Platz ist schon durch labels[${taken.get(place)}] belegt. Einen anderen Platz wählen.`, ['labels', i]));
-		else taken.set(place, i);
-		return place;
-	});
-	let next = 0;
-	const labels = entries.flatMap((entry, i) => {
-		const text = typeof entry.text === 'string' ? entry.text.trim() : '';
-		if (!text) here(i, [hint('empty', 'Das Wort fehlt.', ['text'])]);
-		if (entry.subText !== undefined && entry.subText !== null && typeof entry.subText !== 'string') here(i, [hint('type', 'Die Unterzeile als Text angeben.', ['subText'])]);
-		let position = named[i];
-		if (position === null) {
-			while (taken.has(next)) next++;
-			position = next;
-			taken.set(position, i);
-		}
-		return text && position >= 0 ? [{ text, subText: typeof entry.subText === 'string' ? entry.subText : '', position, index: i }] : [];
-	});
-	return { order: labels.length > 0 ? { format, many, labels } : null, hints };
+	const hasCell = entry.column !== undefined || entry.row !== undefined;
+	const named = hasCell || (entry.position !== undefined && entry.position !== null);
+	const position = hasCell
+		? positionAt(format, entry.column as number, entry.row as number)
+		: typeof entry.position === 'number' && Number.isInteger(entry.position) && entry.position >= 1 && entry.position <= places
+			? entry.position - 1
+			: null;
+	if (named && position === null)
+		hints.push(hasCell ? hint('position', `Spalte (column) 1 bis ${columns} und Zeile (row) 1 bis ${rows} angeben.`, ['column']) : hint('position', `Platz 1 bis ${places} angeben.`, ['position']));
+	const text = typeof entry.text === 'string' ? entry.text.trim() : '';
+	if (!text) hints.push(hint('empty', 'Das Wort fehlt.', ['text']));
+	if (entry.subText !== undefined && entry.subText !== null && typeof entry.subText !== 'string') hints.push(hint('type', 'Die Unterzeile als Text angeben.', ['subText']));
+	if (!text || (named && position === null)) return { value: null, hints };
+	return { value: { text, subText: typeof entry.subText === 'string' ? entry.subText : '', ...(position !== null && { position }) }, hints };
 }
 
-function set(kura: Kura, order: PaperLabelOrder, font: LoadedFont): PaperLabelProof {
+/** Vergibt die Plätze: erst die genannten, danach füllen die übrigen Etiketten die freien der Reihe nach. Ein Platz, der schon vergeben ist, ist ein Hinweis. */
+function placeLabels(labels: PaperLabelOrder['labels']): { position: number; hints: Hint[] }[] {
+	const taken = new Set<number>();
+	const named = labels.map(({ position }) => {
+		if (position === undefined) return { position, hints: [] };
+		if (taken.has(position)) return { position, hints: [hint('position', 'Ein Etikett davor steht schon an diesem Platz. Einen anderen Platz wählen.')] };
+		taken.add(position);
+		return { position, hints: [] };
+	});
+	let next = 0;
+	return named.map(({ position, hints }) => {
+		if (position !== undefined) return { position, hints };
+		while (taken.has(next)) next++;
+		taken.add(next);
+		return { position: next, hints };
+	});
+}
+
+function set(kura: Kura, order: PaperLabelOrder, font: LoadedFont) {
+	const places = placeLabels(order.labels);
 	const labels = order.labels.map((input, i) => {
-		const { layout, hints: found } = setLabel(kura, { ...input, format: order.format }, font);
-		return { position: input.position, layout, hints: order.many ? within(['labels', input.index ?? i], found) : found };
+		const { layout, hints } = setLabel(kura, { ...input, format: order.format, position: places[i].position }, font);
+		return { position: places[i].position, layout, hints: [...places[i].hints, ...hints] };
 	});
 	const page = paperSheetPage(order.format, labels);
 	const first = order.labels[0]?.text.trim() ?? '';
 	const fileName = labels.length > 0 ? fileNameOf(first, order.format, labels.length) : '';
 	return {
 		format: order.format,
+		/** Je Etikett sein Platz und sein Satz, in der Reihenfolge der Bestellung */
 		labels,
+		/** Der Druckbogen */
 		page,
-		hints: labels.flatMap((l) => l.hints),
 		fileName,
 		async file() {
 			// Die PDF-Bibliothek erst laden, wenn gedruckt wird
@@ -210,7 +197,18 @@ export const paperLabel = defineProduct({
 			example: { text: 'gewürze', subText: 'regal 2', format: 'label', column: 1, row: 2 }
 		};
 	},
-	parse,
+	pieces: {
+		list: 'labels',
+		limit: ({ format }) => ({ max: positionCount(format), message: `1 bis ${positionCount(format)} Etiketten passen auf diesen Bogen.` }),
+		shared: (top) => {
+			const format = choice(top.format, PAPER_LABEL_FORMAT_IDS, 'label', 'format', FORMAT_ALIASES);
+			return format.ok ? ok({ format: format.value }) : format;
+		}
+	},
+	parse: parseLabel,
 	set,
 	examples: (kura, font) => [example(kura, font, { text: 'gewürze', subText: '', format: 'label' }), example(kura, font, { text: 'winter', subText: 'mützen · schals', format: 'sign' })]
 });
+
+/** Der Satz eines Bogens mit seinen Etiketten und das PDF */
+export type PaperLabelProof = ReturnType<typeof paperLabel.set>;

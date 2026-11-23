@@ -8,7 +8,7 @@ import type { Kura } from '$lib/kura/kura';
 import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { err, ok, type Result } from '$utils/result';
-import type { Hint } from './hint';
+import { hint, within, type Hint } from './hint';
 
 export interface OrderField {
 	name: string;
@@ -36,13 +36,22 @@ export interface OrderFile {
 	body: Uint8Array | string;
 }
 
+/** Ein gesetztes Stück: ein Label, ein Etikett, ein Tag. Seine Hinweise stehen relativ zum Stück. */
+export interface PieceProof {
+	hints: Hint[];
+}
+
 /** Der gesetzte Inhalt: was zu sehen ist, was daran zu ändern wäre und die Datei dazu. */
 export interface Proof {
+	/** Alle Hinweise, jeder relativ zu seinem Stück. Wer mehrere Stücke zeigt, liest sie je Stück. */
 	hints: Hint[];
 	fileName: string;
 	/** Erzeugt die Datei. Ob Hinweise die Datei sperren, entscheidet der Aufrufer; `make` sperrt immer. */
 	file(): Promise<OrderFile>;
 }
+
+/** Was `set` eines Produkts liefert: unter dem Feld der Liste je Stück sein Satz, in der Reihenfolge der Bestellung, dazu die eine Datei. */
+type Setting<L extends string> = Record<L, readonly PieceProof[]> & Omit<Proof, 'hints'>;
 
 export interface ProductExample {
 	caption: string;
@@ -60,14 +69,19 @@ export interface ProductExample {
 /**
  * Gelesener Inhalt. Neben den Hinweisen steht, was sich trotzdem setzen lässt (`null`: nichts),
  * damit ein Agent alle Verstöße auf einmal erfährt, die der Form und die des Satzes.
- * Ein Teil, der nicht mehr an seiner Stelle im Inhalt steht, trägt sie als `index`.
  */
-export interface Parsed<Order> {
-	order: Order | null;
+export interface Parsed<T> {
+	value: T | null;
 	hints: Hint[];
 }
 
-interface ProductDefinition<Order, P extends Proof> {
+/**
+ * Eine Bestellung: was für alle Stücke gilt (etwa das Format des Bogens) und unter `L` die Liste der Stücke.
+ * Ein Inhalt von außen ist ein einzelnes Stück oder `{ [L]: [...] }`; die Bestellung hat immer die Liste.
+ */
+type OrderOf<L extends string> = Record<L, readonly unknown[]>;
+
+interface ProductDefinition<L extends string, Order extends OrderOf<L>, S extends Setting<L>> {
 	id: string;
 	name: string;
 	medium: string;
@@ -80,10 +94,26 @@ interface ProductDefinition<Order, P extends Proof> {
 	output: OrderSpec['output'];
 	/** Beschreibung, Felder und Beispiel für Agenten; Maße und Grenzen folgen dem übergebenen Kura */
 	order(kura: Kura): Pick<OrderSpec, 'description' | 'fields' | 'example'>;
-	/** Liest Inhalt von außen: Form, Wahlwerte und Obergrenzen */
-	parse(raw: unknown): Parsed<Order>;
-	/** Setzt den Inhalt in Kura und prüft ihn gegen Kura, die Unterregeln und die Fertigungsgrenzen */
-	set(kura: Kura, order: Order, font: LoadedFont): P;
+	/** Ein oder mehrere Stücke in einer Datei */
+	pieces: {
+		/** Feld der Liste im Inhalt und in der Bestellung, etwa `labels` */
+		list: L;
+		/** Höchstzahl der Stücke in einer Datei und der Hinweis, wenn es keins oder zu viele sind */
+		limit(shared: Omit<Order, L>): { max: number; message: string };
+		/** Liest, was auf oberster Ebene für alle Stücke gilt. Ein Hinweis hier heißt: kein Stück wird gelesen. */
+		shared?(top: Record<string, unknown>): Result<Omit<Order, L>, Hint[]>;
+	};
+	/**
+	 * Liest ein Stück von außen: Form, Wahlwerte und Obergrenzen; Hinweise relativ zum Stück.
+	 * `top` ist die oberste Ebene des Inhalts, für Vorgaben, die ein Stück erbt; bei einem einzelnen Stück ist es das Stück selbst.
+	 */
+	parse(entry: unknown, shared: Omit<Order, L>, top: Record<string, unknown>): Parsed<Order[L][number]>;
+	/**
+	 * Setzt die Stücke in Kura und prüft sie gegen Kura, die Unterregeln und die Fertigungsgrenzen.
+	 * Liefert unter `L` je Stück seinen Satz mit Hinweisen relativ zum Stück, Stück für Stück wie in der Bestellung;
+	 * Schritte über alle Stücke (Plätze auf dem Bogen) und die eine Datei aus allen Stücken gehören hierher.
+	 */
+	set(kura: Kura, order: Order, font: LoadedFont): S;
 	/** Beispiele im übergebenen Kura; so zeigt die Werkbank die Wirkung einer Änderung */
 	examples(kura: Kura, font: LoadedFont): ProductExample[];
 	/** Hinweise, die für das Produkt als Ganzes gelten */
@@ -99,20 +129,45 @@ export interface Product {
 	summary: string;
 	href: string;
 	spec(kura: Kura): OrderSpec;
-	/** Inhalt von außen zur Datei. Jeder Hinweis heißt: keine Datei. */
+	/** Inhalt von außen zur Datei. Jeder Hinweis heißt: keine Datei. Hinweise nennen das Stück nur, wenn eine Liste kam. */
 	make(kura: Kura, content: unknown, font: LoadedFont): Promise<Result<OrderFile, Hint[]>>;
 	examples(kura: Kura, font: LoadedFont): ProductExample[];
 	notes(kura: Kura, font: LoadedFont): Hint[];
 }
 
-/** Ein Produkt mit seinem Inhalt, wie es die eigene Seite und die eigenen Tests sehen. */
-export interface TypedProduct<Order, P extends Proof> extends Product {
-	parse(raw: unknown): Parsed<Order>;
-	set(kura: Kura, order: Order, font: LoadedFont): P;
+/** Ein Produkt mit seiner Bestellung, wie es die eigene Seite und die eigenen Tests sehen. */
+export interface TypedProduct<Order, S> extends Product {
+	set(kura: Kura, order: Order, font: LoadedFont): S & Proof;
 }
 
-export function defineProduct<Order, P extends Proof>(definition: ProductDefinition<Order, P>): TypedProduct<Order, P> {
-	const { id, name, medium, nav, summary, href, output, parse, set, examples } = definition;
+export function defineProduct<L extends string, Order extends OrderOf<L>, S extends Setting<L>>(definition: ProductDefinition<L, Order, S>): TypedProduct<Order, S> {
+	const { id, name, medium, nav, summary, href, output, pieces, examples } = definition;
+	const { list } = pieces;
+
+	/** Liest den Inhalt Stück für Stück. `places`: wo jedes Stück der Bestellung im Inhalt steht, auch wenn davor eines wegfiel. */
+	function parse(raw: unknown): { order: Order | null; hints: Hint[]; places: Hint['at'][] } {
+		const top = record(raw);
+		const shared = pieces.shared ? pieces.shared(top) : ok({} as Omit<Order, L>);
+		if (!shared.ok) return { order: null, hints: shared.error, places: [] };
+		const listed = top[list];
+		const entries: unknown[] = Array.isArray(listed) ? listed : [raw];
+		const { max, message } = pieces.limit(shared.value);
+		if (entries.length === 0 || entries.length > max) return { order: null, hints: [hint('too-many', message, [list])], places: [] };
+		const hints: Hint[] = [];
+		const read: Order[L][number][] = [];
+		const places: Hint['at'][] = [];
+		entries.forEach((entry, i) => {
+			const place = Array.isArray(listed) ? [list, i] : [];
+			const piece = definition.parse(entry, shared.value, top);
+			hints.push(...within(place, piece.hints));
+			if (piece.value !== null) {
+				read.push(piece.value);
+				places.push(place);
+			}
+		});
+		return { order: read.length > 0 ? ({ ...shared.value, [list]: read } as unknown as Order) : null, hints, places };
+	}
+
 	return {
 		id,
 		name,
@@ -120,16 +175,18 @@ export function defineProduct<Order, P extends Proof>(definition: ProductDefinit
 		nav,
 		summary,
 		href,
-		parse,
-		set,
 		examples,
 		notes: (kura, font) => definition.notes?.(kura, font) ?? [],
 		spec: (kura) => ({ id, name, medium, output, ...definition.order(kura) }),
+		set(kura, order, font) {
+			const setting = definition.set(kura, order, font);
+			return { ...setting, hints: setting[list].flatMap((piece) => piece.hints) };
+		},
 		async make(kura, content, font) {
 			const parsed = parse(content);
-			const proof = parsed.order ? set(kura, parsed.order, font) : null;
-			const hints = [...parsed.hints, ...(proof?.hints ?? [])];
-			return proof && hints.length === 0 ? ok(await proof.file()) : err(hints);
+			const setting = parsed.order ? definition.set(kura, parsed.order, font) : null;
+			const hints = [...parsed.hints, ...(setting?.[list].flatMap((piece, i) => within(parsed.places[i], piece.hints)) ?? [])];
+			return setting && hints.length === 0 ? ok(await setting.file()) : err(hints);
 		}
 	};
 }

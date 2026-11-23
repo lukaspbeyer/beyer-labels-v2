@@ -25,7 +25,7 @@
 	const positions = $derived(Array.from({ length: positionCount(formatId) }, (_, i) => i));
 	const current = $derived(cells[selected] ?? { text: '', subText: '' });
 	const filled = $derived(positions.filter((position) => cells[position]?.text.trim()).map((position) => ({ ...cells[position], position })));
-	const proof = $derived(kuraFont.font ? paperLabel.set(KURA, { format: formatId, many: true, labels: filled }, kuraFont.font) : null);
+	const proof = $derived(kuraFont.font ? paperLabel.set(KURA, { format: formatId, labels: filled }, kuraFont.font) : null);
 	const count = $derived(proof?.labels.length ?? 0);
 	// Die Seite nennt den Platz des Etiketts statt seiner Stelle im Inhalt
 	const hints = $derived(

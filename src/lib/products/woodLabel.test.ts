@@ -6,7 +6,7 @@ import { loadTestFont } from '$lib/typesetting/testFonts';
 import { DEFAULT_WOOD_LABEL_INPUT, vocabularyMisfits, woodLabel, type WoodLabelInput } from './woodLabel';
 
 function check(input: Partial<WoodLabelInput>, kura = KURA) {
-	const proof = woodLabel.set(kura, { many: false, labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, ...input }] }, loadTestFont(kura.typeface.font, kura.typeface.weight));
+	const proof = woodLabel.set(kura, { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, ...input }] }, loadTestFont(kura.typeface.font, kura.typeface.weight));
 	return { ...proof.labels[0], proof };
 }
 
@@ -34,17 +34,9 @@ describe('Holzlabel', () => {
 		expect(long.hints).toEqual([]);
 	});
 
-	it('nennt bei mehreren Labels das Label und benennt die Datei nach dem ersten', () => {
-		const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
-		const { order } = woodLabel.parse({ labels: [{ text: 'Teller' }, { text: 'servietten' }] });
-		if (!order) throw new Error('Inhalt abgelehnt');
-		const proof = woodLabel.set(KURA, order, font);
-		expect(proof.hints.map((h) => [h.kind, h.at])).toEqual([['sign-width', ['labels', 1, 'text']]]);
-		expect(proof.fileName).toBe('holzlabel-teller-und-1-weitere-64x24mm.svg');
-	});
-
-	it('meldet fehlendes Wort und unbekanntes Format zugleich', () => {
-		expect(woodLabel.parse({ format: 'riesig' }).hints.map((h) => [h.kind, h.at])).toEqual([
+	it('meldet fehlendes Wort und unbekanntes Format zugleich', async () => {
+		const made = await woodLabel.make(KURA, { format: 'riesig' }, loadTestFont(KURA.typeface.font, KURA.typeface.weight));
+		expect(!made.ok && made.error.map((h) => [h.kind, h.at])).toEqual([
 			['empty', ['text']],
 			['choice', ['format']]
 		]);

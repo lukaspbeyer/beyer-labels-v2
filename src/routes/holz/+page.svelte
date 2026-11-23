@@ -14,7 +14,7 @@
 	// Bis die Schrift geladen ist, bleibt der letzte Stand stehen
 	let lastProof: WoodLabelProof | null = null;
 	const proof = $derived.by(() => {
-		if (kuraFont.font) lastProof = woodLabel.set(KURA, { many: false, labels: [$woodLabelInput] }, kuraFont.font);
+		if (kuraFont.font) lastProof = woodLabel.set(KURA, { labels: [$woodLabelInput] }, kuraFont.font);
 		return lastProof;
 	});
 	const label = $derived(proof?.labels[0] ?? null);

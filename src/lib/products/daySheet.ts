@@ -11,8 +11,8 @@ import { formatMm } from '$lib/typesetting/format';
 import { roundedRectPath } from '$lib/typesetting/geometry';
 import type { PathCommand } from '$lib/typesetting/types';
 import { err, ok, type Result } from '$utils/result';
-import { hint, within, type Hint } from './hint';
-import { defineProduct, record, type Parsed, type Proof } from './product';
+import { hint, type Hint } from './hint';
+import { defineProduct, type Parsed } from './product';
 
 /** Obergrenzen je Zone. Was nicht aufs Blatt passt, gehört nicht in diesen Tag. */
 export const DAY_SHEET_LIMITS = { routinesPerBlock: 4, tasks: 3, appointments: 4, remember: 3 } as const;
@@ -247,16 +247,9 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 /** Höchstzahl der Tage in einer Datei */
 export const MAX_DAYS = 7;
 
-/** Ein oder mehrere Tage für ein PDF. `many`: Der Inhalt kam als Liste `days`; Hinweise nennen dann den Tag. */
+/** Ein oder mehrere Tage für ein PDF, ein Blatt je Tag. */
 export interface DaySheetOrder {
-	many: boolean;
-	/** `index`: Stelle des Tages im Inhalt, falls sie nicht die Stelle in dieser Liste ist */
-	days: (DaySheetInput & { index?: number })[];
-}
-
-export interface DaySheetProof extends Proof {
-	/** Je Tag ein Blatt */
-	pages: PrintPage[];
+	days: DaySheetInput[];
 }
 
 /** Dateiname nach dem Muster tagesuebersicht-2026-11-26.pdf; bei mehreren Tagen tagesuebersicht-2026-11-26-bis-2026-11-27.pdf */
@@ -265,31 +258,20 @@ function fileNameOf(days: readonly DaySheetInput[]): string {
 	return days.length === 1 ? `tagesuebersicht-${days[0].date}.pdf` : `tagesuebersicht-${days[0].date}-bis-${days[days.length - 1].date}.pdf`;
 }
 
-function parse(raw: unknown): Parsed<DaySheetOrder> {
-	const source = record(raw);
-	const many = Array.isArray(source.days);
-	const entries = many ? (source.days as unknown[]) : [raw];
-	if (entries.length === 0 || entries.length > MAX_DAYS) return { order: null, hints: [hint('too-many', `1 bis ${MAX_DAYS} Tage angeben.`, ['days'])] };
-	const hints: Hint[] = [];
-	const days: DaySheetOrder['days'] = [];
-	entries.forEach((entry, i) => {
-		const day = parseDaySheet(entry);
-		if (day.ok) days.push({ ...day.value, index: i });
-		else hints.push(...(many ? within(['days', i], day.error) : day.error));
-	});
-	return { order: days.length > 0 ? { many, days } : null, hints };
+function parseDay(raw: unknown): Parsed<DaySheetInput> {
+	const day = parseDaySheet(raw);
+	return day.ok ? { value: day.value, hints: [] } : { value: null, hints: day.error };
 }
 
-function set(kura: Kura, order: DaySheetOrder, font: LoadedFont): DaySheetProof {
-	const sheets = order.days.map((day, i) => {
-		const sheet = layoutDaySheet(kura, day, font);
-		return { page: sheet.page, hints: order.many ? within(['days', day.index ?? i], sheet.hints) : sheet.hints };
-	});
-	const pages = sheets.map((s) => s.page);
+function set(kura: Kura, order: DaySheetOrder, font: LoadedFont) {
+	const days = order.days.map((day) => layoutDaySheet(kura, day, font));
+	const pages = days.map((d) => d.page);
 	const fileName = fileNameOf(order.days);
 	return {
+		/** Je Tag sein Blatt und die Hinweise dazu */
+		days,
+		/** Je Tag ein Blatt */
 		pages,
-		hints: sheets.flatMap((s) => s.hints),
 		fileName,
 		async file() {
 			// Die PDF-Bibliothek erst laden, wenn gedruckt wird
@@ -325,10 +307,14 @@ export const daySheet = defineProduct({
 		],
 		example: DAY_SHEET_EXAMPLE
 	}),
-	parse,
+	pieces: { list: 'days', limit: () => ({ max: MAX_DAYS, message: `1 bis ${MAX_DAYS} Tage angeben.` }) },
+	parse: parseDay,
 	set,
 	examples(kura, font) {
 		const { page, hints } = layoutDaySheet(kura, DAY_SHEET_EXAMPLE, font);
 		return [{ caption: 'A4 hoch', svg: pageSvg(page, kura.paper.ink), width: page.width, height: page.height, hints }];
 	}
 });
+
+/** Der Satz eines oder mehrerer Tage und das PDF */
+export type DaySheetProof = ReturnType<typeof daySheet.set>;
