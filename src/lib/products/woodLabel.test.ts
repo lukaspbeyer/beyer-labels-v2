@@ -34,6 +34,19 @@ describe('Holzlabel', () => {
 		expect(long.hints).toEqual([]);
 	});
 
+	it('benennt die Datei nach Wort und Format und liefert die Laser-SVG über das Medium', async () => {
+		const { proof } = check({ text: 'Gewürze & Öle', format: 'long' });
+		expect(proof.fileName).toBe('holzlabel-gewuerze-oele-90x24mm.svg');
+		expect(await proof.file()).toMatchObject({ fileName: proof.fileName, mime: 'image/svg+xml' });
+	});
+
+	it('zeigt die Beispiele vor der Front, aus demselben Satz wie eine Bestellung', () => {
+		const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
+		const [teller] = woodLabel.examples(KURA, font);
+		const { layout, settings } = check({ text: 'teller' });
+		expect(teller.view).toMatchObject({ medium: 'wood', width: 64, height: 24, layout, settings });
+	});
+
 	it('meldet fehlendes Wort und unbekanntes Format zugleich', async () => {
 		const made = await woodLabel.make(KURA, { format: 'riesig' }, loadTestFont(KURA.typeface.font, KURA.typeface.weight));
 		expect(!made.ok && made.error.map((h) => [h.kind, h.at])).toEqual([

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TEST_SETTINGS } from './testSettings';
 import { flattenPath, isInside, polylinesBox } from '$lib/typesetting/geometry';
 import { layoutLabel } from './layout';
-import { buildSvg, exportFileName } from './svgExport';
+import { buildSvg } from './svgExport';
 import { loadTestFont } from '$lib/typesetting/testFonts';
 import type { PathCommand, Point, WoodSettings } from './types';
 
@@ -104,12 +104,5 @@ describe('SVG-Export', () => {
 		const filled = desc({ process: 'fill', fillColor: 'anthracite' });
 		expect(filled).toContain('Verfahren: Farbfüllung');
 		expect(filled).toContain('Füllfarbe: Anthrazit');
-	});
-
-	it('Dateiname folgt dem Muster holzlabel-<text>-<b>x<h>mm.svg', () => {
-		const s = { ...TEST_SETTINGS, sizeMode: 'manual' as const, width: 80, height: 30 };
-		expect(exportFileName(s, layoutLabel(s, sora))).toBe('holzlabel-teller-80x30mm.svg');
-		const umlaut = { ...s, text: 'Gewürze & Öle' };
-		expect(exportFileName(umlaut, layoutLabel(umlaut, sora))).toBe('holzlabel-gewuerze-oele-80x30mm.svg');
 	});
 });

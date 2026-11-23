@@ -6,14 +6,15 @@
  */
 import { caseInWords, maxSignWidth, type Kura } from '$lib/kura/kura';
 import { setSign, type RoleLine } from '$lib/kura/textRole';
+import { PAPER, paperExample, paperFile, paperPreview } from '$lib/media/paper/medium';
 import type { PrintPage } from '$lib/media/paper/page';
 import type { LoadedFont } from '$lib/typesetting/fonts';
-import { pageSvg } from '$lib/media/paper/page';
 import { fileSlug, formatMm } from '$lib/typesetting/format';
 import { translatePath } from '$lib/typesetting/geometry';
+import type { Rect } from '$lib/typesetting/types';
 import { hint, type Hint } from './hint';
 import { ok } from '$utils/result';
-import { choice, defineProduct, record, type Parsed, type ProductExample } from './product';
+import { choice, defineProduct, record, type Parsed } from './product';
 
 export const PAPER_LABEL_FORMATS = {
 	/** Etikettenbogen A4 hoch mit 2 × 4 Etiketten */
@@ -77,17 +78,22 @@ export function placeOf(format: PaperLabelFormatId, position: number): { column:
 	return { column: (position % columns) + 1, row: Math.floor(position / columns) + 1 };
 }
 
-/** Der Druckbogen mit jedem Etikett an seinem Platz. Ein Platz außerhalb des Bogens gilt als erster Platz. */
-export function paperSheetPage(format: PaperLabelFormatId, labels: readonly { layout: PaperLabelLayout; position: number }[]): PrintPage {
+/** Die Fläche eines Platzes auf dem Bogen, ab der linken oberen Ecke des Bogens. Ein Platz außerhalb des Bogens gilt als erster Platz. */
+export function placeArea(format: PaperLabelFormatId, position: number): Rect {
 	const { sheet, width, height } = PAPER_LABEL_FORMATS[format];
+	const index = position >= 0 && position < sheet.columns * sheet.rows ? Math.floor(position) : 0;
+	return { x: (index % sheet.columns) * width, y: Math.floor(index / sheet.columns) * height, width, height };
+}
+
+/** Der Druckbogen mit jedem Etikett an seinem Platz. */
+export function paperSheetPage(format: PaperLabelFormatId, labels: readonly { layout: PaperLabelLayout; position: number }[]): PrintPage {
+	const { sheet } = PAPER_LABEL_FORMATS[format];
 	return {
 		width: sheet.width,
 		height: sheet.height,
 		items: labels.flatMap(({ layout, position }) => {
-			const index = position >= 0 && position < sheet.columns * sheet.rows ? Math.floor(position) : 0;
-			const dx = (index % sheet.columns) * width;
-			const dy = Math.floor(index / sheet.columns) * height;
-			return layout.lines.filter((l) => l.commands.length > 0).map((l) => ({ kind: 'fill' as const, commands: translatePath(l.commands, dx, dy) }));
+			const { x, y } = placeArea(format, position);
+			return layout.lines.filter((l) => l.commands.length > 0).map((l) => ({ kind: 'fill' as const, commands: translatePath(l.commands, x, y) }));
 		})
 	};
 }
@@ -153,30 +159,26 @@ function set(kura: Kura, order: PaperLabelOrder, font: LoadedFont) {
 		labels,
 		/** Der Druckbogen */
 		page,
+		/** Der Bogen als SVG in der Druckfarbe, für die Vorschau */
+		preview: paperPreview(kura, page),
 		fileName,
-		async file() {
-			// Die PDF-Bibliothek erst laden, wenn gedruckt wird
-			const { renderPdf } = await import('$lib/media/paper/pdf');
-			return { fileName, mime: 'application/pdf', body: await renderPdf([page], kura.paper.ink, first) };
-		}
+		file: () => paperFile(kura, [page], fileName, first)
 	};
 }
 
-function example(kura: Kura, font: LoadedFont, input: Pick<PaperLabelInput, 'text' | 'subText' | 'format'>): ProductExample {
-	const { layout, hints } = setLabel(kura, { ...input, position: 0 }, font);
-	const single = { width: layout.width, height: layout.height, items: layout.lines.filter((l) => l.commands.length > 0).map((l) => ({ kind: 'fill' as const, commands: l.commands })) };
-	const format = PAPER_LABEL_FORMATS[input.format];
-	return { caption: `${format.name} ${format.width} × ${format.height} mm`, svg: pageSvg(single, kura.paper.ink), width: layout.width, height: layout.height, hints };
+/** Ein Beispiel: ein Etikett am ersten Platz, beschriftet mit dem Format. */
+function example(format: PaperLabelFormatId, text: string, subText: string): { caption: string; order: PaperLabelOrder } {
+	const { name, width, height } = PAPER_LABEL_FORMATS[format];
+	return { caption: `${name} ${width} × ${height} mm`, order: { format, labels: [{ text, subText, position: 0 }] } };
 }
 
 export const paperLabel = defineProduct({
 	id: 'papierlabel',
 	name: 'Papierlabel',
-	medium: 'Papier-Druck',
+	medium: PAPER,
 	nav: 'Papier',
 	summary: 'Etiketten auf dem Bogen, eines oder mehrere, jedes an seinem Platz. Als PDF drucken.',
 	href: '/papier',
-	output: 'PDF',
 	order(kura) {
 		const { label, sign } = PAPER_LABEL_FORMATS;
 		const about = (f: (typeof PAPER_LABEL_FORMATS)[PaperLabelFormatId]) =>
@@ -207,7 +209,9 @@ export const paperLabel = defineProduct({
 	},
 	parse: parseLabel,
 	set,
-	examples: (kura, font) => [example(kura, font, { text: 'gewürze', subText: '', format: 'label' }), example(kura, font, { text: 'winter', subText: 'mützen · schals', format: 'sign' })]
+	examples: [example('label', 'gewürze', ''), example('sign', 'winter', 'mützen · schals')],
+	// Das Beispiel zeigt das Etikett an seinem Platz, nicht den ganzen Bogen
+	exampleView: (kura, setting) => paperExample(kura, setting.page, placeArea(setting.format, setting.labels[0].position))
 });
 
 /** Der Satz eines Bogens mit seinen Etiketten und das PDF */

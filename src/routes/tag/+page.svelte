@@ -3,7 +3,6 @@
 	import ControlGroup from '$components/ControlGroup.svelte';
 	import StatusCard from '$components/StatusCard.svelte';
 	import { KURA } from '$lib/kura/kura';
-	import { pageSvg } from '$lib/media/paper/page';
 	import { DAY_SHEET_EXAMPLE, DAY_SHEET_LIMITS, daySheet, parseDaySheet, ROUTINE_BLOCKS, type DaySheetProof } from '$lib/products/daySheet';
 	import { daySheetContent, daySheetFields, EMPTY_DAY, fieldLines } from '$lib/products/daySheetForm';
 	import { hintText } from '$lib/products/hint';
@@ -25,7 +24,7 @@
 		return kuraFont.font ? lastProof : null;
 	});
 	const hints = $derived(parsed.ok ? (proof?.hints ?? []) : parsed.error);
-	const preview = $derived(proof ? pageSvg(proof.pages[0], KURA.paper.ink) : '');
+	const preview = $derived(proof?.days[0].preview ?? '');
 	// Ein zu langer Eintrag liefe über den Rand: Hier sperrt jeder Hinweis den Druck, wie bei Agenten
 	const printable = $derived(parsed.ok && proof !== null && hints.length === 0);
 	const weekday = $derived(parsed.ok ? new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${parsed.value.date}T00:00:00Z`)) : '');

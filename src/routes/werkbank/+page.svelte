@@ -2,7 +2,7 @@
 	import ControlGroup from '$components/ControlGroup.svelte';
 	import Segmented from '$components/Segmented.svelte';
 	import SiteHeader from '$components/SiteHeader.svelte';
-	import WoodTopView from '$components/wood/WoodTopView.svelte';
+	import ExampleView from '$components/media/ExampleView.svelte';
 	import Slider from '$components/Slider.svelte';
 	import { KURA_OPTION_NAMES, KURA_RANGES, kuraChanges, kuraChoices, parseKura, type KuraValues } from '$lib/kura/kura';
 	import current from '$lib/kura/kura.json';
@@ -79,19 +79,14 @@
 					<article class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5" data-product={product.id}>
 						<div class="flex items-baseline justify-between gap-3">
 							<h2 class="font-ui-head text-xl text-ink">{product.name}</h2>
-							<a href={product.href} class="flex min-h-11 items-center text-sm text-clay-dark underline">{product.medium} · öffnen</a>
+							<a href={product.href} class="flex min-h-11 items-center text-sm text-clay-dark underline">{product.medium.name} · öffnen</a>
 						</div>
-						<!-- Die Beispiele liegen maßstäblich (3 px je mm) vor ihrer Umgebung, wie in der Übersicht -->
-						<div class="flex flex-wrap items-end gap-x-6 gap-y-5 rounded-xl p-4 sm:p-6" style="background: {examples[0]?.backdrop ?? 'var(--color-sand)'}">
+						<!-- Die Beispiele liegen maßstäblich (3 px je mm) vor der Umgebung ihres Mediums, wie in der Übersicht -->
+						<div class="flex flex-wrap items-end gap-x-6 gap-y-5 rounded-xl bg-sand p-4 sm:p-6" style={examples[0] ? `background: ${examples[0].view.backdrop}` : ''}>
 							{#each examples as example (example.caption)}
-								<figure class="flex flex-col gap-2" style="width: min(100%, {example.width * 3}px)">
-									{#if example.wood}
-										<WoodTopView layout={example.wood.layout} settings={example.wood.settings} sketch={example.svg} />
-									{:else}
-										<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
-										<div class="bg-white ring-1 ring-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full">{@html example.svg}</div>
-									{/if}
-									<figcaption class="flex flex-col gap-2 text-xs {example.backdrop ? 'text-ink' : 'text-ink-muted'}">
+								<figure class="flex flex-col gap-2" style="width: min(100%, {example.view.width * 3}px)">
+									<ExampleView view={example.view} />
+									<figcaption class="flex flex-col gap-2 text-xs text-ink">
 										{example.caption}
 										{#each example.hints as hint (hint.message)}
 											<span class="rounded-lg bg-clay-soft px-2 py-1 text-ink" data-kind={hint.kind}>{hint.message}</span>

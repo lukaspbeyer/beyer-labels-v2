@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { KURA } from '$lib/kura/kura';
-import { pageSvg } from '$lib/media/paper/page';
-import { renderPdf } from '$lib/media/paper/pdf';
 import { pathBox } from '$lib/typesetting/geometry';
 import { loadTestFont } from '$lib/typesetting/testFonts';
 import { DEFAULT_PAPER_LABEL_INPUT, paperLabel, placeOf, positionAt, type PaperLabelInput } from './paperLabel';
@@ -83,18 +81,18 @@ describe('Papierlabel', () => {
 			['position', ['labels', 1]]
 		]);
 	});
-});
 
-describe('Papier-Druck', () => {
-	it('schreibt ein PDF in der Größe des Bogens', async () => {
-		const pdf = await renderPdf([label({}).page], KURA.paper.ink, 'gewürze');
-		const text = new TextDecoder('latin1').decode(pdf);
-		expect(text.startsWith('%PDF-')).toBe(true);
-		const box = /\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/.exec(text);
-		expect(box && [Number(box[1]), Number(box[2])].map((v) => Math.round((v / 72) * 25.4))).toEqual([210, 297]);
+	it('zeigt den Bogen und druckt ihn über das Medium, in der Druckfarbe aus Kura', async () => {
+		const { proof } = label({ text: 'Gewürze', position: 3 });
+		expect(proof.preview).toContain('viewBox="0 0 210 297"');
+		expect(proof.preview).toContain(`fill="${KURA.paper.ink}"`);
+		expect(await proof.file()).toMatchObject({ fileName: 'papierlabel-gewuerze-105x74mm.pdf', mime: 'application/pdf' });
 	});
 
-	it('zeichnet die Vorschau in mm', () => {
-		expect(pageSvg(label({}).page, '#000000')).toContain('viewBox="0 0 210 297"');
+	it('zeigt ein Beispiel als Etikett an seinem Platz, nicht den ganzen Bogen', () => {
+		const [first, sign] = paperLabel.examples(KURA, font);
+		expect(first.view).toMatchObject({ medium: 'paper', width: 105, height: 74 });
+		expect(first.view.medium === 'paper' && first.view.svg).toContain('viewBox="0 0 105 74"');
+		expect(sign.view).toMatchObject({ width: 210, height: 100 });
 	});
 });

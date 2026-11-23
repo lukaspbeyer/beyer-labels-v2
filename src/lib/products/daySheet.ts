@@ -5,7 +5,8 @@
  */
 import type { Kura } from '$lib/kura/kura';
 import { placeLine, setRoleLine, setSign } from '$lib/kura/textRole';
-import { pageSvg, type PrintItem, type PrintPage } from '$lib/media/paper/page';
+import { PAPER, paperExample, paperFile, paperPreview } from '$lib/media/paper/medium';
+import type { PrintItem, PrintPage } from '$lib/media/paper/page';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { formatMm } from '$lib/typesetting/format';
 import { roundedRectPath } from '$lib/typesetting/geometry';
@@ -264,20 +265,19 @@ function parseDay(raw: unknown): Parsed<DaySheetInput> {
 }
 
 function set(kura: Kura, order: DaySheetOrder, font: LoadedFont) {
-	const days = order.days.map((day) => layoutDaySheet(kura, day, font));
+	const days = order.days.map((day) => {
+		const { page, hints } = layoutDaySheet(kura, day, font);
+		return { page, hints, preview: paperPreview(kura, page) };
+	});
 	const pages = days.map((d) => d.page);
 	const fileName = fileNameOf(order.days);
 	return {
-		/** Je Tag sein Blatt und die Hinweise dazu */
+		/** Je Tag sein Blatt, die Hinweise dazu und das Blatt als SVG in der Druckfarbe, für die Vorschau */
 		days,
 		/** Je Tag ein Blatt */
 		pages,
 		fileName,
-		async file() {
-			// Die PDF-Bibliothek erst laden, wenn gedruckt wird
-			const { renderPdf } = await import('$lib/media/paper/pdf');
-			return { fileName, mime: 'application/pdf', body: await renderPdf(pages, kura.paper.ink, 'Tagesübersicht') };
-		}
+		file: () => paperFile(kura, pages, fileName, 'Tagesübersicht')
 	};
 }
 
@@ -286,11 +286,10 @@ const L = DAY_SHEET_LIMITS;
 export const daySheet = defineProduct({
 	id: 'tagesuebersicht',
 	name: 'Tagesübersicht',
-	medium: 'Papier-Druck',
+	medium: PAPER,
 	nav: 'Tag',
 	summary: 'Ein Blatt A4 für einen Tag: eine Hauptsache, Routinen, Termine. Ausprobieren und als PDF drucken.',
 	href: '/tag',
-	output: 'PDF',
 	order: () => ({
 		description:
 			'Ein Blatt A4 hochkant für einen Tag: eine Hauptsache mit kleinstem ersten Schritt, feste Routinen, wenige weitere Aufgaben, Termine, Mitnehmen. ' +
@@ -310,10 +309,8 @@ export const daySheet = defineProduct({
 	pieces: { list: 'days', limit: () => ({ max: MAX_DAYS, message: `1 bis ${MAX_DAYS} Tage angeben.` }) },
 	parse: parseDay,
 	set,
-	examples(kura, font) {
-		const { page, hints } = layoutDaySheet(kura, DAY_SHEET_EXAMPLE, font);
-		return [{ caption: 'A4 hoch', svg: pageSvg(page, kura.paper.ink), width: page.width, height: page.height, hints }];
-	}
+	examples: [{ caption: 'A4 hoch', order: { days: [DAY_SHEET_EXAMPLE] } }],
+	exampleView: (kura, setting) => paperExample(kura, setting.days[0].page)
 });
 
 /** Der Satz eines oder mehrerer Tage und das PDF */

@@ -9,13 +9,12 @@ import { VOCABULARY } from '$lib/kura/vocabulary';
 import { calibration } from '$lib/media/wood/calibration';
 import { checkFabrication } from '$lib/media/wood/checks';
 import { layoutLabel } from '$lib/media/wood/layout';
-import { buildSheetSvg, exportFileName } from '$lib/media/wood/svgExport';
+import { WOOD, woodExample, woodFile } from '$lib/media/wood/medium';
 import type { FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$lib/media/wood/types';
 import type { LoadedFont } from '$lib/typesetting/fonts';
-import { formatMm } from '$lib/typesetting/format';
-import { svgPathData } from '$lib/typesetting/geometry';
+import { fileSlug, formatMm } from '$lib/typesetting/format';
 import { hint, type Hint } from './hint';
-import { choice, defineProduct, record, type Parsed, type ProductExample } from './product';
+import { choice, defineProduct, record, type Parsed } from './product';
 
 export const WOOD_LABEL_FORMATS = {
 	series: { width: 64, height: 24, name: 'Serie' },
@@ -103,18 +102,24 @@ function parseLabel(raw: unknown, _shared: unknown, top: Record<string, unknown>
 	return { value: text && format.ok ? { ...DEFAULT_WOOD_LABEL_INPUT, text, format: format.value } : null, hints };
 }
 
+/** Dateiname nach dem Muster holzlabel-teller-64x24mm.svg; bei mehreren Labels holzlabel-teller-und-2-weitere-64x24mm.svg */
+function fileNameOf(first: WoodLabelInput, count: number): string {
+	const { width, height } = WOOD_LABEL_FORMATS[first.format];
+	return `holzlabel-${fileSlug(first.text)}${count > 1 ? `-und-${count - 1}-weitere` : ''}-${width}x${height}mm.svg`;
+}
+
 function set(kura: Kura, order: WoodLabelOrder, font: LoadedFont) {
 	const labels = order.labels.map((input) => {
 		const settings = woodLabelSettings(kura, input);
 		const layout = layoutLabel(settings, font);
 		return { layout, settings, hints: checkLabel(kura, font, input, layout, settings) };
 	});
-	const fileName = labels.length > 0 ? exportFileName(labels[0].settings, labels[0].layout, labels.length) : '';
+	const fileName = labels.length > 0 ? fileNameOf(order.labels[0], labels.length) : '';
 	return {
 		/** Je Label Layout und Einstellungen der Gravur, in der Reihenfolge der Bestellung */
 		labels,
 		fileName,
-		file: async () => ({ fileName, mime: 'image/svg+xml', body: buildSheetSvg(labels) })
+		file: () => woodFile(labels, fileName)
 	};
 }
 
@@ -123,29 +128,19 @@ export function vocabularyMisfits(kura: Kura, font: LoadedFont): string[] {
 	return VOCABULARY.filter((text) => set(kura, { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, text }] }, font).labels[0].hints.length > 0);
 }
 
-function example(kura: Kura, font: LoadedFont, input: Partial<WoodLabelInput>, caption?: string): ProductExample {
-	const [label] = set(kura, { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, ...input }] }, font).labels;
-	const { layout, settings, hints } = label;
-	const format = WOOD_LABEL_FORMATS[input.format ?? 'series'];
-	return {
-		caption: caption ?? `${format.name} ${format.width} × ${format.height} mm`,
-		svg: woodLabelSketch(layout, settings),
-		width: layout.width,
-		height: layout.height,
-		hints,
-		backdrop: calibration.front.color.agave,
-		wood: { layout, settings }
-	};
+/** Ein Beispiel: ein Label in einem Format, beschriftet mit dem Format, falls nichts anderes gesagt ist. */
+function example(input: Partial<WoodLabelInput>, caption?: string): { caption: string; order: WoodLabelOrder } {
+	const format = WOOD_LABEL_FORMATS[input.format ?? DEFAULT_WOOD_LABEL_INPUT.format];
+	return { caption: caption ?? `${format.name} ${format.width} × ${format.height} mm`, order: { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, ...input }] } };
 }
 
 export const woodLabel = defineProduct({
 	id: 'holzlabel',
 	name: 'Holzlabel',
-	medium: 'Lärche-Gravur',
+	medium: WOOD,
 	nav: 'Holz',
 	summary: 'Türlabel aus 4 mm Lärche mit einem Wort. Ansehen und als SVG für den Laser laden.',
 	href: '/holz',
-	output: 'SVG',
 	order(kura) {
 		const { series, long } = WOOD_LABEL_FORMATS;
 		const size = (f: { width: number; height: number }) => `${f.width} × ${f.height} mm`;
@@ -172,11 +167,12 @@ export const woodLabel = defineProduct({
 	},
 	parse: parseLabel,
 	set,
-	examples: (kura, font) => [
-		example(kura, font, { text: 'teller' }),
-		example(kura, font, { text: 'duschgel', grainSeed: 2 }, 'längstes Wort des Wortschatzes'),
-		example(kura, font, { text: 'servietten', format: 'long', grainSeed: 3 })
+	examples: [
+		example({ text: 'teller' }),
+		example({ text: 'duschgel', grainSeed: 2 }, 'längstes Wort des Wortschatzes'),
+		example({ text: 'servietten', format: 'long', grainSeed: 3 })
 	],
+	exampleView: (_kura, setting) => woodExample(setting.labels[0]),
 	notes(kura, font) {
 		const misfits = vocabularyMisfits(kura, font);
 		return misfits.length > 0 ? [hint('vocabulary', `${misfits.length} Wörter des Wortschatzes passen nicht mehr ins Serienformat: ${misfits.join(', ')}.`)] : [];
@@ -186,36 +182,3 @@ export const woodLabel = defineProduct({
 /** Der Satz eines oder mehrerer Labels mit der Laserdatei */
 export type WoodLabelProof = ReturnType<typeof woodLabel.set>;
 
-/**
- * Draufsicht als SVG (1 Einheit = 1 mm): ein Ausschnitt des Lärchenfotos im Ton der Oberfläche, Gravur in ihrer Farbe.
- * Ohne Tiefe und Licht; die fotorealistische Ansicht steht auf der Produktseite.
- */
-export function woodLabelSketch(layout: LabelLayout, settings: WoodSettings): string {
-	const tone = calibration.previewTone[settings.finish];
-	const burn = calibration.engraving.burnColor[settings.burn];
-	const ink = settings.process === 'fill' ? calibration.fill.color[settings.fillColor] : settings.process === 'inverse' ? tone : burn;
-	const outline = svgPathData(layout.outline);
-	const text = svgPathData(layout.lines.flatMap((l) => l.commands));
-	// Ausschnitt aus der ersten Lamelle, die das Label fasst; das Wort verschiebt ihn, damit eine Reihe nicht gleich aussieht
-	const texture = calibration.woodTexture;
-	const horizontal = settings.grain === 'horizontal';
-	const along = horizontal ? layout.width : layout.height;
-	const across = horizontal ? layout.height : layout.width;
-	const acrossPx = across / texture.mmPerPx;
-	const lamella = texture.lamellae.find((l) => l[1] - l[0] >= acrossPx + 4) ?? [0, texture.heightPx];
-	const seed = Array.from(settings.text).reduce((sum, ch) => (sum * 31 + (ch.codePointAt(0) ?? 0)) % 9973, 7);
-	const x = ((seed % 100) / 100) * Math.max(0, texture.widthPx * texture.mmPerPx - along);
-	const y = (lamella[0] + 2 + ((seed % 37) / 37) * Math.max(0, lamella[1] - lamella[0] - acrossPx - 4)) * texture.mmPerPx;
-	const id = `holz-${seed}-${Math.round(layout.width)}`;
-	const image = `<image href="${texture.colorUrl}" x="${-x}" y="${-y}" width="${texture.widthPx * texture.mmPerPx}" height="${texture.heightPx * texture.mmPerPx}" preserveAspectRatio="none"/>`;
-	const parts = [
-		`<clipPath id="${id}"><path d="${outline}"/></clipPath>`,
-		`<path fill="${tone}" d="${outline}"/>`,
-		`<g clip-path="url(#${id})">${horizontal ? image : `<g transform="translate(${layout.width} 0) rotate(90)">${image}</g>`}</g>`,
-		`<path fill="${tone}" opacity="0.3" style="mix-blend-mode:soft-light" d="${outline}"/>`,
-		layout.inverseField.length > 0 ? `<path fill="${burn}" d="${svgPathData(layout.inverseField)}"/>` : '',
-		layout.frame.length > 0 ? `<path fill="none" stroke="${burn}" stroke-width="${calibration.frame.lineWidthMm}" d="${svgPathData(layout.frame)}"/>` : '',
-		text ? `<path fill="${ink}" d="${text}"/>` : ''
-	];
-	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${layout.width} ${layout.height}">${parts.join('')}</svg>`;
-}

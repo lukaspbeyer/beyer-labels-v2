@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { KURA, type Kura } from '$lib/kura/kura';
+import { PAPER, paperExample } from '$lib/media/paper/medium';
 import { loadTestFont } from '$lib/typesetting/testFonts';
 import { err, ok } from '$utils/result';
 import { hint, hintText, type Hint } from './hint';
@@ -19,17 +20,16 @@ interface Order {
 function set(_kura: Kura, order: Order) {
 	const words = order.words.map(({ word }) => ({ word, hints: word.length > order.width ? [hint('too-long', 'Kürzer fassen.', ['word'])] : ([] as Hint[]) }));
 	const fileName = `probe-${words.map((w) => w.word).join('-')}.svg`;
-	return { words, fileName, file: async () => ({ fileName, mime: 'image/svg+xml', body: '<svg/>' }) };
+	return { words, fileName, file: async () => ({ fileName, mime: PAPER.mime, body: '%PDF-' }) };
 }
 
 const probe = defineProduct({
 	id: 'probe',
 	name: 'Probe',
-	medium: 'Papier-Druck',
+	medium: PAPER,
 	nav: 'Probe',
 	summary: 'Nur für Tests.',
 	href: '/probe',
-	output: 'SVG',
 	order: () => ({ description: '', fields: [], example: { word: 'ab' } }),
 	pieces: {
 		list: 'words',
@@ -46,7 +46,9 @@ const probe = defineProduct({
 		return word ? { value: { word }, hints: [] } : { value: null, hints: [hint('empty', 'Das Wort fehlt.', ['word'])] };
 	},
 	set,
-	examples: () => []
+	examples: [{ caption: 'zu lang', order: { width: 2, words: [{ word: 'ab' }, { word: 'abc' }] } }],
+	// Die Ansicht trägt die Wörter als Breite, damit der Test sieht, dass sie aus dem Satz kommt
+	exampleView: (kura, setting) => paperExample(kura, { width: setting.words.length, height: 1, items: [] })
 });
 
 const make = (content: unknown) => probe.make(KURA, content, font);
@@ -91,5 +93,15 @@ describe('Produktdefinition: ein oder mehrere Stücke', () => {
 		const proof = probe.set(KURA, { width: 2, words: [{ word: 'ab' }, { word: 'abc' }] }, font);
 		expect(proof.words.map((w) => w.hints.map((h) => h.at))).toEqual([[], [['word']]]);
 		expect(proof.hints.map(hintText)).toEqual(['word: Kürzer fassen.']);
+	});
+
+	it('setzt Beispiele wie eine Bestellung: Hinweise und Ansicht kommen aus dem Satz', () => {
+		const [example] = probe.examples(KURA, font);
+		expect(example.hints.map(hintText)).toEqual(['word: Kürzer fassen.']);
+		expect(example.view).toMatchObject({ medium: PAPER.id, width: 2, height: 1 });
+	});
+
+	it('nennt Agenten Medium und Dateiformat aus dem Medium', () => {
+		expect(probe.spec(KURA)).toMatchObject({ medium: 'Papier-Druck', output: 'PDF' });
 	});
 });

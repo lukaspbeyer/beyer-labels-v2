@@ -5,7 +5,6 @@
 import { KURA_OPTION_NAMES, kuraOptionName, type KuraOption, type KuraOptionValue } from '$lib/kura/kura';
 import { calibration } from './calibration';
 import { fontInfo } from '$lib/typesetting/fonts';
-import { fileSlug } from '$lib/typesetting/format';
 import { svgPathData, translatePath } from '$lib/typesetting/geometry';
 import { displayText } from './layout';
 import type { LabelLayout, PathCommand, WoodSettings } from './types';
@@ -20,13 +19,6 @@ function escapeXml(text: string): string {
 
 function formatSize(value: number): string {
 	return Number.isInteger(value) ? String(value) : value.toFixed(1).replace('.', ',');
-}
-
-/** Dateiname nach dem Muster holzlabel-teller-80x30mm.svg; bei mehreren Labels holzlabel-teller-und-2-weitere-80x30mm.svg */
-export function exportFileName(settings: WoodSettings, layout: LabelLayout, count = 1): string {
-	const slug = fileSlug(settings.text);
-	const size = `${formatSize(layout.width).replace(',', '-')}x${formatSize(layout.height).replace(',', '-')}`;
-	return `holzlabel-${slug}${count > 1 ? `-und-${count - 1}-weitere` : ''}-${size}mm.svg`;
 }
 
 function engravingPaths(layout: LabelLayout, settings: WoodSettings): { commands: PathCommand[]; fillRule: 'nonzero' | 'evenodd' } {

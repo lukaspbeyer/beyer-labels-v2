@@ -4,7 +4,6 @@
 	import Segmented from '$components/Segmented.svelte';
 	import StatusCard from '$components/StatusCard.svelte';
 	import { caseInWords, KURA } from '$lib/kura/kura';
-	import { pageSvg } from '$lib/media/paper/page';
 	import { DEFAULT_PAPER_LABEL_INPUT, PAPER_LABEL_FORMAT_IDS, PAPER_LABEL_FORMATS, paperLabel, placeOf, positionCount, type PaperLabelFormatId } from '$lib/products/paperLabel';
 	import { useFont } from '$lib/typesetting/fontState.svelte';
 	import { saveFile } from '$utils/download';
@@ -31,7 +30,7 @@
 	const hints = $derived(
 		proof?.labels.flatMap((label) => label.hints.map((h) => ({ kind: h.kind, text: [placeName(label.position), h.message].filter(Boolean).join(': ') }))) ?? []
 	);
-	const preview = $derived(proof ? pageSvg(proof.page, KURA.paper.ink) : '');
+	const preview = $derived(proof?.preview ?? '');
 
 	const formatOptions = PAPER_LABEL_FORMAT_IDS.map((value) => {
 		const f = PAPER_LABEL_FORMATS[value];

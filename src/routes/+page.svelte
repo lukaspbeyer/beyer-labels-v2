@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SiteHeader from '$components/SiteHeader.svelte';
-	import WoodTopView from '$components/wood/WoodTopView.svelte';
+	import ExampleView from '$components/media/ExampleView.svelte';
 	import { KURA } from '$lib/kura/kura';
 	import { PRODUCTS } from '$lib/products/registry';
 	import { useFont } from '$lib/typesetting/fontState.svelte';
@@ -35,19 +35,13 @@
 				<li>
 					<a href={product.href} class="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white transition-colors hover:border-ink-muted" data-product={product.id}>
 						<!-- Alle Kacheln gleich hoch; die Sache steht maßstäblich verkleinert vor ihrer Umgebung -->
-						<div class="relative aspect-[4/3]" style="background: {example?.backdrop ?? 'var(--color-sand)'}">
+						<!-- Bis die Schrift geladen ist, steht eine neutrale Fläche; danach die Umgebung, die das Medium nennt -->
+						<div class="relative aspect-[4/3] bg-sand" style={example ? `background: ${example.view.backdrop}` : ''}>
 							{#if example}
+								{@const { view } = example}
 								<div class="absolute inset-6 flex items-center justify-center sm:inset-8">
-									<div
-										class={example.wood ? '' : 'bg-white ring-1 ring-line [&>svg]:block [&>svg]:h-full [&>svg]:w-full'}
-										style="aspect-ratio: {example.width} / {example.height}; {example.width / example.height > 4 / 3 ? 'width: 100%' : 'height: 100%'}"
-									>
-										{#if example.wood}
-											<WoodTopView layout={example.wood.layout} settings={example.wood.settings} sketch={example.svg} />
-										{:else}
-											<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
-											{@html example.svg}
-										{/if}
+									<div style="aspect-ratio: {view.width} / {view.height}; {view.width / view.height > 4 / 3 ? 'width: 100%' : 'height: 100%'}">
+										<ExampleView {view} />
 									</div>
 								</div>
 							{/if}
@@ -55,7 +49,7 @@
 						<div class="flex flex-1 flex-col gap-1 border-t border-line p-5">
 							<div class="flex items-baseline justify-between gap-3">
 								<h2 class="font-ui-head text-xl text-ink">{product.name}</h2>
-								<span class="text-xs text-ink-muted">{product.medium}</span>
+								<span class="text-xs text-ink-muted">{product.medium.name}</span>
 							</div>
 							<p class="text-sm leading-relaxed text-ink-muted">{product.summary}</p>
 							<span class="mt-auto pt-3 text-sm text-clay-dark group-hover:underline">öffnen</span>

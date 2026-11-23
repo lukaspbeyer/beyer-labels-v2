@@ -5,7 +5,7 @@
  * Übersicht, Werkbank, Navigation, Produktseite und MCP lesen dieselbe Beschreibung.
  */
 import type { Kura } from '$lib/kura/kura';
-import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
+import type { ExampleView, Medium, MediumFile } from '$lib/media/medium';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { err, ok, type Result } from '$utils/result';
 import { hint, within, type Hint } from './hint';
@@ -22,19 +22,16 @@ export interface OrderSpec {
 	id: string;
 	name: string;
 	medium: string;
-	/** Dateiformat des Ergebnisses */
-	output: 'PDF' | 'SVG';
+	/** Dateiformat des Ergebnisses, aus dem Medium */
+	output: Medium['output'];
 	description: string;
 	fields: OrderField[];
 	/** Ein gültiger Inhalt als Vorlage */
 	example: unknown;
 }
 
-export interface OrderFile {
-	fileName: string;
-	mime: string;
-	body: Uint8Array | string;
-}
+/** Die Datei einer Bestellung; das Medium baut sie und nennt ihren Medientyp. */
+export type OrderFile = MediumFile;
 
 /** Ein gesetztes Stück: ein Label, ein Etikett, ein Tag. Seine Hinweise stehen relativ zum Stück. */
 export interface PieceProof {
@@ -53,17 +50,12 @@ export interface Proof {
 /** Was `set` eines Produkts liefert: unter dem Feld der Liste je Stück sein Satz, in der Reihenfolge der Bestellung, dazu die eine Datei. */
 type Setting<L extends string> = Record<L, readonly PieceProof[]> & Omit<Proof, 'hints'>;
 
+/** Ein Beispiel, gesetzt wie jede Bestellung: Beschriftung, Hinweise des Satzes und die Ansicht des Mediums. */
 export interface ProductExample {
 	caption: string;
-	/** Maßstäbliche Ansicht, 1 Einheit = 1 mm */
-	svg: string;
-	width: number;
-	height: number;
 	hints: Hint[];
-	/** Farbe der Umgebung, vor der die Sache hängt oder liegt; gehört nicht zur Gestaltung */
-	backdrop?: string;
-	/** Bei Lärche: woraus der Renderer im Browser die Oberfläche rechnet; `svg` steht, bis das Holz geladen ist */
-	wood?: { layout: LabelLayout; settings: WoodSettings };
+	/** Wie das Medium das Beispiel maßstäblich vor seiner Umgebung zeigt */
+	view: ExampleView;
 }
 
 /**
@@ -84,14 +76,14 @@ type OrderOf<L extends string> = Record<L, readonly unknown[]>;
 interface ProductDefinition<L extends string, Order extends OrderOf<L>, S extends Setting<L>> {
 	id: string;
 	name: string;
-	medium: string;
+	/** Das Medium; von ihm kommen Dateiformat, Datei und Beispielansicht */
+	medium: Medium;
 	/** Kurzer Name für die Navigation */
 	nav: string;
 	/** Ein Satz für die Übersicht: was es ist und wie man es bekommt */
 	summary: string;
 	/** Seite des Produkts */
 	href: string;
-	output: OrderSpec['output'];
 	/** Beschreibung, Felder und Beispiel für Agenten; Maße und Grenzen folgen dem übergebenen Kura */
 	order(kura: Kura): Pick<OrderSpec, 'description' | 'fields' | 'example'>;
 	/** Ein oder mehrere Stücke in einer Datei */
@@ -114,8 +106,13 @@ interface ProductDefinition<L extends string, Order extends OrderOf<L>, S extend
 	 * Schritte über alle Stücke (Plätze auf dem Bogen) und die eine Datei aus allen Stücken gehören hierher.
 	 */
 	set(kura: Kura, order: Order, font: LoadedFont): S;
-	/** Beispiele im übergebenen Kura; so zeigt die Werkbank die Wirkung einer Änderung */
-	examples(kura: Kura, font: LoadedFont): ProductExample[];
+	/**
+	 * Beispiele als Bestellungen. Sie gehen durch `set` wie die Bestellung eines Agenten;
+	 * so zeigt und prüft die Werkbank eine Änderung an Kura auf demselben Weg.
+	 */
+	examples: readonly { caption: string; order: Order }[];
+	/** Wie das Medium den Satz eines Beispiels zeigt */
+	exampleView(kura: Kura, setting: S): ExampleView;
 	/** Hinweise, die für das Produkt als Ganzes gelten */
 	notes?(kura: Kura, font: LoadedFont): Hint[];
 }
@@ -124,13 +121,14 @@ interface ProductDefinition<L extends string, Order extends OrderOf<L>, S extend
 export interface Product {
 	id: string;
 	name: string;
-	medium: string;
+	medium: Medium;
 	nav: string;
 	summary: string;
 	href: string;
 	spec(kura: Kura): OrderSpec;
 	/** Inhalt von außen zur Datei. Jeder Hinweis heißt: keine Datei. Hinweise nennen das Stück nur, wenn eine Liste kam. */
 	make(kura: Kura, content: unknown, font: LoadedFont): Promise<Result<OrderFile, Hint[]>>;
+	/** Beispiele im übergebenen Kura; so zeigt die Werkbank die Wirkung einer Änderung */
 	examples(kura: Kura, font: LoadedFont): ProductExample[];
 	notes(kura: Kura, font: LoadedFont): Hint[];
 }
@@ -141,7 +139,7 @@ export interface TypedProduct<Order, S> extends Product {
 }
 
 export function defineProduct<L extends string, Order extends OrderOf<L>, S extends Setting<L>>(definition: ProductDefinition<L, Order, S>): TypedProduct<Order, S> {
-	const { id, name, medium, nav, summary, href, output, pieces, examples } = definition;
+	const { id, name, medium, nav, summary, href, pieces } = definition;
 	const { list } = pieces;
 
 	/** Liest den Inhalt Stück für Stück. `places`: wo jedes Stück der Bestellung im Inhalt steht, auch wenn davor eines wegfiel. */
@@ -175,9 +173,13 @@ export function defineProduct<L extends string, Order extends OrderOf<L>, S exte
 		nav,
 		summary,
 		href,
-		examples,
+		examples: (kura, font) =>
+			definition.examples.map(({ caption, order }) => {
+				const setting = definition.set(kura, order, font);
+				return { caption, hints: setting[list].flatMap((piece) => piece.hints), view: definition.exampleView(kura, setting) };
+			}),
 		notes: (kura, font) => definition.notes?.(kura, font) ?? [],
-		spec: (kura) => ({ id, name, medium, output, ...definition.order(kura) }),
+		spec: (kura) => ({ id, name, medium: medium.name, output: medium.output, ...definition.order(kura) }),
 		set(kura, order, font) {
 			const setting = definition.set(kura, order, font);
 			return { ...setting, hints: setting[list].flatMap((piece) => piece.hints) };
