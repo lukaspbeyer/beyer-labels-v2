@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
-	const AREAS = [
-		{ href: '/holz', label: 'Holz' },
-		{ href: '/papier', label: 'Papier' },
-		{ href: '/tag', label: 'Tag' },
-		{ href: '/werkbank', label: 'Werkbank' }
-	] as const;
+	import { PRODUCTS } from '$lib/products/registry';
+
+	// Jedes eingetragene Produkt hat seinen Platz in der Navigation, danach die Werkbank
+	const AREAS = [...PRODUCTS.map((product) => ({ href: product.href, label: product.nav })), { href: '/werkbank', label: 'Werkbank' }];
 </script>
 
 <header class="mx-auto flex max-w-[1400px] items-center justify-between gap-2 px-4 py-4 sm:px-6">

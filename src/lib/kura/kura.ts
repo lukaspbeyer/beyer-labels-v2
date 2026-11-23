@@ -141,3 +141,11 @@ export function applyCase(letterCase: LetterCase, text: string): string {
 	if (letterCase === 'upper') return text.toLocaleUpperCase('de-DE');
 	return text;
 }
+
+/** Geänderte Werte zwischen zwei Kura-Definitionen als „pfad: alt → neu“, in der Reihenfolge der Definition. */
+export function kuraChanges(before: unknown, after: unknown, path = ''): string[] {
+	if (typeof before === 'object' && before !== null && typeof after === 'object' && after !== null) {
+		return Object.keys(after).flatMap((key) => kuraChanges((before as Record<string, unknown>)[key], (after as Record<string, unknown>)[key], path ? `${path}.${key}` : key));
+	}
+	return before === after ? [] : [`${path}: ${String(before)} → ${String(after)}`];
+}

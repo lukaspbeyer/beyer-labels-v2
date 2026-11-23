@@ -4,58 +4,33 @@
 	import SiteHeader from '$components/SiteHeader.svelte';
 	import WoodTopView from '$components/wood/WoodTopView.svelte';
 	import Slider from '$components/Slider.svelte';
-	import { KURA_RANGES, parseKura, type KuraValues } from '$lib/kura/kura';
+	import { KURA_RANGES, kuraChanges, parseKura, type KuraValues } from '$lib/kura/kura';
 	import current from '$lib/kura/kura.json';
 	import { PRODUCTS } from '$lib/products/registry';
-	import { createFontLoader, FONT_CATALOG, fontInfo, nearestWeight, type FontLoader, type LoadedFont } from '$lib/typesetting/fonts';
+	import { useFont } from '$lib/typesetting/fontState.svelte';
+	import { FONT_CATALOG, fontInfo, nearestWeight } from '$lib/typesetting/fonts';
+	import { saveFile } from '$utils/download';
 	import type { FontWeight } from '$lib/typesetting/types';
 
 	// Arbeitskopie von Kura; wirksam wird sie erst, wenn sie als kura.json eingecheckt ist
 	let draft = $state(structuredClone(current) as KuraValues);
-	let loader: FontLoader | null = null;
-	let font = $state.raw<LoadedFont | null>(null);
-	let fontError = $state(false);
 	let copied = $state(false);
 
 	const parsed = $derived(parseKura($state.snapshot(draft)));
 	const kura = $derived(parsed.ok ? parsed.value : null);
-	const fontReady = $derived(font !== null && font.id === draft.typeface.font && font.weight === draft.typeface.weight);
-	const products = $derived(
-		kura && font && fontReady
-			? PRODUCTS.map((product) => ({ product, examples: product.examples(kura, font!), notes: product.notes?.(kura, font!) ?? [] }))
-			: []
-	);
+	const draftFont = useFont(() => draft.typeface);
+	const fontReady = $derived(draftFont.font !== null);
+	const products = $derived.by(() => {
+		const font = draftFont.font;
+		return kura && font ? PRODUCTS.map((product) => ({ product, examples: product.examples(kura, font), notes: product.notes(kura, font) })) : [];
+	});
 	const hintCount = $derived(products.reduce((n, p) => n + p.notes.length + p.examples.reduce((m, e) => m + e.hints.length, 0), 0));
 	const json = $derived(JSON.stringify(draft, null, '\t') + '\n');
-	const changes = $derived(diff(current, $state.snapshot(draft)));
+	const changes = $derived(kuraChanges(current, $state.snapshot(draft)));
 
 	const WEIGHT_LABEL: Record<FontWeight, string> = { 400: 'Regular', 500: 'Medium', 600: 'Semibold', 700: 'Bold' };
 	const weightOptions = $derived(fontInfo(draft.typeface.font).weights.map((value) => ({ value, label: WEIGHT_LABEL[value] })));
 	const R = KURA_RANGES;
-
-	$effect(() => {
-		const { font: id, weight } = draft.typeface;
-		loader ??= createFontLoader(fetch);
-		let live = true;
-		loader.load(id, weight).then((result) => {
-			if (!live) return;
-			fontError = !result.ok;
-			if (result.ok) font = result.value;
-		});
-		return () => {
-			live = false;
-		};
-	});
-
-	/** Geänderte Werte als „pfad: alt → neu“ */
-	function diff(before: unknown, after: unknown, path = ''): string[] {
-		if (typeof before === 'object' && before !== null && typeof after === 'object' && after !== null) {
-			return Object.keys(after).flatMap((key) =>
-				diff((before as Record<string, unknown>)[key], (after as Record<string, unknown>)[key], path ? `${path}.${key}` : key)
-			);
-		}
-		return before === after ? [] : [`${path}: ${String(before)} → ${String(after)}`];
-	}
 
 	function reset(): void {
 		draft = structuredClone(current) as KuraValues;
@@ -68,14 +43,7 @@
 	}
 
 	function download(): void {
-		const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = 'kura.json';
-		document.body.appendChild(link);
-		link.click();
-		link.remove();
-		setTimeout(() => URL.revokeObjectURL(url), 1000);
+		saveFile(json, 'kura.json', 'application/json');
 	}
 </script>
 
@@ -94,7 +62,7 @@
 				<p class="text-ink-muted">Kura an einer Arbeitskopie verändern. Jede Änderung wirkt sofort auf alle Produkte, gilt aber erst nach dem Einchecken.</p>
 			</div>
 
-			{#if fontError}
+			{#if draftFont.failed}
 				<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
 			{/if}
 			{#if !parsed.ok}

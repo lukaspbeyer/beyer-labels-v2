@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { WOOD_LABEL_FORMATS, type WoodLabelFormatId } from '$lib/products/woodLabel';
+	import { WOOD_LABEL_FORMAT_IDS, WOOD_LABEL_FORMATS } from '$lib/products/woodLabel';
 	import { updateWoodLabel, woodLabelInput } from '$stores/wood';
 	import { calibration } from '$lib/media/wood/calibration';
 	import type { FrontColor } from '$lib/media/wood/types';
@@ -11,8 +11,7 @@
 
 	const FRONT_LABEL = { agave: 'Agave', anthracite: 'Anthrazit', columba: 'Columba Grey' } as const;
 	const FRONTS: readonly FrontColor[] = ['agave', 'anthracite', 'columba'];
-	const FORMAT_IDS: readonly WoodLabelFormatId[] = ['series', 'long'];
-	const formatOptions = FORMAT_IDS.map((value) => {
+	const formatOptions = WOOD_LABEL_FORMAT_IDS.map((value) => {
 		const format = WOOD_LABEL_FORMATS[value];
 		return { value, label: `${format.name} ${format.width} × ${format.height}` };
 	});

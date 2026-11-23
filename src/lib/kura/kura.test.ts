@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import values from './kura.json';
-import { applyCase, KURA, maxSignWidth, parseKura, signCapHeight } from './kura';
+import { applyCase, KURA, kuraChanges, maxSignWidth, parseKura, signCapHeight } from './kura';
 
 describe('Kura', () => {
 	it('kura.json ist gültig', () => {
@@ -26,5 +26,11 @@ describe('Kura', () => {
 
 	it('schreibt klein', () => {
 		expect(applyCase(KURA.sign.case, 'Gewürze')).toBe('gewürze');
+	});
+
+	it('nennt die Änderungen einer Arbeitskopie mit Pfad, altem und neuem Wert', () => {
+		expect(kuraChanges(values, values)).toEqual([]);
+		const draft = { ...values, typeface: { ...values.typeface, weight: 500 }, paper: { ...values.paper, ink: '#222222' } };
+		expect(kuraChanges(values, draft)).toEqual([`typeface.weight: ${values.typeface.weight} → 500`, `paper.ink: ${values.paper.ink} → #222222`]);
 	});
 });

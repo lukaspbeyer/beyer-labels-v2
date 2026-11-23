@@ -1,87 +1,48 @@
 <script lang="ts">
 	import SiteHeader from '$components/SiteHeader.svelte';
 	import ControlGroup from '$components/ControlGroup.svelte';
+	import StatusCard from '$components/StatusCard.svelte';
 	import { KURA } from '$lib/kura/kura';
-	import { pageSvg, type PrintPage } from '$lib/media/paper/page';
-	import { DAY_SHEET_EXAMPLE, DAY_SHEET_LIMITS, daySheetFileName, layoutDaySheet, parseDaySheet, ROUTINE_BLOCKS, type DaySheetInput } from '$lib/products/daySheet';
-	import type { Hint } from '$lib/products/hint';
-	import { createFontLoader, type LoadedFont } from '$lib/typesetting/fonts';
+	import { pageSvg } from '$lib/media/paper/page';
+	import { DAY_SHEET_EXAMPLE, DAY_SHEET_LIMITS, daySheet, parseDaySheet, ROUTINE_BLOCKS, type DaySheetProof } from '$lib/products/daySheet';
+	import { daySheetContent, daySheetFields, EMPTY_DAY, fieldLines } from '$lib/products/daySheetForm';
+	import { hintText } from '$lib/products/hint';
+	import { useFont } from '$lib/typesetting/fontState.svelte';
 	import { saveFile } from '$utils/download';
 
 	const L = DAY_SHEET_LIMITS;
 
-	/** Der Inhalt, wie ihn die Felder halten: Listen als Zeilen, Zahlen als Text. Er lebt nur in dieser Seite. */
-	function fields(day: DaySheetInput) {
-		return {
-			date: day.date,
-			focus: { ...day.focus },
-			routines: { morning: day.routines.morning.join('\n'), midday: day.routines.midday.join('\n'), evening: day.routines.evening.join('\n') },
-			tasks: Array.from({ length: L.tasks }, (_, i) => ({ text: day.tasks[i]?.text ?? '', minutes: day.tasks[i]?.minutes?.toString() ?? '' })),
-			appointments: Array.from({ length: L.appointments }, (_, i) => ({
-				time: day.appointments[i]?.time ?? '',
-				text: day.appointments[i]?.text ?? '',
-				leaveAt: day.appointments[i]?.leaveAt ?? ''
-			})),
-			remember: day.remember.join('\n')
-		};
-	}
-
-	const EMPTY: DaySheetInput = { date: DAY_SHEET_EXAMPLE.date, focus: { text: '', firstStep: '' }, routines: { morning: [], midday: [], evening: [] }, tasks: [], appointments: [], remember: [] };
-
-	let form = $state(fields(DAY_SHEET_EXAMPLE));
-	// Schriftobjekte nicht reaktiv verpacken; nur der Austausch zählt
-	let font = $state.raw<LoadedFont | null>(null);
-	let fontError = $state(false);
+	// Der Inhalt lebt nur in dieser Seite
+	let form = $state(daySheetFields(DAY_SHEET_EXAMPLE));
 	let busy = $state(false);
+	const kuraFont = useFont(() => KURA.typeface);
 
-	const lines = (value: string) => value.split('\n');
-	// Derselbe Inhalt, den ein Agent senden würde, und dieselbe Prüfung
-	const content = $derived({
-		date: form.date,
-		focus: form.focus,
-		routines: { morning: lines(form.routines.morning), midday: lines(form.routines.midday), evening: lines(form.routines.evening) },
-		tasks: form.tasks.map((t) => ({ text: t.text, minutes: Number(t.minutes) || undefined })),
-		appointments: form.appointments.filter((a) => a.time || a.text),
-		remember: lines(form.remember)
+	const parsed = $derived(parseDaySheet(daySheetContent(form)));
+	// Bei einem Verstoß der Form bleibt das letzte gesetzte Blatt stehen
+	let lastProof: DaySheetProof | null = null;
+	const proof = $derived.by(() => {
+		if (kuraFont.font && parsed.ok) lastProof = daySheet.set(KURA, { many: false, days: [parsed.value] }, kuraFont.font);
+		return kuraFont.font ? lastProof : null;
 	});
-	const parsed = $derived(parseDaySheet(content));
-	// Bei einem Verstoß bleibt das letzte gültige Blatt stehen
-	let lastSheet: PrintPage | null = null;
-	const result = $derived.by((): { sheet: PrintPage | null; hints: Hint[]; day: DaySheetInput | null } => {
-		if (!font) return { sheet: null, hints: [], day: null };
-		if (!parsed.ok) return { sheet: lastSheet, hints: parsed.error, day: null };
-		const { page, hints } = layoutDaySheet(KURA, parsed.value, font);
-		lastSheet = page;
-		return { sheet: page, hints, day: parsed.value };
-	});
-	const preview = $derived(result.sheet ? pageSvg(result.sheet, KURA.paper.ink) : '');
-	const printable = $derived(result.day !== null && result.hints.length === 0);
-	const fileName = $derived(result.day ? daySheetFileName(result.day) : '');
-	const weekday = $derived(result.day ? new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${result.day.date}T00:00:00Z`)) : '');
-
-	$effect(() => {
-		createFontLoader(fetch)
-			.load(KURA.typeface.font, KURA.typeface.weight)
-			.then((loaded) => {
-				fontError = !loaded.ok;
-				if (loaded.ok) font = loaded.value;
-			});
-	});
+	const hints = $derived(parsed.ok ? (proof?.hints ?? []) : parsed.error);
+	const preview = $derived(proof ? pageSvg(proof.pages[0], KURA.paper.ink) : '');
+	// Ein zu langer Eintrag liefe über den Rand: Hier sperrt jeder Hinweis den Druck, wie bei Agenten
+	const printable = $derived(parsed.ok && proof !== null && hints.length === 0);
+	const weekday = $derived(parsed.ok ? new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${parsed.value.date}T00:00:00Z`)) : '');
 
 	async function download(): Promise<void> {
-		if (!result.sheet || !printable) return;
+		if (!proof || !printable) return;
 		busy = true;
 		try {
-			// Die PDF-Bibliothek erst laden, wenn gedruckt wird
-			const { renderPdf } = await import('$lib/media/paper/pdf');
-			saveFile(await renderPdf([result.sheet], KURA.paper.ink, 'Tagesübersicht'), fileName, 'application/pdf');
+			const file = await proof.file();
+			saveFile(file.body, file.fileName, file.mime);
 		} finally {
 			busy = false;
 		}
 	}
 
 	const INPUT = 'min-h-11 w-full min-w-0 rounded-xl border border-line bg-ivory px-3 text-base text-ink outline-none focus:border-clay focus:ring-2 focus:ring-clay/20';
-	const count = (value: string) => lines(value).filter((l) => l.trim()).length;
+	const count = (value: string) => fieldLines(value).filter((l) => l.trim()).length;
 </script>
 
 <svelte:head>
@@ -109,37 +70,16 @@
 				<p class="text-ink-muted">Ein Blatt A4 für einen Tag. Sonst füllt es ein Agent; hier lässt es sich mit eigenem Inhalt ausprobieren und drucken. Gespeichert wird nichts.</p>
 			</div>
 
-			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
-				<div class="flex items-baseline justify-between gap-3">
-					<span class="text-sm text-ink-muted">Format</span>
-					<span class="font-ui-head text-lg tabular-nums">210 × 297 mm</span>
-				</div>
-				{#if fontError}
-					<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
-				{/if}
-				<div aria-live="polite">
-					{#if result.hints.length > 0}
-						<ul class="flex flex-col gap-2" data-testid="hints">
-							{#each result.hints as hint (hint.message)}
-								<li class="flex gap-2 rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink" data-kind={hint.kind}>
-									<span aria-hidden="true" class="font-ui-head text-clay-dark">!</span>{hint.message}
-								</li>
-							{/each}
-						</ul>
-					{:else if result.sheet}
-						<p class="text-sm text-ink-muted" data-testid="no-hints">Keine Hinweise.</p>
-					{/if}
-				</div>
-				<button
-					type="button"
-					class="min-h-12 rounded-xl bg-clay px-5 font-ui-head text-white transition-colors hover:bg-clay-dark disabled:opacity-50"
-					disabled={!printable || busy}
-					onclick={download}
-				>
-					PDF herunterladen
-				</button>
-				<p class="-mt-2 truncate text-center text-xs text-ink-muted" data-testid="file-name">{fileName}</p>
-			</div>
+			<StatusCard
+				format="210 × 297 mm"
+				fontFailed={kuraFont.failed}
+				hints={hints.map((h) => ({ kind: h.kind, text: hintText(h) }))}
+				idle={proof ? null : ''}
+				action="PDF herunterladen"
+				disabled={!printable || busy}
+				onaction={download}
+				fileName={parsed.ok ? (proof?.fileName ?? '') : ''}
+			/>
 
 			<div class="flex flex-col gap-3">
 				<ControlGroup title="Heute wichtig" summary={weekday} open>
@@ -202,8 +142,8 @@
 			</div>
 
 			<div class="grid grid-cols-2 gap-2">
-				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = fields({ ...EMPTY, date: form.date }))}>Blatt leeren</button>
-				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = fields(DAY_SHEET_EXAMPLE))}>Beispiel</button>
+				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = daySheetFields({ ...EMPTY_DAY, date: form.date }))}>Blatt leeren</button>
+				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted" onclick={() => (form = daySheetFields(DAY_SHEET_EXAMPLE))}>Beispiel</button>
 			</div>
 
 			<footer class="px-1 text-xs leading-relaxed text-ink-muted">

@@ -3,23 +3,13 @@
 	import WoodTopView from '$components/wood/WoodTopView.svelte';
 	import { KURA } from '$lib/kura/kura';
 	import { PRODUCTS } from '$lib/products/registry';
-	import { createFontLoader, fontInfo, type LoadedFont } from '$lib/typesetting/fonts';
+	import { useFont } from '$lib/typesetting/fontState.svelte';
+	import { fontInfo } from '$lib/typesetting/fonts';
 
-	// Schriftobjekte nicht reaktiv verpacken; nur der Austausch zählt
-	let font = $state.raw<LoadedFont | null>(null);
-	let fontError = $state(false);
+	const kuraFont = useFont(() => KURA.typeface);
 
 	// Je Produkt das erste Beispiel im geltenden Kura
-	const tiles = $derived(PRODUCTS.map((product) => ({ product, example: font ? product.examples(KURA, font)[0] : null })));
-
-	$effect(() => {
-		createFontLoader(fetch)
-			.load(KURA.typeface.font, KURA.typeface.weight)
-			.then((result) => {
-				fontError = !result.ok;
-				if (result.ok) font = result.value;
-			});
-	});
+	const tiles = $derived(PRODUCTS.map((product) => ({ product, example: kuraFont.font ? product.examples(KURA, kuraFont.font)[0] : null })));
 </script>
 
 <svelte:head>
@@ -36,7 +26,7 @@
 			<p class="text-ink-muted">Das Hausdesign für alles, was im Haus beschriftet, gedruckt oder graviert wird: ruhig, klar, wenig.</p>
 		</div>
 
-		{#if fontError}
+		{#if kuraFont.failed}
 			<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
 		{/if}
 
