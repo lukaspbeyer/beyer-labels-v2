@@ -2,20 +2,10 @@
 	import SiteHeader from '$components/SiteHeader.svelte';
 	import ControlGroup from '$components/ControlGroup.svelte';
 	import Segmented from '$components/Segmented.svelte';
-	import { KURA } from '$lib/kura/kura';
-	import { pageSvg } from '$lib/media/paper/page';
-	import {
-		checkPaperLabel,
-		DEFAULT_PAPER_LABEL_INPUT,
-		layoutPaperLabel,
-		PAPER_LABEL_FORMATS,
-		paperLabelFileName,
-		paperSheetPage,
-		placeOf,
-		positionCount,
-		type PaperLabelFormatId
-	} from '$lib/products/paperLabel';
-	import { createFontLoader, type LoadedFont } from '$lib/typesetting/fonts';
+	import StatusCard from '$components/StatusCard.svelte';
+	import { caseInWords, KURA } from '$lib/kura/kura';
+	import { DEFAULT_PAPER_LABEL_INPUT, PAPER_LABEL_FORMAT_IDS, PAPER_LABEL_FORMATS, paperLabel, placeOf, positionCount, type PaperLabelFormatId } from '$lib/products/paperLabel';
+	import { useFont } from '$lib/typesetting/fontState.svelte';
 	import { saveFile } from '$utils/download';
 
 	interface Cell {
@@ -27,42 +17,24 @@
 	// Je Platz auf dem Bogen ein Etikett; ein Platz ohne Wort bleibt frei. Der Inhalt lebt nur in dieser Seite.
 	let cells = $state<Record<number, Cell>>({ 0: { text: DEFAULT_PAPER_LABEL_INPUT.text, subText: '' } });
 	let selected = $state(0);
-	// Schriftobjekte nicht reaktiv verpacken; nur der Austausch zählt
-	let font = $state.raw<LoadedFont | null>(null);
-	let fontError = $state(false);
 	let busy = $state(false);
+	const kuraFont = useFont(() => KURA.typeface);
 
 	const format = $derived(PAPER_LABEL_FORMATS[formatId]);
 	const positions = $derived(Array.from({ length: positionCount(formatId) }, (_, i) => i));
 	const current = $derived(cells[selected] ?? { text: '', subText: '' });
-	const labels = $derived(
-		font
-			? positions
-					.filter((position) => cells[position]?.text.trim())
-					.map((position) => {
-						const layout = layoutPaperLabel(KURA, { ...cells[position], format: formatId, position }, font!);
-						return { position, text: cells[position].text.trim(), layout, hints: checkPaperLabel(KURA, layout) };
-					})
-			: []
+	const filled = $derived(positions.filter((position) => cells[position]?.text.trim()).map((position) => ({ ...cells[position], position })));
+	const proof = $derived(kuraFont.font ? paperLabel.set(KURA, { format: formatId, labels: filled }, kuraFont.font) : null);
+	const count = $derived(proof?.labels.length ?? 0);
+	// Die Seite nennt den Platz des Etiketts statt seiner Stelle im Inhalt
+	const hints = $derived(
+		proof?.labels.flatMap((label) => label.hints.map((h) => ({ kind: h.kind, text: [placeName(label.position), h.message].filter(Boolean).join(': ') }))) ?? []
 	);
-	const hints = $derived(labels.flatMap((label) => label.hints.map((hint) => ({ ...hint, where: placeName(label.position) }))));
-	const sheet = $derived(font ? paperSheetPage(formatId, labels) : null);
-	const preview = $derived(sheet ? pageSvg(sheet, KURA.paper.ink) : '');
-	const fileName = $derived(labels.length > 0 ? paperLabelFileName({ text: labels[0].text, format: formatId }, labels.length) : '');
+	const preview = $derived(proof?.preview ?? '');
 
-	const FORMAT_IDS: readonly PaperLabelFormatId[] = ['label', 'sign'];
-	const formatOptions = FORMAT_IDS.map((value) => {
+	const formatOptions = PAPER_LABEL_FORMAT_IDS.map((value) => {
 		const f = PAPER_LABEL_FORMATS[value];
 		return { value, label: `${f.name} ${f.width} × ${f.height}` };
-	});
-
-	$effect(() => {
-		createFontLoader(fetch)
-			.load(KURA.typeface.font, KURA.typeface.weight)
-			.then((result) => {
-				fontError = !result.ok;
-				if (result.ok) font = result.value;
-			});
 	});
 
 	function placeName(position: number): string {
@@ -95,13 +67,13 @@
 		selected = 0;
 	}
 
+	// Ein Mensch an der Seite darf trotz Hinweis drucken; für Agenten sperrt jeder Hinweis die Datei
 	async function download(): Promise<void> {
-		if (!sheet || labels.length === 0) return;
+		if (!proof || count === 0) return;
 		busy = true;
 		try {
-			// Die PDF-Bibliothek erst laden, wenn gedruckt wird
-			const { renderPdf } = await import('$lib/media/paper/pdf');
-			saveFile(await renderPdf([sheet], KURA.paper.ink, labels[0].text), fileName, 'application/pdf');
+			const file = await proof.file();
+			saveFile(file.body, file.fileName, file.mime);
 		} finally {
 			busy = false;
 		}
@@ -157,42 +129,19 @@
 				<p class="text-ink-muted">Hausdesign Kura auf dem Etikettenbogen. Platz antippen, Wort eingeben, PDF drucken. Ein Bogen fasst mehrere Etiketten.</p>
 			</div>
 
-			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
-				<div class="flex items-baseline justify-between gap-3">
-					<span class="text-sm text-ink-muted">Format</span>
-					<span class="font-ui-head text-lg tabular-nums">{format.width} × {format.height} mm</span>
-				</div>
-				{#if fontError}
-					<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
-				{/if}
-				<div aria-live="polite">
-					{#if hints.length > 0}
-						<ul class="flex flex-col gap-2" data-testid="hints">
-							{#each hints as hint (hint.where + hint.message)}
-								<li class="flex gap-2 rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink" data-kind={hint.kind}>
-									<span aria-hidden="true" class="font-ui-head text-clay-dark">!</span>{hint.where ? `${hint.where}: ` : ''}{hint.message}
-								</li>
-							{/each}
-						</ul>
-					{:else if labels.length === 0}
-						<p class="text-sm text-ink-muted" data-testid="empty">Noch kein Etikett auf dem Bogen.</p>
-					{:else}
-						<p class="text-sm text-ink-muted" data-testid="no-hints">Keine Hinweise.</p>
-					{/if}
-				</div>
-				<button
-					type="button"
-					class="min-h-12 rounded-xl bg-clay px-5 font-ui-head text-white transition-colors hover:bg-clay-dark disabled:opacity-50"
-					disabled={labels.length === 0 || busy}
-					onclick={download}
-				>
-					PDF herunterladen
-				</button>
-				<p class="-mt-2 truncate text-center text-xs text-ink-muted" data-testid="file-name">{fileName}</p>
-			</div>
+			<StatusCard
+				format={`${format.width} × ${format.height} mm`}
+				fontFailed={kuraFont.failed}
+				{hints}
+				idle={count === 0 ? 'Noch kein Etikett auf dem Bogen.' : null}
+				action="PDF herunterladen"
+				disabled={count === 0 || busy}
+				onaction={download}
+				fileName={proof?.fileName ?? ''}
+			/>
 
 			<div class="flex flex-col gap-3">
-				<ControlGroup title="Bogen" summary={`${format.sheet.name} · ${labels.length} von ${positions.length} belegt`} open>
+				<ControlGroup title="Bogen" summary={`${format.sheet.name} · ${count} von ${positions.length} belegt`} open>
 					<Segmented label="Format (mm)" options={formatOptions} value={formatId} onchange={setFormat} />
 					{#if positions.length > 1}
 						<div class="flex flex-col gap-2" role="group" aria-label="Platz auf dem Bogen">
@@ -217,7 +166,7 @@
 
 				<ControlGroup title="Etikett" summary={[placeName(selected), current.text.trim() || 'frei'].filter(Boolean).join(' · ')} open>
 					<label class="flex flex-col gap-2 text-sm">
-						<span class="text-ink-muted">Ein kurzes Wort, Kura schreibt es klein</span>
+						<span class="text-ink-muted">Ein kurzes Wort, Kura schreibt es {caseInWords(KURA.sign.case)}</span>
 						<input
 							class="min-h-11 rounded-xl border border-line bg-ivory px-3 text-base text-ink outline-none focus:border-clay focus:ring-2 focus:ring-clay/20"
 							value={current.text}
@@ -247,7 +196,7 @@
 			</div>
 
 			{#if positions.length > 1}
-				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted disabled:opacity-50" disabled={labels.length === 0} onclick={clearAll}>
+				<button type="button" class="min-h-11 rounded-xl border border-line bg-white px-3 text-sm text-ink hover:border-ink-muted disabled:opacity-50" disabled={count === 0} onclick={clearAll}>
 					Bogen leeren
 				</button>
 			{/if}

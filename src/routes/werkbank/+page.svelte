@@ -2,60 +2,36 @@
 	import ControlGroup from '$components/ControlGroup.svelte';
 	import Segmented from '$components/Segmented.svelte';
 	import SiteHeader from '$components/SiteHeader.svelte';
-	import WoodTopView from '$components/wood/WoodTopView.svelte';
+	import ExampleView from '$components/media/ExampleView.svelte';
 	import Slider from '$components/Slider.svelte';
-	import { KURA_RANGES, parseKura, type KuraValues } from '$lib/kura/kura';
+	import { KURA_OPTION_NAMES, KURA_RANGES, kuraChanges, kuraChoices, parseKura, type KuraValues } from '$lib/kura/kura';
 	import current from '$lib/kura/kura.json';
 	import { PRODUCTS } from '$lib/products/registry';
-	import { createFontLoader, FONT_CATALOG, fontInfo, nearestWeight, type FontLoader, type LoadedFont } from '$lib/typesetting/fonts';
+	import { useFont } from '$lib/typesetting/fontState.svelte';
+	import { FONT_CATALOG, fontInfo, nearestWeight } from '$lib/typesetting/fonts';
+	import { saveFile } from '$utils/download';
 	import type { FontWeight } from '$lib/typesetting/types';
 
 	// Arbeitskopie von Kura; wirksam wird sie erst, wenn sie als kura.json eingecheckt ist
 	let draft = $state(structuredClone(current) as KuraValues);
-	let loader: FontLoader | null = null;
-	let font = $state.raw<LoadedFont | null>(null);
-	let fontError = $state(false);
 	let copied = $state(false);
 
 	const parsed = $derived(parseKura($state.snapshot(draft)));
 	const kura = $derived(parsed.ok ? parsed.value : null);
-	const fontReady = $derived(font !== null && font.id === draft.typeface.font && font.weight === draft.typeface.weight);
-	const products = $derived(
-		kura && font && fontReady
-			? PRODUCTS.map((product) => ({ product, examples: product.examples(kura, font!), notes: product.notes?.(kura, font!) ?? [] }))
-			: []
-	);
+	const draftFont = useFont(() => draft.typeface);
+	const fontReady = $derived(draftFont.font !== null);
+	const products = $derived.by(() => {
+		const font = draftFont.font;
+		return kura && font ? PRODUCTS.map((product) => ({ product, examples: product.examples(kura, font), notes: product.notes(kura, font) })) : [];
+	});
 	const hintCount = $derived(products.reduce((n, p) => n + p.notes.length + p.examples.reduce((m, e) => m + e.hints.length, 0), 0));
 	const json = $derived(JSON.stringify(draft, null, '\t') + '\n');
-	const changes = $derived(diff(current, $state.snapshot(draft)));
+	const changes = $derived(kuraChanges(current, $state.snapshot(draft)));
 
 	const WEIGHT_LABEL: Record<FontWeight, string> = { 400: 'Regular', 500: 'Medium', 600: 'Semibold', 700: 'Bold' };
 	const weightOptions = $derived(fontInfo(draft.typeface.font).weights.map((value) => ({ value, label: WEIGHT_LABEL[value] })));
 	const R = KURA_RANGES;
-
-	$effect(() => {
-		const { font: id, weight } = draft.typeface;
-		loader ??= createFontLoader(fetch);
-		let live = true;
-		loader.load(id, weight).then((result) => {
-			if (!live) return;
-			fontError = !result.ok;
-			if (result.ok) font = result.value;
-		});
-		return () => {
-			live = false;
-		};
-	});
-
-	/** Geänderte Werte als „pfad: alt → neu“ */
-	function diff(before: unknown, after: unknown, path = ''): string[] {
-		if (typeof before === 'object' && before !== null && typeof after === 'object' && after !== null) {
-			return Object.keys(after).flatMap((key) =>
-				diff((before as Record<string, unknown>)[key], (after as Record<string, unknown>)[key], path ? `${path}.${key}` : key)
-			);
-		}
-		return before === after ? [] : [`${path}: ${String(before)} → ${String(after)}`];
-	}
+	const N = KURA_OPTION_NAMES;
 
 	function reset(): void {
 		draft = structuredClone(current) as KuraValues;
@@ -68,14 +44,7 @@
 	}
 
 	function download(): void {
-		const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = 'kura.json';
-		document.body.appendChild(link);
-		link.click();
-		link.remove();
-		setTimeout(() => URL.revokeObjectURL(url), 1000);
+		saveFile(json, 'kura.json', 'application/json');
 	}
 </script>
 
@@ -94,7 +63,7 @@
 				<p class="text-ink-muted">Kura an einer Arbeitskopie verändern. Jede Änderung wirkt sofort auf alle Produkte, gilt aber erst nach dem Einchecken.</p>
 			</div>
 
-			{#if fontError}
+			{#if draftFont.failed}
 				<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
 			{/if}
 			{#if !parsed.ok}
@@ -110,19 +79,14 @@
 					<article class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5" data-product={product.id}>
 						<div class="flex items-baseline justify-between gap-3">
 							<h2 class="font-ui-head text-xl text-ink">{product.name}</h2>
-							<a href={product.href} class="flex min-h-11 items-center text-sm text-clay-dark underline">{product.medium} · öffnen</a>
+							<a href={product.href} class="flex min-h-11 items-center text-sm text-clay-dark underline">{product.medium.name} · öffnen</a>
 						</div>
-						<!-- Die Beispiele liegen maßstäblich (3 px je mm) vor ihrer Umgebung, wie in der Übersicht -->
-						<div class="flex flex-wrap items-end gap-x-6 gap-y-5 rounded-xl p-4 sm:p-6" style="background: {examples[0]?.backdrop ?? 'var(--color-sand)'}">
+						<!-- Die Beispiele liegen maßstäblich (3 px je mm) vor der Umgebung ihres Mediums, wie in der Übersicht -->
+						<div class="flex flex-wrap items-end gap-x-6 gap-y-5 rounded-xl bg-sand p-4 sm:p-6" style={examples[0] ? `background: ${examples[0].view.backdrop}` : ''}>
 							{#each examples as example (example.caption)}
-								<figure class="flex flex-col gap-2" style="width: min(100%, {example.width * 3}px)">
-									{#if example.wood}
-										<WoodTopView layout={example.wood.layout} settings={example.wood.settings} sketch={example.svg} />
-									{:else}
-										<!-- eslint-disable-next-line svelte/no-at-html-tags -- eigenes SVG aus Pfaden, kein fremder Text -->
-										<div class="bg-white ring-1 ring-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full">{@html example.svg}</div>
-									{/if}
-									<figcaption class="flex flex-col gap-2 text-xs {example.backdrop ? 'text-ink' : 'text-ink-muted'}">
+								<figure class="flex flex-col gap-2" style="width: min(100%, {example.view.width * 3}px)">
+									<ExampleView view={example.view} />
+									<figcaption class="flex flex-col gap-2 text-xs text-ink">
 										{example.caption}
 										{#each example.hints as hint (hint.message)}
 											<span class="rounded-lg bg-clay-soft px-2 py-1 text-ink" data-kind={hint.kind}>{hint.message}</span>
@@ -188,40 +152,14 @@
 			</ControlGroup>
 
 			<ControlGroup title="Zeichen" summary={`${draft.sign.trackingPercent} % gesperrt`}>
-				<Segmented
-					label="Schreibweise"
-					options={[
-						{ value: 'lower', label: 'klein' },
-						{ value: 'upper', label: 'VERSAL' },
-						{ value: 'as-typed', label: 'Wie eingegeben' }
-					]}
-					value={draft.sign.case}
-					onchange={(v) => (draft.sign.case = v)}
-				/>
+				<Segmented label={N['sign.case'].title} options={kuraChoices('sign.case')} value={draft.sign.case} onchange={(v) => (draft.sign.case = v)} />
 				<Slider label="Laufweite" unit="%" min={R['sign.trackingPercent'][0]} max={R['sign.trackingPercent'][1]} step={1} value={draft.sign.trackingPercent} onchange={(v) => (draft.sign.trackingPercent = v)} />
-				<Segmented
-					label="Ausrichtung"
-					options={[
-						{ value: 'left', label: 'Links' },
-						{ value: 'center', label: 'Mittig' },
-						{ value: 'right', label: 'Rechts' }
-					]}
-					value={draft.sign.align}
-					onchange={(v) => (draft.sign.align = v)}
-				/>
+				<Segmented label={N['sign.align'].title} options={kuraChoices('sign.align')} value={draft.sign.align} onchange={(v) => (draft.sign.align = v)} />
 			</ControlGroup>
 
 			<ControlGroup title="Text" summary={`${draft.text.trackingPercent} % gesperrt · ${draft.paper.textCapHeight.toFixed(1).replace('.', ',')} mm`}>
-				<Segmented
-					label="Schreibweise"
-					options={[
-						{ value: 'as-typed', label: 'Wie eingegeben' },
-						{ value: 'lower', label: 'klein' },
-						{ value: 'upper', label: 'VERSAL' }
-					]}
-					value={draft.text.case}
-					onchange={(v) => (draft.text.case = v)}
-				/>
+				<Segmented label={N['text.case'].title} options={kuraChoices('text.case')} value={draft.text.case} onchange={(v) => (draft.text.case = v)} />
+				<Segmented label={N['text.align'].title} options={kuraChoices('text.align')} value={draft.text.align} onchange={(v) => (draft.text.align = v)} />
 				<Slider label="Laufweite" unit="%" min={R['text.trackingPercent'][0]} max={R['text.trackingPercent'][1]} step={1} value={draft.text.trackingPercent} onchange={(v) => (draft.text.trackingPercent = v)} />
 				<Slider label="Lesegröße auf Papier (Versalhöhe)" unit="mm" min={R['paper.textCapHeight'][0]} max={R['paper.textCapHeight'][1]} step={0.1} decimals={1} value={draft.paper.textCapHeight} onchange={(v) => (draft.paper.textCapHeight = v)} />
 				<Slider label="Feine Linien" unit="mm" min={R['paper.ruleWidth'][0]} max={R['paper.ruleWidth'][1]} step={0.05} decimals={2} value={draft.paper.ruleWidth} onchange={(v) => (draft.paper.ruleWidth = v)} />
@@ -239,70 +177,15 @@
 			</ControlGroup>
 
 			<ControlGroup title="Lärche" summary="Gravur, Oberfläche, Form">
-				<Segmented
-					label="Verfahren"
-					options={[
-						{ value: 'dark', label: 'Dunkel graviert' },
-						{ value: 'inverse', label: 'Invers' },
-						{ value: 'fill', label: 'Gefüllt' }
-					]}
-					value={draft.wood.process}
-					onchange={(v) => (draft.wood.process = v)}
-				/>
-				<Segmented
-					label="Tiefe"
-					options={[
-						{ value: 'low', label: 'Flach' },
-						{ value: 'medium', label: 'Mittel' },
-						{ value: 'high', label: 'Tief' }
-					]}
-					value={draft.wood.depth}
-					onchange={(v) => (draft.wood.depth = v)}
-				/>
+				<Segmented label={N['wood.process'].title} options={kuraChoices('wood.process')} value={draft.wood.process} onchange={(v) => (draft.wood.process = v)} />
+				<Segmented label={N['wood.depth'].title} options={kuraChoices('wood.depth')} value={draft.wood.depth} onchange={(v) => (draft.wood.depth = v)} />
 				{#if draft.wood.process === 'fill'}
-					<Segmented
-						label="Füllfarbe"
-						options={[
-							{ value: 'black', label: 'Schwarz' },
-							{ value: 'white', label: 'Weiß' },
-							{ value: 'anthracite', label: 'Anthrazit' }
-						]}
-						value={draft.wood.fillColor}
-						onchange={(v) => (draft.wood.fillColor = v)}
-					/>
+					<Segmented label={N['wood.fillColor'].title} options={kuraChoices('wood.fillColor')} value={draft.wood.fillColor} onchange={(v) => (draft.wood.fillColor = v)} />
 				{:else}
-					<Segmented
-						label="Brennfarbe"
-						options={[
-							{ value: 'low', label: 'Hell' },
-							{ value: 'medium', label: 'Mittel' },
-							{ value: 'high', label: 'Dunkel' }
-						]}
-						value={draft.wood.burn}
-						onchange={(v) => (draft.wood.burn = v)}
-					/>
+					<Segmented label={N['wood.burn'].title} options={kuraChoices('wood.burn')} value={draft.wood.burn} onchange={(v) => (draft.wood.burn = v)} />
 				{/if}
-				<Segmented
-					label="Oberfläche"
-					options={[
-						{ value: 'raw', label: 'Roh' },
-						{ value: 'oiled', label: 'Geölt' },
-						{ value: 'lacquer', label: 'Lack matt' },
-						{ value: 'limed', label: 'Gekalkt' }
-					]}
-					value={draft.wood.finish}
-					onchange={(v) => (draft.wood.finish = v)}
-				/>
-				<Segmented
-					label="Form"
-					options={[
-						{ value: 'rectangle', label: 'Rechteck' },
-						{ value: 'pill', label: 'Pille' },
-						{ value: 'oval', label: 'Oval' }
-					]}
-					value={draft.wood.shape}
-					onchange={(v) => (draft.wood.shape = v)}
-				/>
+				<Segmented label={N['wood.finish'].title} options={kuraChoices('wood.finish')} value={draft.wood.finish} onchange={(v) => (draft.wood.finish = v)} />
+				<Segmented label={N['wood.shape'].title} options={kuraChoices('wood.shape')} value={draft.wood.shape} onchange={(v) => (draft.wood.shape = v)} />
 				{#if draft.wood.shape === 'rectangle'}
 					<Slider label="Eckradius" unit="mm" min={R['wood.cornerRadius'][0]} max={R['wood.cornerRadius'][1]} step={0.5} decimals={1} value={draft.wood.cornerRadius} onchange={(v) => (draft.wood.cornerRadius = v)} />
 				{/if}
@@ -315,24 +198,8 @@
 					value={draft.wood.frame}
 					onchange={(v) => (draft.wood.frame = v)}
 				/>
-				<Segmented
-					label="Kante"
-					options={[
-						{ value: 'burnt', label: 'Gebrannt' },
-						{ value: 'sanded', label: 'Geschliffen' }
-					]}
-					value={draft.wood.edge}
-					onchange={(v) => (draft.wood.edge = v)}
-				/>
-				<Segmented
-					label="Maserung"
-					options={[
-						{ value: 'horizontal', label: 'Waagerecht' },
-						{ value: 'vertical', label: 'Senkrecht' }
-					]}
-					value={draft.wood.grain}
-					onchange={(v) => (draft.wood.grain = v)}
-				/>
+				<Segmented label={N['wood.edge'].title} options={kuraChoices('wood.edge')} value={draft.wood.edge} onchange={(v) => (draft.wood.edge = v)} />
+				<Segmented label={N['wood.grain'].title} options={kuraChoices('wood.grain')} value={draft.wood.grain} onchange={(v) => (draft.wood.grain = v)} />
 			</ControlGroup>
 
 			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt immer in Schwarz. Holzlabels zeigt diese Seite als beleuchtete Draufsicht aus demselben Renderer wie die Produktseite; die räumliche Ansicht steht dort.</p>

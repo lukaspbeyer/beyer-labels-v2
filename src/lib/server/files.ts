@@ -1,5 +1,5 @@
 /** Ablage erzeugter Dateien für 24 Stunden unter einem nicht erratbaren Schlüssel (ADR 0004). */
-import type { OrderFile } from '$lib/products/orders';
+import type { OrderFile } from '$lib/products/product';
 
 /** Der Teil von Workers KV, den die Ablage braucht. */
 export interface FileStore {

@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { TEST_SETTINGS } from './testSettings';
+import { TEST_ENGRAVING } from './testEngraving';
 import { flattenPath, isInside, polylinesBox } from '$lib/typesetting/geometry';
 import { layoutLabel } from './layout';
-import { buildSvg, exportFileName } from './svgExport';
+import { buildSheetSvg } from './svgExport';
 import { loadTestFont } from '$lib/typesetting/testFonts';
-import type { PathCommand, Point, WoodSettings } from './types';
+import type { PathCommand, Point, WoodEngraving } from './types';
 
 const sora = loadTestFont('sora', 400);
 
-function exportFor(changes: Partial<WoodSettings> = {}): { svg: Document; text: string; settings: WoodSettings } {
-	const s = { ...TEST_SETTINGS, ...changes };
-	const text = buildSvg(layoutLabel(s, sora), s);
-	return { svg: new DOMParser().parseFromString(text, 'image/svg+xml'), text, settings: s };
+function exportFor(changes: Partial<WoodEngraving> = {}): { svg: Document; text: string; engraving: WoodEngraving } {
+	const s = { ...TEST_ENGRAVING, ...changes };
+	const text = buildSheetSvg([{ layout: layoutLabel(s, sora), engraving: s }], 'Probe');
+	return { svg: new DOMParser().parseFromString(text, 'image/svg+xml'), text, engraving: s };
 }
 
 /** Liest einen exportierten Pfad (nur absolute M, L, C, Q, Z) zurück. */
@@ -38,7 +38,7 @@ describe('SVG-Export', () => {
 	it('hat Maße in mm und einen passenden viewBox (1 Einheit = 1 mm)', () => {
 		const { svg } = exportFor();
 		const root = svg.documentElement;
-		const layout = layoutLabel(TEST_SETTINGS, sora);
+		const layout = layoutLabel(TEST_ENGRAVING, sora);
 		expect(root.getAttribute('width')).toBe(`${layout.width}mm`);
 		expect(root.getAttribute('height')).toBe(`${layout.height}mm`);
 		expect(root.getAttribute('viewBox')).toBe(`0 0 ${layout.width} ${layout.height}`);
@@ -80,7 +80,7 @@ describe('SVG-Export', () => {
 		const path = svg.querySelector('g#gravur path');
 		expect(path?.getAttribute('fill-rule')).toBe('evenodd');
 		const polylines = flattenPath(parsePathData(path?.getAttribute('d') ?? ''));
-		const layout = layoutLabel({ ...TEST_SETTINGS, process: 'inverse' }, sora);
+		const layout = layoutLabel({ ...TEST_ENGRAVING, process: 'inverse' }, sora);
 		const inField: Point = { x: 4.5, y: layout.height / 2 };
 		const inRim: Point = { x: 1, y: layout.height / 2 };
 		const glyph = flattenPath(layout.lines[0].commands);
@@ -98,10 +98,17 @@ describe('SVG-Export', () => {
 		expect(isInside(insideStem, polylines)).toBe(false);
 	});
 
-	it('Dateiname folgt dem Muster holzlabel-<text>-<b>x<h>mm.svg', () => {
-		const s = { ...TEST_SETTINGS, sizeMode: 'manual' as const, width: 80, height: 30 };
-		expect(exportFileName(s, layoutLabel(s, sora))).toBe('holzlabel-teller-80x30mm.svg');
-		const umlaut = { ...s, text: 'Gewürze & Öle' };
-		expect(exportFileName(umlaut, layoutLabel(umlaut, sora))).toBe('holzlabel-gewuerze-oele-80x30mm.svg');
+	it('trägt den Titel, den das Produkt nennt', () => {
+		expect(exportFor().svg.querySelector('title')?.textContent).toBe('Probe');
+		const text = buildSheetSvg([{ layout: layoutLabel(TEST_ENGRAVING, sora), engraving: TEST_ENGRAVING }], 'Schild Öl & Essig');
+		expect(text).toContain('<title>Schild Öl &amp; Essig</title>');
+	});
+
+	it('beschreibt Verfahren und Oberfläche mit den Namen aus Kura', () => {
+		const desc = (changes: Partial<WoodEngraving>): string => exportFor(changes).svg.querySelector('desc')?.textContent ?? '';
+		expect(desc({ process: 'dark', depth: 'low', burn: 'high', finish: 'limed' })).toContain('Verfahren: Dunkle Gravur, Tiefe: Flach, Brennfarbe: Dunkel. Oberfläche: Weiß gekalkt');
+		const filled = desc({ process: 'fill', fillColor: 'anthracite' });
+		expect(filled).toContain('Verfahren: Farbfüllung');
+		expect(filled).toContain('Füllfarbe: Anthrazit');
 	});
 });

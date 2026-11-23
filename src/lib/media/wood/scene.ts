@@ -9,13 +9,14 @@ import { err, ok, type Result } from '$utils/result';
 import { calibration } from './calibration';
 import { flattenPath } from '$lib/typesetting/geometry';
 import type { SurfaceMaps } from './surface';
-import type { LabelLayout, WoodSettings } from './types';
+import { frontColor } from './surroundings';
+import type { LabelLayout, WoodEngraving, WoodSurroundings } from './types';
 
 export type SceneError = { kind: 'webgl-unavailable'; message: string };
 
 export interface LabelScene {
-	/** Überträgt Geometrie, Texturen und Szene und rendert sofort. */
-	update(layout: LabelLayout, maps: SurfaceMaps, settings: WoodSettings): void;
+	/** Überträgt Geometrie, Texturen und Umgebung (Front, Blickwinkel, Licht) und rendert sofort. */
+	update(layout: LabelLayout, maps: SurfaceMaps, engraving: WoodEngraving, surroundings: WoodSurroundings): void;
 	dispose(): void;
 }
 
@@ -200,8 +201,8 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 		controls.update();
 	}
 
-	function placeLight(settings: WoodSettings, layout: LabelLayout): void {
-		const az = toRad(settings.lightAngle);
+	function placeLight(lightAngle: number, layout: LabelLayout): void {
+		const az = toRad(lightAngle);
 		const el = toRad(cal.light.elevationDeg);
 		const dir = new THREE.Vector3(Math.cos(az) * Math.cos(el), Math.sin(az) * Math.cos(el), Math.sin(el));
 		sun.position.copy(dir.multiplyScalar(600));
@@ -222,15 +223,15 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 		return next;
 	}
 
-	function update(layout: LabelLayout, maps: SurfaceMaps, settings: WoodSettings): void {
-		const nextGeometryKey = `${layout.width}|${layout.height}|${settings.shape}|${settings.cornerRadius}`;
+	function update(layout: LabelLayout, maps: SurfaceMaps, engraving: WoodEngraving, surroundings: WoodSurroundings): void {
+		const nextGeometryKey = `${layout.width}|${layout.height}|${engraving.shape}|${engraving.cornerRadius}`;
 		if (nextGeometryKey !== geometryKey) {
 			label.geometry.dispose();
 			label.geometry = labelGeometry(layout);
 			geometryKey = nextGeometryKey;
 		}
 
-		const finish = cal.finish[settings.finish];
+		const finish = cal.finish[engraving.finish];
 		if (maps !== currentMaps) {
 			faceMaterial.map = replaceTexture(faceMaterial.map, dataTexture(maps.albedo, THREE.SRGBColorSpace));
 			faceMaterial.normalMap = replaceTexture(faceMaterial.normalMap, dataTexture(maps.normal, THREE.NoColorSpace));
@@ -243,12 +244,12 @@ export function createLabelScene(container: HTMLElement): Result<LabelScene, Sce
 		faceMaterial.clearcoatRoughness = finish.clearcoatRoughness;
 		faceMaterial.needsUpdate = true;
 
-		frontMaterial.color.set(cal.front.color[settings.front]);
-		edgeMaterial.color.set(cal.edge[settings.edge].color);
-		edgeMaterial.roughness = cal.edge[settings.edge].roughness;
-		placeLight(settings, layout);
+		frontMaterial.color.set(frontColor(surroundings.front));
+		edgeMaterial.color.set(cal.edge[engraving.edge].color);
+		edgeMaterial.roughness = cal.edge[engraving.edge].roughness;
+		placeLight(surroundings.lightAngle, layout);
 
-		const nextViewKey = `${settings.view}|${layout.width}|${layout.height}`;
+		const nextViewKey = `${surroundings.view}|${layout.width}|${layout.height}`;
 		if (nextViewKey !== viewKey) {
 			viewKey = nextViewKey;
 			fit = computeFit(layout);

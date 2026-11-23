@@ -10,12 +10,14 @@ describe('Produktliste', () => {
 		const examples = product.examples(KURA, font);
 		expect(examples.length).toBeGreaterThan(0);
 		expect(examples.flatMap((e) => e.hints)).toEqual([]);
-		expect(product.notes?.(KURA, font) ?? []).toEqual([]);
+		expect(product.notes(KURA, font)).toEqual([]);
 	});
 
-	it('jedes Beispiel ist eine maßstäbliche Zeichnung', () => {
-		for (const example of PRODUCTS.flatMap((p) => p.examples(KURA, font))) {
-			expect(example.svg).toContain(`viewBox="0 0 ${example.width} ${example.height}"`);
+	it.each(PRODUCTS.map((p) => [p.name, p] as const))('%s zeigt seine Beispiele in der Ansicht seines Mediums', (_name, product) => {
+		for (const { view } of product.examples(KURA, font)) {
+			expect(view.medium).toBe(product.medium.id);
+			expect(view.width).toBeGreaterThan(0);
+			expect(view.height).toBeGreaterThan(0);
 		}
 	});
 });

@@ -3,15 +3,19 @@
  * Unterregeln des Produkts: zwei feste Formate, ein Wort, keine Unterzeile.
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
-import { applyCase, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
+import { caseInWords, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
+import { roleText, setSign } from '$lib/kura/textRole';
 import { VOCABULARY } from '$lib/kura/vocabulary';
 import { calibration } from '$lib/media/wood/calibration';
-import { layoutLabel } from '$lib/media/wood/layout';
-import type { LoadedFont } from '$lib/typesetting/fonts';
 import { checkFabrication } from '$lib/media/wood/checks';
-import { formatMm } from '$lib/typesetting/format';
-import { flattenPath, polylinesBox, svgPathData } from '$lib/typesetting/geometry';
-import type { FabricationWarning, FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$lib/media/wood/types';
+import { layoutLabel } from '$lib/media/wood/layout';
+import { WOOD, woodExample, woodFile } from '$lib/media/wood/medium';
+import { DEFAULT_WOOD_SURROUNDINGS } from '$lib/media/wood/surroundings';
+import type { LabelLayout, WoodEngraving } from '$lib/media/wood/types';
+import type { LoadedFont } from '$lib/typesetting/fonts';
+import { fileSlug, formatMm } from '$lib/typesetting/format';
+import { hint, type Hint } from './hint';
+import { choice, defineProduct, record, type Parsed } from './product';
 
 export const WOOD_LABEL_FORMATS = {
 	series: { width: 64, height: 24, name: 'Serie' },
@@ -21,34 +25,30 @@ export const WOOD_LABEL_FORMATS = {
 
 export type WoodLabelFormatId = keyof typeof WOOD_LABEL_FORMATS;
 
-/** Was am Holzlabel wählbar ist: Inhalt, Format und die Umgebung der Vorschau. */
+export const WOOD_LABEL_FORMAT_IDS = Object.keys(WOOD_LABEL_FORMATS) as WoodLabelFormatId[];
+/** Frühere Namen der Formate bleiben für Agenten gültig */
+const FORMAT_ALIASES: Record<string, WoodLabelFormatId> = { standard: 'series' };
+
+/** Was am Holzlabel wählbar ist: das Wort und das Format. Wie es in der Vorschau aussieht, hält die Seite selbst. */
 export interface WoodLabelInput {
 	text: string;
 	format: WoodLabelFormatId;
-	/** Möbelfront hinter dem Label (nur Vorschau) */
-	front: FrontColor;
-	/** Startwert für die Wahl des Holzausschnitts */
-	grainSeed: number;
-	view: ViewAngle;
-	lightAngle: number;
 }
 
-export const DEFAULT_WOOD_LABEL_INPUT: WoodLabelInput = {
-	text: 'teller',
-	format: 'series',
-	front: 'agave',
-	grainSeed: 1,
-	view: 'oblique',
-	lightAngle: 125
-};
+export const DEFAULT_WOOD_LABEL_INPUT: WoodLabelInput = { text: 'teller', format: 'series' };
 
-/** Leitet die Einstellungen der Gravur aus Kura und der Eingabe ab. */
-export function woodLabelSettings(kura: Kura, input: WoodLabelInput): WoodSettings {
+/** Ein oder mehrere Labels für eine Laserdatei, untereinander. */
+export interface WoodLabelOrder {
+	labels: WoodLabelInput[];
+}
+
+/** Leitet die Gravur aus Kura, dem Format und dem Wort ab. */
+export function woodLabelEngraving(kura: Kura, input: WoodLabelInput): WoodEngraving {
 	const { width, height } = WOOD_LABEL_FORMATS[input.format];
 	// Die Versalhöhe folgt dem Serienformat, damit das Langformat dieselbe Schrift trägt
 	const series = WOOD_LABEL_FORMATS.series;
 	return {
-		text: applyCase(kura.sign.case, input.text),
+		text: roleText(kura, 'sign', input.text),
 		subText: '',
 		uppercase: false,
 		font: kura.typeface.font,
@@ -59,70 +59,112 @@ export function woodLabelSettings(kura: Kura, input: WoodLabelInput): WoodSettin
 		lineSpacing: kura.subLine.lineSpacing,
 		align: kura.sign.align,
 		...kura.wood,
-		grainSeed: input.grainSeed,
 		sizeMode: 'manual',
 		width,
-		height,
-		front: input.front,
-		view: input.view,
-		lightAngle: input.lightAngle
+		height
 	};
 }
 
-function signWidth(layout: LabelLayout): number {
-	const box = polylinesBox(flattenPath(layout.lines[0]?.commands ?? []));
-	return Number.isFinite(box.maxX) ? box.maxX - box.minX : 0;
+/**
+ * Erst die Regeln von Kura für das Zeichen auf dieser Fläche (Zeichen ohne Glyphe, Breite des Wortes),
+ * danach die Fertigungswarnungen des Mediums als Hinweise.
+ */
+function checkLabel(kura: Kura, font: LoadedFont, input: WoodLabelInput, layout: LabelLayout, engraving: WoodEngraving): Hint[] {
+	const surface = { x: 0, y: 0, width: layout.width, height: layout.height };
+	const sign = setSign(kura, font, surface, { text: input.text, at: ['text'] }, undefined, { capHeight: engraving.capHeight });
+	return [...sign.hints, ...checkFabrication(layout, engraving).map((w) => hint(w.kind, w.message))];
 }
 
-/** Fertigungswarnungen und die Kura-Regel zur Breite des Zeichens. */
-export function checkWoodLabel(kura: Kura, layout: LabelLayout, settings: WoodSettings): FabricationWarning[] {
-	const limit = maxSignWidth(kura, layout.width);
-	const width = signWidth(layout);
-	const tooWide: FabricationWarning[] =
-		width > limit + 1e-6
-			? [{ kind: 'sign-width', message: `Das Wort ist ${formatMm(width)} mm breit, Kura lässt auf diesem Format höchstens ${formatMm(limit)} mm zu. Kürzeres Wort oder Langformat wählen.` }]
-			: [];
-	return [...tooWide, ...checkFabrication(layout, settings)];
+/** Liest ein Label; ein Format auf oberster Ebene gilt für jedes Label ohne eigenes. */
+function parseLabel(raw: unknown, _shared: unknown, top: Record<string, unknown>): Parsed<WoodLabelInput> {
+	const entry = record(raw);
+	const hints: Hint[] = [];
+	const text = typeof entry.text === 'string' ? entry.text.trim() : '';
+	if (!text) hints.push(hint('empty', 'Das Wort fehlt.', ['text']));
+	const format = choice(entry.format ?? top.format, WOOD_LABEL_FORMAT_IDS, 'series', 'format', FORMAT_ALIASES);
+	if (!format.ok) hints.push(...format.error);
+	return { value: text && format.ok ? { ...DEFAULT_WOOD_LABEL_INPUT, text, format: format.value } : null, hints };
+}
+
+/** Dateiname nach dem Muster holzlabel-teller-64x24mm.svg; bei mehreren Labels holzlabel-teller-und-2-weitere-64x24mm.svg */
+function fileNameOf(first: WoodLabelInput, count: number): string {
+	const { width, height } = WOOD_LABEL_FORMATS[first.format];
+	return `holzlabel-${fileSlug(first.text)}${count > 1 ? `-und-${count - 1}-weitere` : ''}-${width}x${height}mm.svg`;
+}
+
+function set(kura: Kura, order: WoodLabelOrder, font: LoadedFont) {
+	const labels = order.labels.map((input) => {
+		const engraving = woodLabelEngraving(kura, input);
+		const layout = layoutLabel(engraving, font);
+		return { layout, engraving, hints: checkLabel(kura, font, input, layout, engraving) };
+	});
+	const fileName = labels.length > 0 ? fileNameOf(order.labels[0], labels.length) : '';
+	const title = `Holzlabel ${labels.map(({ engraving }) => engraving.text.trim()).join(', ')}`;
+	return {
+		/** Je Label Layout und Gravur, in der Reihenfolge der Bestellung */
+		labels,
+		fileName,
+		file: () => woodFile(labels, fileName, title)
+	};
 }
 
 /** Wörter des Kura-Wortschatzes, die im Serienformat einen Hinweis auslösen. */
 export function vocabularyMisfits(kura: Kura, font: LoadedFont): string[] {
-	return VOCABULARY.filter((text) => {
-		const settings = woodLabelSettings(kura, { ...DEFAULT_WOOD_LABEL_INPUT, text });
-		return checkWoodLabel(kura, layoutLabel(settings, font), settings).length > 0;
-	});
+	return VOCABULARY.filter((text) => set(kura, { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, text }] }, font).labels[0].hints.length > 0);
 }
 
-/**
- * Draufsicht als SVG (1 Einheit = 1 mm): ein Ausschnitt des Lärchenfotos im Ton der Oberfläche, Gravur in ihrer Farbe.
- * Ohne Tiefe und Licht; die fotorealistische Ansicht steht auf der Produktseite.
- */
-export function woodLabelSketch(layout: LabelLayout, settings: WoodSettings): string {
-	const tone = calibration.previewTone[settings.finish];
-	const burn = calibration.engraving.burnColor[settings.burn];
-	const ink = settings.process === 'fill' ? calibration.fill.color[settings.fillColor] : settings.process === 'inverse' ? tone : burn;
-	const outline = svgPathData(layout.outline);
-	const text = svgPathData(layout.lines.flatMap((l) => l.commands));
-	// Ausschnitt aus der ersten Lamelle, die das Label fasst; das Wort verschiebt ihn, damit eine Reihe nicht gleich aussieht
-	const texture = calibration.woodTexture;
-	const horizontal = settings.grain === 'horizontal';
-	const along = horizontal ? layout.width : layout.height;
-	const across = horizontal ? layout.height : layout.width;
-	const acrossPx = across / texture.mmPerPx;
-	const lamella = texture.lamellae.find((l) => l[1] - l[0] >= acrossPx + 4) ?? [0, texture.heightPx];
-	const seed = Array.from(settings.text).reduce((sum, ch) => (sum * 31 + (ch.codePointAt(0) ?? 0)) % 9973, 7);
-	const x = ((seed % 100) / 100) * Math.max(0, texture.widthPx * texture.mmPerPx - along);
-	const y = (lamella[0] + 2 + ((seed % 37) / 37) * Math.max(0, lamella[1] - lamella[0] - acrossPx - 4)) * texture.mmPerPx;
-	const id = `holz-${seed}-${Math.round(layout.width)}`;
-	const image = `<image href="${texture.colorUrl}" x="${-x}" y="${-y}" width="${texture.widthPx * texture.mmPerPx}" height="${texture.heightPx * texture.mmPerPx}" preserveAspectRatio="none"/>`;
-	const parts = [
-		`<clipPath id="${id}"><path d="${outline}"/></clipPath>`,
-		`<path fill="${tone}" d="${outline}"/>`,
-		`<g clip-path="url(#${id})">${horizontal ? image : `<g transform="translate(${layout.width} 0) rotate(90)">${image}</g>`}</g>`,
-		`<path fill="${tone}" opacity="0.3" style="mix-blend-mode:soft-light" d="${outline}"/>`,
-		layout.inverseField.length > 0 ? `<path fill="${burn}" d="${svgPathData(layout.inverseField)}"/>` : '',
-		layout.frame.length > 0 ? `<path fill="none" stroke="${burn}" stroke-width="${calibration.frame.lineWidthMm}" d="${svgPathData(layout.frame)}"/>` : '',
-		text ? `<path fill="${ink}" d="${text}"/>` : ''
-	];
-	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${layout.width} ${layout.height}">${parts.join('')}</svg>`;
+/** Ein Beispiel: ein Label in einem Format, beschriftet mit dem Format, falls nichts anderes gesagt ist. */
+function example(input: Partial<WoodLabelInput>, caption?: string): { caption: string; order: WoodLabelOrder } {
+	const format = WOOD_LABEL_FORMATS[input.format ?? DEFAULT_WOOD_LABEL_INPUT.format];
+	return { caption: caption ?? `${format.name} ${format.width} × ${format.height} mm`, order: { labels: [{ ...DEFAULT_WOOD_LABEL_INPUT, ...input }] } };
 }
+
+export const woodLabel = defineProduct({
+	id: 'holzlabel',
+	name: 'Holzlabel',
+	medium: WOOD,
+	nav: 'Holz',
+	summary: 'Türlabel aus 4 mm Lärche mit einem Wort. Ansehen und als SVG für den Laser laden.',
+	href: '/holz',
+	order(kura) {
+		const { series, long } = WOOD_LABEL_FORMATS;
+		const size = (f: { width: number; height: number }) => `${f.width} × ${f.height} mm`;
+		return {
+			description:
+				`Türlabel aus ${calibration.label.thicknessMm} mm Lärche für den Laser. Je Label ein einzelnes kurzes Wort; Kura schreibt es ${caseInWords(kura.sign.case)}. Die SVG enthält die Ebenen Gravur (schwarz) und Schnitt (rot), 1 Einheit = 1 mm. ` +
+				`Für mehrere Labels in einer Datei statt text { "labels": [ { "text": … }, … ] } senden, höchstens ${calibration.laserSheet.maxLabels}; sie stehen untereinander mit ${calibration.laserSheet.gapMm} mm Abstand.`,
+			fields: [
+				{ name: 'text', type: 'string', required: true, description: `Ein kurzes Wort, im Serienformat höchstens ${formatMm(maxSignWidth(kura, series.width))} mm breit, im Langformat ${formatMm(maxSignWidth(kura, long.width))} mm.` },
+				{
+					name: 'format',
+					type: WOOD_LABEL_FORMAT_IDS.map((id) => `"${id}"`).join(' | '),
+					required: false,
+					description: `series = Serienformat ${size(series)} (Vorgabe), long = Langformat ${size(long)} nur für ein unverzichtbar langes Wort.`
+				},
+				{ name: 'labels', type: '{ text, format? }[]', required: false, description: 'Mehrere Labels in einer Datei; ersetzt text auf oberster Ebene. format auf oberster Ebene gilt für jedes Label ohne eigenes format.' }
+			],
+			example: { text: 'teller' }
+		};
+	},
+	pieces: {
+		list: 'labels',
+		limit: () => ({ max: calibration.laserSheet.maxLabels, message: `1 bis ${calibration.laserSheet.maxLabels} Labels je Datei.` })
+	},
+	parse: parseLabel,
+	set,
+	examples: [
+		example({ text: 'teller' }),
+		example({ text: 'duschgel' }, 'längstes Wort des Wortschatzes'),
+		example({ text: 'servietten', format: 'long' })
+	],
+	// Je Beispiel ein anderer Holzausschnitt, damit die Reihe nicht gleich aussieht
+	exampleView: (_kura, setting, index) => woodExample(setting.labels[0], { ...DEFAULT_WOOD_SURROUNDINGS, grainSeed: index + 1 }),
+	notes(kura, font) {
+		const misfits = vocabularyMisfits(kura, font);
+		return misfits.length > 0 ? [hint('vocabulary', `${misfits.length} Wörter des Wortschatzes passen nicht mehr ins Serienformat: ${misfits.join(', ')}.`)] : [];
+	}
+});
+
+/** Der Satz eines oder mehrerer Labels mit der Laserdatei */
+export type WoodLabelProof = ReturnType<typeof woodLabel.set>;
+

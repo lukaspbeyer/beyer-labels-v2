@@ -1,69 +1,41 @@
 <script lang="ts">
 	import SiteHeader from '$components/SiteHeader.svelte';
+	import StatusCard from '$components/StatusCard.svelte';
 	import WoodControls from '$components/wood/WoodControls.svelte';
 	import WoodPreview from '$components/wood/WoodPreview.svelte';
 	import { KURA } from '$lib/kura/kura';
-	import { checkWoodLabel } from '$lib/products/woodLabel';
-	import { woodSettings } from '$stores/wood';
-	import { createFontLoader, type FontLoader, type LoadedFont } from '$lib/typesetting/fonts';
-	import { layoutLabel } from '$lib/media/wood/layout';
-	import type { LabelLayout, WoodSettings } from '$lib/media/wood/types';
-	import { buildSvg, exportFileName } from '$lib/media/wood/svgExport';
+	import { DEFAULT_WOOD_SURROUNDINGS } from '$lib/media/wood/surroundings';
+	import type { WoodSurroundings } from '$lib/media/wood/types';
+	import { DEFAULT_WOOD_LABEL_INPUT, woodLabel, type WoodLabelInput, type WoodLabelProof } from '$lib/products/woodLabel';
+	import { useFont } from '$lib/typesetting/fontState.svelte';
+	import { fontUrl } from '$lib/typesetting/fonts';
+	import { saveFile } from '$utils/download';
 
-	let loader: FontLoader | null = null;
-	// Schriftobjekte nicht reaktiv verpacken; nur der Austausch zählt
-	let font = $state.raw<LoadedFont | null>(null);
-	let fontError = $state(false);
+	// Die Seite hält nur ihre Eingabe: ein Label (Wort, Format) und die Umgebung der Vorschau. Beides beginnt bei jedem Besuch neu.
+	let input = $state<WoodLabelInput>({ ...DEFAULT_WOOD_LABEL_INPUT });
+	let surroundings = $state<WoodSurroundings>({ ...DEFAULT_WOOD_SURROUNDINGS });
 
-	const settings = $derived($woodSettings);
-	const fontId = $derived(settings.font);
-	const fontWeight = $derived(settings.weight);
-	// Layout und Einstellungen als Paar; erst neu, wenn die gewählte Schrift geladen ist,
-	// bis dahin bleibt der letzte Stand stehen
-	let lastRendered: { layout: LabelLayout; settings: WoodSettings } | null = null;
-	const rendered = $derived.by(() => {
-		if (font && font.id === settings.font && font.weight === settings.weight) {
-			lastRendered = { layout: layoutLabel(settings, font), settings };
-		}
-		return lastRendered;
+	const kuraFont = useFont(() => KURA.typeface);
+	// Bis die Schrift geladen ist, bleibt der letzte Stand stehen; die Vorschau zeigt so lange die Front
+	let lastProof: WoodLabelProof | null = null;
+	const proof = $derived.by(() => {
+		if (kuraFont.font) lastProof = woodLabel.set(KURA, { labels: [{ text: input.text, format: input.format }] }, kuraFont.font);
+		return lastProof;
 	});
-	const layout = $derived(rendered?.layout ?? null);
-	const warnings = $derived(rendered ? checkWoodLabel(KURA, rendered.layout, rendered.settings) : []);
-	const fileName = $derived(rendered ? exportFileName(rendered.settings, rendered.layout) : '');
+	const label = $derived(proof?.labels[0] ?? null);
 
-	$effect(() => {
-		const id = fontId;
-		const weight = fontWeight;
-		loader ??= createFontLoader(fetch);
-		let current = true;
-		loader.load(id, weight).then((result) => {
-			if (!current) return;
-			fontError = !result.ok;
-			if (result.ok && result.value !== font) font = result.value;
-		});
-		return () => {
-			current = false;
-		};
-	});
-
-	function download(): void {
-		if (!rendered) return;
-		const blob = new Blob([buildSvg(rendered.layout, rendered.settings)], { type: 'image/svg+xml' });
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = fileName;
-		document.body.appendChild(link);
-		link.click();
-		link.remove();
-		setTimeout(() => URL.revokeObjectURL(url), 1000);
+	// Ein Mensch an der Seite darf trotz Hinweis laden, etwa für eine Probegravur; für Agenten sperrt jeder Hinweis die Datei
+	async function download(): Promise<void> {
+		if (!proof) return;
+		const file = await proof.file();
+		saveFile(file.body, file.fileName, file.mime);
 	}
 </script>
 
 <svelte:head>
 	<title>Holzlabel · Kura</title>
 	<meta name="description" content="Türlabels aus Lärche im Hausdesign Kura ansehen und als Laserdatei laden." />
-	<link rel="preload" href="/fonts/jost/jost-latin-400-normal.woff" as="font" type="font/woff" crossorigin="anonymous" />
+	<link rel="preload" href={fontUrl(KURA.typeface.font, KURA.typeface.weight)} as="font" type="font/woff" crossorigin="anonymous" />
 </svelte:head>
 
 <div class="min-h-screen bg-ivory font-ui-body text-ink">
@@ -75,7 +47,7 @@
 			aria-label="Vorschau"
 		>
 			<div class="h-full w-full overflow-hidden lg:rounded-3xl">
-				<WoodPreview layout={rendered?.layout ?? null} settings={rendered?.settings ?? settings} />
+				<WoodPreview {label} {surroundings} />
 			</div>
 		</section>
 
@@ -85,41 +57,18 @@
 				<p class="text-ink-muted">Hausdesign Kura in Lärche, mit dem CO<sub>2</sub>-Laser graviert. Wort eingeben, ansehen, Laserdatei laden.</p>
 			</div>
 
-			<div class="flex flex-col gap-4 rounded-2xl border border-line bg-white p-5">
-				<div class="flex items-baseline justify-between gap-3">
-					<span class="text-sm text-ink-muted">Format</span>
-					<span class="font-ui-head text-lg tabular-nums">{layout ? `${layout.width} × ${layout.height} mm` : '–'}</span>
-				</div>
-				{#if fontError}
-					<p class="rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink">Die Schrift konnte nicht geladen werden.</p>
-				{/if}
-				<div aria-live="polite">
-					{#if warnings.length > 0}
-						<ul class="flex flex-col gap-2" data-testid="warnings">
-							{#each warnings as warning (warning.message)}
-								<li class="flex gap-2 rounded-xl bg-clay-soft px-3 py-2 text-sm text-ink" data-kind={warning.kind}>
-									<span aria-hidden="true" class="font-ui-head text-clay-dark">!</span>{warning.message}
-								</li>
-							{/each}
-						</ul>
-					{:else if layout}
-						<p class="text-sm text-ink-muted" data-testid="no-warnings">Keine Hinweise.</p>
-					{/if}
-				</div>
-				<button
-					type="button"
-					class="min-h-12 rounded-xl bg-clay px-5 font-ui-head text-white transition-colors hover:bg-clay-dark disabled:opacity-50"
-					disabled={!layout}
-					onclick={download}
-				>
-					SVG herunterladen
-				</button>
-				{#if fileName}
-					<p class="-mt-2 truncate text-center text-xs text-ink-muted">{fileName}</p>
-				{/if}
-			</div>
+			<StatusCard
+				format={label ? `${label.layout.width} × ${label.layout.height} mm` : '–'}
+				fontFailed={kuraFont.failed}
+				hints={proof?.hints.map((h) => ({ kind: h.kind, text: h.message })) ?? []}
+				idle={label ? null : ''}
+				action="SVG herunterladen"
+				disabled={!label}
+				onaction={download}
+				fileName={proof?.fileName ?? ''}
+			/>
 
-			<WoodControls />
+			<WoodControls bind:input bind:surroundings />
 
 			<footer class="flex flex-col gap-1 px-1 text-xs leading-relaxed text-ink-muted">
 				<p>

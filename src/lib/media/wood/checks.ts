@@ -2,30 +2,30 @@
 import { calibration } from './calibration';
 import { formatMm } from '$lib/typesetting/format';
 import { flattenPath, shapePath, signedDistance } from '$lib/typesetting/geometry';
-import type { FabricationWarning, LabelLayout, Point, WoodSettings } from './types';
+import type { FabricationWarning, LabelLayout, Point, WoodEngraving } from './types';
 
 function lineName(index: number): string {
 	return index === 0 ? 'Hauptzeile' : 'Unterzeile';
 }
 
 /** Innerste Begrenzung, die der Text freihalten muss: Kante, Rahmen oder Rand der inversen Gravur. */
-function textBoundary(layout: LabelLayout, settings: WoodSettings): Point[][] {
+function textBoundary(layout: LabelLayout, engraving: WoodEngraving): Point[][] {
 	const { insetMm, lineWidthMm } = calibration.frame;
-	const frameInset = settings.frame ? insetMm + lineWidthMm : 0;
-	const rimInset = settings.process === 'inverse' ? calibration.engraving.inverseRimMm : 0;
+	const frameInset = engraving.frame ? insetMm + lineWidthMm : 0;
+	const rimInset = engraving.process === 'inverse' ? calibration.engraving.inverseRimMm : 0;
 	const inset = Math.max(frameInset, rimInset);
-	return flattenPath(shapePath(settings.shape, layout.width, layout.height, settings.cornerRadius, inset));
+	return flattenPath(shapePath(engraving.shape, layout.width, layout.height, engraving.cornerRadius, inset));
 }
 
 /** Kleinster Abstand der Glyphenkonturen zur Begrenzung, negativ wenn Text herausragt. */
-export function textMargin(layout: LabelLayout, settings: WoodSettings): number {
-	const boundary = textBoundary(layout, settings);
+export function textMargin(layout: LabelLayout, engraving: WoodEngraving): number {
+	const boundary = textBoundary(layout, engraving);
 	const points = layout.lines.flatMap((line) => flattenPath(line.commands, 6).flat());
 	if (points.length === 0 || boundary.length === 0) return Infinity;
 	return Math.min(...points.map((p) => signedDistance(p, boundary)));
 }
 
-export function checkFabrication(layout: LabelLayout, settings: WoodSettings): FabricationWarning[] {
+export function checkFabrication(layout: LabelLayout, engraving: WoodEngraving): FabricationWarning[] {
 	const limits = calibration.fabrication;
 	const capWarnings = layout.lines
 		.map((line, i) => ({ line, i }))
@@ -41,8 +41,8 @@ export function checkFabrication(layout: LabelLayout, settings: WoodSettings): F
 			kind: 'stroke',
 			message: `${lineName(i)}: dünnster Strich ${formatMm(line.minStroke)} mm liegt unter ${formatMm(limits.minStrokeMm)} mm. Größer oder kräftiger setzen.`
 		}));
-	const margin = textMargin(layout, settings);
-	const where = settings.frame ? 'Rahmen' : settings.process === 'inverse' ? 'Gravurrand' : 'Rand';
+	const margin = textMargin(layout, engraving);
+	const where = engraving.frame ? 'Rahmen' : engraving.process === 'inverse' ? 'Gravurrand' : 'Rand';
 	const marginWarnings: FabricationWarning[] =
 		margin < 0
 			? [{ kind: 'overflow', message: `Der Text ragt über den ${where}. Label vergrößern oder Text verkleinern.` }]

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { KURA } from '$lib/kura/kura';
 import { pathBox } from '$lib/typesetting/geometry';
 import { loadTestFont } from '$lib/typesetting/testFonts';
-import { DAY_SHEET_EXAMPLE, daySheetFileName, layoutDaySheet, parseDaySheet, type DaySheetInput } from './daySheet';
+import { DAY_SHEET_EXAMPLE, daySheet, layoutDaySheet, parseDaySheet, type DaySheetInput } from './daySheet';
+import { hintText } from './hint';
 
 const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
 
@@ -71,14 +72,19 @@ describe('Tagesübersicht: Blatt', () => {
 	it('meldet einen zu langen Eintrag statt ihn umzubrechen', () => {
 		const { hints } = sheet({ routines: { ...DAY_SHEET_EXAMPLE.routines, morning: ['Frühstück für alle vorbereiten und den Tisch decken'] } });
 		expect(hints.map((h) => h.kind)).toEqual(['too-long']);
-		expect(hints[0].message).toContain('routines.morning[0]');
+		expect(hints[0].at).toEqual(['routines', 'morning', 0]);
 	});
 
 	it('meldet Zeichen, die die Schrift nicht hat', () => {
-		expect(sheet({ remember: ['Schlüssel 🔑'] }).hints.map((h) => h.kind)).toEqual(['character']);
+		expect(sheet({ remember: ['Schlüssel 🔑'] }).hints.map((h) => [h.kind, h.at])).toEqual([['character', ['remember']]]);
+	});
+
+	it('nennt bei mehreren Tagen den Tag vor dem Feld, auch bei Zeichen ohne Glyphe', async () => {
+		const made = await daySheet.make(KURA, { days: [DAY_SHEET_EXAMPLE, { ...DAY_SHEET_EXAMPLE, date: '2026-11-27', remember: ['Schlüssel 🔑'] }] }, font);
+		expect(!made.ok && made.error.map(hintText)).toEqual(['days[1].remember: „Schlüssel 🔑“ enthält Zeichen, die die Schrift nicht hat: 🔑. Ersetzen oder weglassen.']);
 	});
 
 	it('benennt die Datei nach dem Tag', () => {
-		expect(daySheetFileName(DAY_SHEET_EXAMPLE)).toBe('tagesuebersicht-2026-11-26.pdf');
+		expect(daySheet.set(KURA, { days: [DAY_SHEET_EXAMPLE] }, font).fileName).toBe('tagesuebersicht-2026-11-26.pdf');
 	});
 });

@@ -6,6 +6,7 @@
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { KURA } from '$lib/kura/kura';
+import { hintText } from '$lib/products/hint';
 import { listProducts, makeProduct } from '$lib/products/orders';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { FILE_LIFETIME_SECONDS, storeFile, type FileStore } from './files';
@@ -60,7 +61,7 @@ export function createKuraMcpHandler(deps: McpDeps) {
 				if (!font) return { ...text('Die Schrift konnte nicht geladen werden. Später erneut versuchen.'), isError: true };
 				const made = await makeProduct(KURA, product, content, font);
 				if (!made.ok) {
-					return { ...text(JSON.stringify({ created: false, hints: made.error.map((h) => h.message) }, null, 2)), isError: true };
+					return { ...text(JSON.stringify({ created: false, hints: made.error.map(hintText) }, null, 2)), isError: true };
 				}
 				const url = deps.origin + (await storeFile(deps.store, made.value));
 				const result = { created: true, url, fileName: made.value.fileName, mimeType: made.value.mime, validForHours: FILE_LIFETIME_SECONDS / 3600 };
