@@ -3,7 +3,7 @@
  * Unterregeln des Produkts: zwei feste Formate, ein Wort, keine Unterzeile.
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
-import { maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
+import { caseInWords, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
 import { roleText, setSign } from '$lib/kura/textRole';
 import { VOCABULARY } from '$lib/kura/vocabulary';
 import { calibration } from '$lib/media/wood/calibration';
@@ -166,7 +166,7 @@ export const woodLabel = defineProduct({
 		const size = (f: { width: number; height: number }) => `${f.width} × ${f.height} mm`;
 		return {
 			description:
-				`Türlabel aus ${calibration.label.thicknessMm} mm Lärche für den Laser. Je Label ein einzelnes kurzes Wort; Kura schreibt es ${kura.sign.case === 'upper' ? 'groß' : 'klein'}. Die SVG enthält die Ebenen Gravur (schwarz) und Schnitt (rot), 1 Einheit = 1 mm. ` +
+				`Türlabel aus ${calibration.label.thicknessMm} mm Lärche für den Laser. Je Label ein einzelnes kurzes Wort; Kura schreibt es ${caseInWords(kura.sign.case)}. Die SVG enthält die Ebenen Gravur (schwarz) und Schnitt (rot), 1 Einheit = 1 mm. ` +
 				`Für mehrere Labels in einer Datei statt text { "labels": [ { "text": … }, … ] } senden, höchstens ${calibration.laserSheet.maxLabels}; sie stehen untereinander mit ${calibration.laserSheet.gapMm} mm Abstand.`,
 			fields: [
 				{ name: 'text', type: 'string', required: true, description: `Ein kurzes Wort, im Serienformat höchstens ${formatMm(maxSignWidth(kura, series.width))} mm breit, im Langformat ${formatMm(maxSignWidth(kura, long.width))} mm.` },

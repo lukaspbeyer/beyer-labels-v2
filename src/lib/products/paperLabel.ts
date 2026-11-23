@@ -4,7 +4,7 @@
  * Ein Bogen kann mehrere Etiketten tragen, jedes an seinem Platz.
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
-import { maxSignWidth, type Kura } from '$lib/kura/kura';
+import { caseInWords, maxSignWidth, type Kura } from '$lib/kura/kura';
 import { setSign, type RoleLine } from '$lib/kura/textRole';
 import type { PrintPage } from '$lib/media/paper/page';
 import type { LoadedFont } from '$lib/typesetting/fonts';
@@ -196,7 +196,7 @@ export const paperLabel = defineProduct({
 			`${f.name} ${f.width} × ${f.height} mm auf ${f.sheet.name} mit ${f.sheet.columns * f.sheet.rows === 1 ? 'einem Platz' : `${f.sheet.columns * f.sheet.rows} Plätzen`}`;
 		return {
 			description:
-				`Gedrucktes Etikett auf einem Etikettenbogen. Je Etikett ein kurzes Wort, wahlweise mit Unterzeile; Kura schreibt beides ${kura.sign.case === 'upper' ? 'groß' : 'klein'}. In Originalgröße (100 %) drucken. ` +
+				`Gedrucktes Etikett auf einem Etikettenbogen. Je Etikett ein kurzes Wort, wahlweise mit Unterzeile; Kura schreibt beides ${caseInWords(kura.sign.case)}. In Originalgröße (100 %) drucken. ` +
 				'Der Platz auf dem Bogen ist wählbar, damit ein angebrochener Bogen weiter genutzt werden kann. ' +
 				'Für mehrere Etiketten auf einem Bogen statt text { "format": …, "labels": [ { "text": …, "column": …, "row": … }, … ] } senden; ohne Platzangabe füllen die Etiketten die freien Plätze der Reihe nach.',
 			fields: [
