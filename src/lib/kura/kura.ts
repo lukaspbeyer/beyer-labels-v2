@@ -188,13 +188,6 @@ export function maxSignWidth(kura: Kura, width: number): number {
 	return width * kura.proportion.maxSignWidthRatio;
 }
 
-/** Schreibweise einer Textrolle anwenden. */
-export function applyCase(letterCase: LetterCase, text: string): string {
-	if (letterCase === 'lower') return text.toLocaleLowerCase('de-DE');
-	if (letterCase === 'upper') return text.toLocaleUpperCase('de-DE');
-	return text;
-}
-
 /** Geänderte Werte zwischen zwei Kura-Definitionen als „pfad: alt → neu“, in der Reihenfolge der Definition. */
 export function kuraChanges(before: unknown, after: unknown, path = ''): string[] {
 	if (typeof before === 'object' && before !== null && typeof after === 'object' && after !== null) {

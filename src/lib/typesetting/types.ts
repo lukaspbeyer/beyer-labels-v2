@@ -33,3 +33,11 @@ export interface Box {
 	maxX: number;
 	maxY: number;
 }
+
+/** Rechteck mit linker oberer Ecke */
+export interface Rect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}

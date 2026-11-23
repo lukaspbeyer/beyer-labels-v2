@@ -4,9 +4,9 @@
  * Ein Bogen kann mehrere Etiketten tragen, jedes an seinem Platz.
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
-import { applyCase, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
+import { maxSignWidth, type Kura } from '$lib/kura/kura';
+import { setSign, type RoleLine } from '$lib/kura/textRole';
 import type { PrintPage } from '$lib/media/paper/page';
-import { setBlock, type PlacedLine } from '$lib/typesetting/block';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { pageSvg } from '$lib/media/paper/page';
 import { fileSlug, formatMm } from '$lib/typesetting/format';
@@ -58,7 +58,7 @@ export interface PaperLabelLayout {
 	width: number;
 	height: number;
 	/** Hauptzeile, danach die Unterzeile, falls vorhanden; Koordinaten im Etikett */
-	lines: PlacedLine[];
+	lines: RoleLine[];
 }
 
 export function positionCount(format: PaperLabelFormatId): number {
@@ -66,31 +66,11 @@ export function positionCount(format: PaperLabelFormatId): number {
 	return columns * rows;
 }
 
-/** Setzt das Etikett: Maße und Satz kommen aus Kura. */
-export function layoutPaperLabel(kura: Kura, input: PaperLabelInput, font: LoadedFont): PaperLabelLayout {
+/** Setzt das Etikett als Zeichen auf seiner Fläche; Maße, Satz und die Regeln dazu kommen aus Kura. */
+function setLabel(kura: Kura, input: PaperLabelInput, font: LoadedFont): { layout: PaperLabelLayout; hints: Hint[] } {
 	const { width, height } = PAPER_LABEL_FORMATS[input.format];
-	const capHeight = signCapHeight(kura, width, height);
-	const role = { trackingPercent: kura.sign.trackingPercent };
-	const text = applyCase(kura.sign.case, input.text.trim());
-	const subText = applyCase(kura.sign.case, input.subText.trim());
-	const specs = [{ text, capHeight, ...role }, ...(subText ? [{ text: subText, capHeight: capHeight * kura.subLine.capRatio, ...role }] : [])];
-	const lines = setBlock(font, specs, kura.subLine.lineSpacing * capHeight, { x: 0, y: 0, width, height }, kura.sign.align);
-	return { format: input.format, width, height, lines };
-}
-
-function checkLabel(kura: Kura, layout: PaperLabelLayout): Hint[] {
-	const limit = maxSignWidth(kura, layout.width);
-	return layout.lines.flatMap((line, i): Hint[] =>
-		line.width > limit + 1e-6
-			? [
-					hint(
-						i === 0 ? 'sign-width' : 'sub-width',
-						`${i === 0 ? 'Das Wort' : 'Die Unterzeile'} ist ${formatMm(line.width)} mm breit, Kura lässt auf diesem Format höchstens ${formatMm(limit)} mm zu. Kürzer fassen.`,
-						[i === 0 ? 'text' : 'subText']
-					)
-				]
-			: []
-	);
+	const { lines, hints } = setSign(kura, font, { x: 0, y: 0, width, height }, { text: input.text, at: ['text'] }, { text: input.subText, at: ['subText'] });
+	return { layout: { format: input.format, width, height, lines }, hints };
 }
 
 /** Platz ab 0 aus Spalte und Zeile ab 1; `null`, wenn es den Platz auf dem Bogen nicht gibt. */
@@ -175,8 +155,7 @@ function parse(raw: unknown): Parsed<PaperLabelOrder> {
 
 function set(kura: Kura, order: PaperLabelOrder, font: LoadedFont): PaperLabelProof {
 	const labels = order.labels.map((input, i) => {
-		const layout = layoutPaperLabel(kura, { ...input, format: order.format }, font);
-		const found = checkLabel(kura, layout);
+		const { layout, hints: found } = setLabel(kura, { ...input, format: order.format }, font);
 		return { position: input.position, layout, hints: order.many ? within(['labels', input.index ?? i], found) : found };
 	});
 	const page = paperSheetPage(order.format, labels);
@@ -197,10 +176,10 @@ function set(kura: Kura, order: PaperLabelOrder, font: LoadedFont): PaperLabelPr
 }
 
 function example(kura: Kura, font: LoadedFont, input: Pick<PaperLabelInput, 'text' | 'subText' | 'format'>): ProductExample {
-	const layout = layoutPaperLabel(kura, { ...input, position: 0 }, font);
+	const { layout, hints } = setLabel(kura, { ...input, position: 0 }, font);
 	const single = { width: layout.width, height: layout.height, items: layout.lines.filter((l) => l.commands.length > 0).map((l) => ({ kind: 'fill' as const, commands: l.commands })) };
 	const format = PAPER_LABEL_FORMATS[input.format];
-	return { caption: `${format.name} ${format.width} × ${format.height} mm`, svg: pageSvg(single, kura.paper.ink), width: layout.width, height: layout.height, hints: checkLabel(kura, layout) };
+	return { caption: `${format.name} ${format.width} × ${format.height} mm`, svg: pageSvg(single, kura.paper.ink), width: layout.width, height: layout.height, hints };
 }
 
 export const paperLabel = defineProduct({

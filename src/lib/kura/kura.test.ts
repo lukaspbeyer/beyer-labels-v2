@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import values from './kura.json';
-import { applyCase, caseInWords, KURA, KURA_OPTION_NAMES, KURA_OPTIONS, kuraChanges, kuraChoices, maxSignWidth, parseKura, signCapHeight, type KuraOption } from './kura';
+import { caseInWords, KURA, KURA_OPTION_NAMES, KURA_OPTIONS, kuraChanges, kuraChoices, maxSignWidth, parseKura, signCapHeight, type KuraOption } from './kura';
 
 describe('Kura', () => {
 	it('kura.json ist gültig', () => {
@@ -22,10 +22,6 @@ describe('Kura', () => {
 
 	it('lässt dem Zeichen höchstens 45 mm auf 64 mm Breite', () => {
 		expect(maxSignWidth(KURA, 64)).toBe(45);
-	});
-
-	it('schreibt klein', () => {
-		expect(applyCase(KURA.sign.case, 'Gewürze')).toBe('gewürze');
 	});
 
 	it('nennt die Änderungen einer Arbeitskopie mit Pfad, altem und neuem Wert', () => {

@@ -3,7 +3,8 @@
  * Unterregeln des Produkts: zwei feste Formate, ein Wort, keine Unterzeile.
  * Alles Gestalterische wird aus Kura abgeleitet.
  */
-import { applyCase, maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
+import { maxSignWidth, signCapHeight, type Kura } from '$lib/kura/kura';
+import { roleText, setSign } from '$lib/kura/textRole';
 import { VOCABULARY } from '$lib/kura/vocabulary';
 import { calibration } from '$lib/media/wood/calibration';
 import { checkFabrication } from '$lib/media/wood/checks';
@@ -12,7 +13,7 @@ import { buildSheetSvg, exportFileName } from '$lib/media/wood/svgExport';
 import type { FrontColor, LabelLayout, ViewAngle, WoodSettings } from '$lib/media/wood/types';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { formatMm } from '$lib/typesetting/format';
-import { flattenPath, polylinesBox, svgPathData } from '$lib/typesetting/geometry';
+import { svgPathData } from '$lib/typesetting/geometry';
 import { hint, within, type Hint } from './hint';
 import { choice, defineProduct, record, type Parsed, type ProductExample, type Proof } from './product';
 
@@ -67,7 +68,7 @@ export function woodLabelSettings(kura: Kura, input: WoodLabelInput): WoodSettin
 	// Die Versalhöhe folgt dem Serienformat, damit das Langformat dieselbe Schrift trägt
 	const series = WOOD_LABEL_FORMATS.series;
 	return {
-		text: applyCase(kura.sign.case, input.text),
+		text: roleText(kura, 'sign', input.text),
 		subText: '',
 		uppercase: false,
 		font: kura.typeface.font,
@@ -88,20 +89,14 @@ export function woodLabelSettings(kura: Kura, input: WoodLabelInput): WoodSettin
 	};
 }
 
-function signWidth(layout: LabelLayout): number {
-	const box = polylinesBox(flattenPath(layout.lines[0]?.commands ?? []));
-	return Number.isFinite(box.maxX) ? box.maxX - box.minX : 0;
-}
-
-/** Die Kura-Regel zur Breite des Zeichens, danach die Fertigungswarnungen des Mediums als Hinweise. */
-function checkLabel(kura: Kura, layout: LabelLayout, settings: WoodSettings): Hint[] {
-	const limit = maxSignWidth(kura, layout.width);
-	const width = signWidth(layout);
-	const tooWide =
-		width > limit + 1e-6
-			? [hint('sign-width', `Das Wort ist ${formatMm(width)} mm breit, Kura lässt auf diesem Format höchstens ${formatMm(limit)} mm zu. Kürzeres Wort oder Langformat wählen.`, ['text'])]
-			: [];
-	return [...tooWide, ...checkFabrication(layout, settings).map((w) => hint(w.kind, w.message))];
+/**
+ * Erst die Regeln von Kura für das Zeichen auf dieser Fläche (Zeichen ohne Glyphe, Breite des Wortes),
+ * danach die Fertigungswarnungen des Mediums als Hinweise.
+ */
+function checkLabel(kura: Kura, font: LoadedFont, input: WoodLabelInput, layout: LabelLayout, settings: WoodSettings): Hint[] {
+	const surface = { x: 0, y: 0, width: layout.width, height: layout.height };
+	const sign = setSign(kura, font, surface, { text: input.text, at: ['text'] }, undefined, { capHeight: settings.capHeight });
+	return [...sign.hints, ...checkFabrication(layout, settings).map((w) => hint(w.kind, w.message))];
 }
 
 function parse(raw: unknown): Parsed<WoodLabelOrder> {
@@ -126,7 +121,7 @@ function set(kura: Kura, order: WoodLabelOrder, font: LoadedFont): WoodLabelProo
 	const labels = order.labels.map((input, i) => {
 		const settings = woodLabelSettings(kura, input);
 		const layout = layoutLabel(settings, font);
-		const found = checkLabel(kura, layout, settings);
+		const found = checkLabel(kura, font, input, layout, settings);
 		return { layout, settings, hints: order.many ? within(['labels', input.index ?? i], found) : found };
 	});
 	const fileName = labels.length > 0 ? exportFileName(labels[0].settings, labels[0].layout, labels.length) : '';

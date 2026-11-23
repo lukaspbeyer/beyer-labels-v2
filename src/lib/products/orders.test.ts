@@ -78,6 +78,18 @@ describe('Bestellbare Produkte', () => {
 		expect(!bad.ok && hintText(bad.error[0]).startsWith('days[1].date: ')).toBe(true);
 	});
 
+	it.each([
+		['holzlabel', { text: 'теа' }, ['text']],
+		['holzlabel', { text: 'tee☕' }, ['text']],
+		['holzlabel', { labels: [{ text: 'tee' }, { text: 'чай' }] }, ['labels', 1, 'text']],
+		['papierlabel', { text: 'чай' }, ['text']],
+		['papierlabel', { text: 'tee', subText: 'regal ☕' }, ['subText']],
+		['tagesuebersicht', { ...DAY_SHEET_EXAMPLE, remember: ['Schlüssel 🔑'] }, ['remember']]
+	] as const)('%s: Zeichen, die die Schrift nicht hat, ergeben keine Datei (%j)', async (id, content, at) => {
+		const result = await make(id, content);
+		expect(!result.ok && result.error.filter((h) => h.kind === 'character').map((h) => h.at)).toEqual([at]);
+	});
+
 	it('nennt bei fehlendem Wort und unbekanntem Produkt, was zu tun ist', async () => {
 		const empty = await make('holzlabel', {});
 		expect(!empty.ok && empty.error.map((h) => h.kind)).toEqual(['empty']);

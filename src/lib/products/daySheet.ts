@@ -3,12 +3,12 @@
  * Unterregeln des Produkts: feste Zonen in fester Reihenfolge, Obergrenzen je Zone, jeder Eintrag eine Zeile.
  * Der Inhalt kommt vollständig von außen (ADR 0004); Schrift, Laufweiten und Größen leiten sich aus Kura ab.
  */
-import { applyCase, signCapHeight, type Kura } from '$lib/kura/kura';
+import type { Kura } from '$lib/kura/kura';
+import { placeLine, setRoleLine, setSign } from '$lib/kura/textRole';
 import { pageSvg, type PrintItem, type PrintPage } from '$lib/media/paper/page';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { formatMm } from '$lib/typesetting/format';
-import { roundedRectPath, translatePath } from '$lib/typesetting/geometry';
-import { setLine } from '$lib/typesetting/line';
+import { roundedRectPath } from '$lib/typesetting/geometry';
 import type { PathCommand } from '$lib/typesetting/types';
 import { err, ok, type Result } from '$utils/result';
 import { hint, within, type Hint } from './hint';
@@ -132,19 +132,14 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	// Zwei Kanten für das ganze Blatt: an der linken stehen Überschriften, Kästchen und Uhrzeiten, an der zweiten jeder Eintrag
 	const entryLeft = left + box + cap * 0.9;
 
-	/** Setzt einen Einzeiler; `anchor` ist die linke oder rechte Kante, `y` die Grundlinie. */
+	/** Setzt einen Einzeiler in der Textrolle; `anchor` ist die linke oder rechte Kante, `y` die Grundlinie. Liefert die Breite. */
 	function put(text: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, at: Hint['at'], side: 'left' | 'right' = 'left'): number {
-		const shown = applyCase(kura[role].case, text);
-		if (!shown) return 0;
-		const unsupported = Array.from(shown).filter((ch) => ch !== ' ' && font.font.charToGlyph(ch).index === 0);
-		if (unsupported.length > 0)
-			hints.push(hint('character', `„${text}“ enthält Zeichen, die die Schrift nicht hat: ${[...new Set(unsupported)].join(' ')}. Ersetzen oder weglassen.`, at));
-		const set = setLine(font, shown, capHeight, kura[role].trackingPercent);
-		if (!Number.isFinite(set.ink.maxX)) return 0;
-		const inkWidth = set.ink.maxX - set.ink.minX;
-		const x = side === 'left' ? anchor - set.ink.minX : anchor - set.ink.maxX;
-		items.push({ kind: 'fill', commands: translatePath(set.commands, x, y) });
-		return inkWidth;
+		if (!text) return 0;
+		const set = setRoleLine(kura, font, role, text, capHeight, at);
+		hints.push(...set.hints);
+		if (set.width === 0) return 0;
+		items.push({ kind: 'fill', commands: placeLine(set, side, { x: anchor, width: 0 }, y).commands });
+		return set.width;
 	}
 
 	/** Einzeiler mit Breitenprüfung: zu lange Einträge werden gemeldet, nicht umbrochen. */
@@ -176,19 +171,9 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	const day = new Date(`${input.date}T00:00:00Z`);
 	const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'long', timeZone: 'UTC' }).format(day);
 	const dateText = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(day);
-	const signCap = signCapHeight(kura, width, SHEET.headerHeight);
-	const subCap = signCap * kura.subLine.capRatio;
-	const align = kura.text.align;
-	const headerLines: [string, number, number][] = [
-		[weekday, signCap, SHEET.margin + signCap],
-		[dateText, subCap, SHEET.margin + signCap + kura.subLine.lineSpacing * signCap + subCap]
-	];
-	for (const [text, capHeight, baseline] of headerLines) {
-		const set = setLine(font, applyCase(kura.sign.case, text), capHeight, kura.sign.trackingPercent);
-		const inkWidth = set.ink.maxX - set.ink.minX;
-		const x = align === 'left' ? left : align === 'right' ? right - inkWidth : left + (width - inkWidth) / 2;
-		items.push({ kind: 'fill', commands: translatePath(set.commands, x - set.ink.minX, baseline) });
-	}
+	const header = setSign(kura, font, { x: left, y: SHEET.margin, width, height: SHEET.headerHeight }, { text: weekday, at: ['date'] }, { text: dateText, at: ['date'] }, { besideText: true, vertical: 'top' });
+	hints.push(...header.hints);
+	for (const l of header.lines) if (l.commands.length > 0) items.push({ kind: 'fill', commands: l.commands });
 	let y = SHEET.margin + SHEET.headerHeight + zoneGap;
 
 	// Heute wichtig: eine Sache, größer als alles andere, darunter der erste Schritt
