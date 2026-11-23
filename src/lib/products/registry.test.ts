@@ -10,7 +10,7 @@ describe('Produktliste', () => {
 		const examples = product.examples(KURA, font);
 		expect(examples.length).toBeGreaterThan(0);
 		expect(examples.flatMap((e) => e.hints)).toEqual([]);
-		expect(product.notes?.(KURA, font) ?? []).toEqual([]);
+		expect(product.notes(KURA, font)).toEqual([]);
 	});
 
 	it('jedes Beispiel ist eine maßstäbliche Zeichnung', () => {

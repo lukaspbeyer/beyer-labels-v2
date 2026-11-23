@@ -4,6 +4,7 @@
  */
 import { calibration } from './calibration';
 import { fontInfo } from '$lib/typesetting/fonts';
+import { fileSlug } from '$lib/typesetting/format';
 import { svgPathData, translatePath } from '$lib/typesetting/geometry';
 import { displayText } from './layout';
 import type { LabelLayout, PathCommand, WoodSettings } from './types';
@@ -28,18 +29,7 @@ function formatSize(value: number): string {
 
 /** Dateiname nach dem Muster holzlabel-teller-80x30mm.svg; bei mehreren Labels holzlabel-teller-und-2-weitere-80x30mm.svg */
 export function exportFileName(settings: WoodSettings, layout: LabelLayout, count = 1): string {
-	const slug =
-		settings.text
-			.trim()
-			.toLowerCase()
-			.replace(/ä/g, 'ae')
-			.replace(/ö/g, 'oe')
-			.replace(/ü/g, 'ue')
-			.replace(/ß/g, 'ss')
-			.normalize('NFKD')
-			.replace(/[̀-ͯ]/g, '')
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-+|-+$/g, '') || 'label';
+	const slug = fileSlug(settings.text);
 	const size = `${formatSize(layout.width).replace(',', '-')}x${formatSize(layout.height).replace(',', '-')}`;
 	return `holzlabel-${slug}${count > 1 ? `-und-${count - 1}-weitere` : ''}-${size}mm.svg`;
 }

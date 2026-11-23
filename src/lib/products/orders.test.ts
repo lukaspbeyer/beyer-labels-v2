@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { KURA } from '$lib/kura/kura';
 import { loadTestFont } from '$lib/typesetting/testFonts';
 import { DAY_SHEET_EXAMPLE } from './daySheet';
+import { hintText } from './hint';
 import { listProducts, makeProduct } from './orders';
 import { PRODUCTS } from './registry';
 
@@ -36,8 +37,10 @@ describe('Bestellbare Produkte', () => {
 		expect(svg).toContain('width="90mm" height="78mm"');
 		expect(svg.match(/<g id="schnitt"[\s\S]*?<\/g>/)?.[0].match(/<path/g)).toHaveLength(3);
 		const bad = await make('holzlabel', { labels: [{ text: 'teller' }, { text: 'servietten' }, {}] });
-		expect(!bad.ok && bad.error.map((h) => h.kind)).toEqual(['sign-width', 'empty']);
-		expect(!bad.ok && bad.error[0].message.startsWith('labels[1]')).toBe(true);
+		// erst die Verstöße der Form, dann die des Satzes; beide in einer Antwort
+		expect(!bad.ok && bad.error.map((h) => h.kind)).toEqual(['empty', 'sign-width']);
+		expect(!bad.ok && hintText(bad.error[0])).toBe('labels[2].text: Das Wort fehlt.');
+		expect(!bad.ok && hintText(bad.error[1]).startsWith('labels[1].text: Das Wort ist')).toBe(true);
 	});
 
 	it('nimmt die früheren Formatnamen weiter an', async () => {
@@ -46,7 +49,7 @@ describe('Bestellbare Produkte', () => {
 		expect(sign.ok && sign.value.fileName).toBe('papierlabel-winter-210x100mm.pdf');
 		expect((await make('papierlabel', { text: 'tee', format: 'small' })).ok).toBe(true);
 		const unknown = await make('papierlabel', { text: 'tee', format: 'riesig' });
-		expect(!unknown.ok && unknown.error[0].message).toBe('format: erlaubt sind label, sign.');
+		expect(!unknown.ok && hintText(unknown.error[0])).toBe('format: erlaubt sind label, sign.');
 	});
 
 	it('Papierlabel: zählt Plätze ab 1 und lehnt Plätze außerhalb des Bogens ab', async () => {
@@ -63,7 +66,7 @@ describe('Bestellbare Produkte', () => {
 		expect(sheet.ok && sheet.value.fileName).toBe('papierlabel-tee-und-2-weitere-105x74mm.pdf');
 		const clash = await make('papierlabel', { labels: [{ text: 'tee', position: 3 }, { text: 'kaffee', column: 1, row: 2 }, { text: 'weihnachtsdekoration' }] });
 		expect(!clash.ok && clash.error.map((h) => h.kind)).toEqual(['position', 'sign-width']);
-		expect(!clash.ok && clash.error[1].message.startsWith('labels[2]')).toBe(true);
+		expect(!clash.ok && clash.error.map((h) => h.at)).toEqual([['labels', 1], ['labels', 2, 'text']]);
 		const tooMany = await make('papierlabel', { format: 'sign', labels: [{ text: 'a' }, { text: 'b' }] });
 		expect(!tooMany.ok && tooMany.error.map((h) => h.kind)).toEqual(['too-many']);
 	});
@@ -72,7 +75,7 @@ describe('Bestellbare Produkte', () => {
 		const week = await make('tagesuebersicht', { days: [DAY_SHEET_EXAMPLE, { ...DAY_SHEET_EXAMPLE, date: '2026-11-27' }] });
 		expect(week.ok && week.value.fileName).toBe('tagesuebersicht-2026-11-26-bis-2026-11-27.pdf');
 		const bad = await make('tagesuebersicht', { days: [DAY_SHEET_EXAMPLE, { date: 'morgen' }] });
-		expect(!bad.ok && bad.error[0].message.startsWith('days[1].date')).toBe(true);
+		expect(!bad.ok && hintText(bad.error[0]).startsWith('days[1].date: ')).toBe(true);
 	});
 
 	it('nennt bei fehlendem Wort und unbekanntem Produkt, was zu tun ist', async () => {

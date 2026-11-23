@@ -4,24 +4,14 @@ import { pageSvg } from '$lib/media/paper/page';
 import { renderPdf } from '$lib/media/paper/pdf';
 import { pathBox } from '$lib/typesetting/geometry';
 import { loadTestFont } from '$lib/typesetting/testFonts';
-import {
-	checkPaperLabel,
-	DEFAULT_PAPER_LABEL_INPUT,
-	layoutPaperLabel,
-	paperLabelFileName,
-	paperLabelPage,
-	paperSheetPage,
-	placeOf,
-	positionAt,
-	type PaperLabelInput
-} from './paperLabel';
+import { DEFAULT_PAPER_LABEL_INPUT, paperLabel, placeOf, positionAt, type PaperLabelInput } from './paperLabel';
 
 const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
 
 function label(input: Partial<PaperLabelInput>) {
-	const full = { ...DEFAULT_PAPER_LABEL_INPUT, ...input };
-	const layout = layoutPaperLabel(KURA, full, font);
-	return { layout, hints: checkPaperLabel(KURA, layout), page: paperLabelPage(layout, full.position) };
+	const { format, ...rest } = { ...DEFAULT_PAPER_LABEL_INPUT, ...input };
+	const proof = paperLabel.set(KURA, { format, many: false, labels: [rest] }, font);
+	return { layout: proof.labels[0].layout, hints: proof.hints, page: proof.page, proof };
 }
 
 describe('Papierlabel', () => {
@@ -63,11 +53,7 @@ describe('Papierlabel', () => {
 	});
 
 	it('setzt mehrere Etiketten auf einen Bogen, die freien Plätze bleiben leer', () => {
-		const one = label({ text: 'tee' }).layout;
-		const page = paperSheetPage('label', [
-			{ layout: one, position: 0 },
-			{ layout: one, position: 7 }
-		]);
+		const { page } = paperLabel.set(KURA, { format: 'label', many: true, labels: [{ text: 'tee', subText: '', position: 0 }, { text: 'tee', subText: '', position: 7 }] }, font);
 		expect(page.items).toHaveLength(2);
 		const [a, b] = page.items.map((item) => pathBox(item.commands));
 		expect(b.minX - a.minX).toBeCloseTo(105, 6);
@@ -81,8 +67,21 @@ describe('Papierlabel', () => {
 	});
 
 	it('benennt die Datei nach Wort und Format', () => {
-		expect(paperLabelFileName({ ...DEFAULT_PAPER_LABEL_INPUT, text: 'Gewürze' })).toBe('papierlabel-gewuerze-105x74mm.pdf');
-		expect(paperLabelFileName({ text: 'Tee', format: 'label' }, 3)).toBe('papierlabel-tee-und-2-weitere-105x74mm.pdf');
+		expect(label({ text: 'Gewürze' }).proof.fileName).toBe('papierlabel-gewuerze-105x74mm.pdf');
+		expect(label({ text: 'Café' }).proof.fileName).toBe('papierlabel-cafe-105x74mm.pdf');
+	});
+
+	it('vergibt freie Plätze der Reihe nach um die genannten herum', () => {
+		const { order } = paperLabel.parse({ labels: [{ text: 'tee' }, { text: 'kaffee', column: 1, row: 1 }, { text: 'müsli', position: 2 }, { text: 'reis' }] });
+		expect(order?.labels.map((l) => l.position)).toEqual([2, 0, 1, 3]);
+	});
+
+	it('nennt bei einem doppelt genannten Platz und einer Unterzeile ohne Text das Etikett', () => {
+		const { hints } = paperLabel.parse({ labels: [{ text: 'tee', position: 3 }, { text: 'kaffee', column: 1, row: 2, subText: 7 }] });
+		expect(hints.map((h) => [h.kind, h.at])).toEqual([
+			['position', ['labels', 1]],
+			['type', ['labels', 1, 'subText']]
+		]);
 	});
 });
 

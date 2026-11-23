@@ -71,7 +71,7 @@ export interface LabelLayout {
 	clamped: boolean;
 }
 
-export type WarningKind = 'cap-height' | 'stroke' | 'margin' | 'overflow' | 'size-limit' | 'sign-width';
+export type WarningKind = 'cap-height' | 'stroke' | 'margin' | 'overflow' | 'size-limit';
 
 export interface FabricationWarning {
 	kind: WarningKind;
