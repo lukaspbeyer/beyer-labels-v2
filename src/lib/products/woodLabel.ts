@@ -155,7 +155,7 @@ export const woodLabel = defineProduct({
 	examples: [
 		example({ text: 'teller' }),
 		example({ text: 'duschgel' }, 'längstes Wort des Wortschatzes'),
-		example({ text: 'servietten', format: 'long' })
+		example({ text: 'weihnachten', format: 'long' })
 	],
 	// Je Beispiel ein anderer Holzausschnitt, damit die Reihe nicht gleich aussieht
 	exampleView: (_kura, setting, index) => woodExample(setting.labels[0], { ...DEFAULT_WOOD_SURROUNDINGS, grainSeed: index + 1 }),

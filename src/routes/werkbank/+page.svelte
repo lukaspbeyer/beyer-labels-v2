@@ -202,7 +202,7 @@
 				<Segmented label={N['wood.grain'].title} options={kuraChoices('wood.grain')} value={draft.wood.grain} onchange={(v) => (draft.wood.grain = v)} />
 			</ControlGroup>
 
-			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt immer in Schwarz. Holzlabels zeigt diese Seite als beleuchtete Draufsicht aus demselben Renderer wie die Produktseite; die räumliche Ansicht steht dort.</p>
+			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt in Schwarz; die Signalfarbe aus Kura hebt nur die Hauptsache eines Blatts hervor und hat hier keinen Regler. Holzlabels zeigt diese Seite als beleuchtete Draufsicht aus demselben Renderer wie die Produktseite; die räumliche Ansicht steht dort.</p>
 		</aside>
 	</main>
 </div>

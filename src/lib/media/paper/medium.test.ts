@@ -56,6 +56,18 @@ describe('Papier-Druck', () => {
 		expect(drawn).toContain('1 0 0 RG');
 	});
 
+	it('druckt eine Form mit Signalton in der Signalfarbe aus Kura', async () => {
+		const signalled: PrintPage = { ...page, items: [{ ...page.items[0], tone: 'signal' }, page.items[1]] };
+		const kura = withInk('#000000');
+		expect(paperPreview(kura, signalled)).toContain(`fill="${kura.paper.signal}"`);
+		expect(paperPreview(kura, signalled)).toContain('stroke="#000000"');
+		const drawn = await contents((await paperFile(kura, [signalled], 'probe.pdf', 'Probe')).body as Uint8Array);
+		const n = parseInt(kura.paper.signal.slice(1), 16);
+		const channels = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => c / 255);
+		expect(drawn).toContain(`${channels.join(' ')} rg`);
+		expect(drawn).toContain('0 0 0 RG');
+	});
+
 	it('zeichnet die Vorschau in mm und in der Druckfarbe aus Kura', () => {
 		const svg = paperPreview(withInk('#123456'), page);
 		expect(svg).toContain('viewBox="0 0 210 297"');

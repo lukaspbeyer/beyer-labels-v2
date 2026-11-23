@@ -55,10 +55,27 @@ describe('Tagesübersicht: Blatt', () => {
 			const box = pathBox(item.commands);
 			expect(box.minX).toBeGreaterThanOrEqual(18 - 1e-6);
 			expect(box.maxX).toBeLessThanOrEqual(192 + 1e-6);
-			// Oberlängen im Wochentag ragen knapp über die Versalhöhe
+			// Rundungen der Tageszahl ragen knapp über die Versalhöhe
 			expect(box.minY).toBeGreaterThanOrEqual(17);
 			expect(box.maxY).toBeLessThanOrEqual(279 + 1e-6);
 		}
+	});
+
+	it('trägt den Tag in einer großen Zahl, Wochentag, Monat und Kalenderwoche daneben', () => {
+		const { page } = sheet();
+		const boxes = page.items.filter((i) => i.kind === 'fill').map((i) => pathBox(i.commands));
+		const tallest = boxes.reduce((a, b) => (b.maxY - b.minY > a.maxY - a.minY ? b : a));
+		// die Tageszahl hat das 14-fache der Lesegröße als Versalhöhe; Rundungen ragen etwas darüber und darunter
+		expect(tallest.maxY - tallest.minY).toBeGreaterThan(KURA.paper.textCapHeight * 14 - 1e-6);
+		expect(tallest.maxY - tallest.minY).toBeLessThan(KURA.paper.textCapHeight * 14 * 1.05);
+		expect(tallest.minX).toBeCloseTo(18, 0);
+	});
+
+	it('hebt „heute wichtig“ mit Überschrift und Kästchen in der Signalfarbe hervor, die Sache selbst bleibt in der Druckfarbe', () => {
+		const signal = sheet().page.items.filter((i) => i.tone === 'signal');
+		expect(signal.map((i) => i.kind)).toEqual(['fill', 'stroke']);
+		const plain = sheet({ focus: { text: '', firstStep: '' } }).page.items.filter((i) => i.tone === 'signal');
+		expect(plain).toHaveLength(2);
 	});
 
 	it('hat immer dieselben Plätze, auch an einem leeren Tag', () => {
