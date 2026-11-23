@@ -170,3 +170,17 @@ Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted
 ## Deployment (wrangler.toml)
 
 Worker `kura` on the custom domain `kura.lukasbeyer.com`; `workers_dev` is off. `compatibility_flags = ["nodejs_compat"]` (the MCP SDK imports `node:async_hooks`). KV namespace `kura-files` bound as `FILES`; `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` as vars (not secrets). Two Access applications sit in front: „Kura“ (allow policy, Managed OAuth) and „Kura · Download-Links“ (bypass for `/d/*`). Details in `README.md`, section „Betrieb bei Cloudflare“. Deploying publishes to production; do it only when asked.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues of `lukaspbeyer/beyer-labels-v2` (`gh` locally, GitHub MCP tools in cloud sessions). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
