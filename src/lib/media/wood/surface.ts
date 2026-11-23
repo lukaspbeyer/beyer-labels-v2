@@ -5,7 +5,7 @@
 import { err, ok, type Result } from '$utils/result';
 import { calibration } from './calibration';
 import { tracePath } from '$lib/typesetting/geometry';
-import type { LabelLayout, WoodSettings } from './types';
+import type { LabelLayout, PathCommand, WoodSettings } from './types';
 
 export interface WoodSource {
 	color: CanvasImageSource;
@@ -484,6 +484,26 @@ export function renderSurface(
 		settings
 	);
 	return ok({ width: w, height: h, pxPerMm: scaleX, ...maps });
+}
+
+/**
+ * Zeichnet die Texturen flach beleuchtet auf eine Zeichenfläche. Mit `outline` (in mm) bleibt
+ * alles außerhalb der Kontur leer, damit die Umgebung durchscheint.
+ */
+export function drawFlat(canvas: HTMLCanvasElement | undefined, maps: SurfaceMaps, lightAngleDeg: number, outline?: PathCommand[]): boolean {
+	const ctx = canvas?.getContext('2d');
+	if (!canvas || !ctx) return false;
+	canvas.width = maps.width;
+	canvas.height = maps.height;
+	ctx.putImageData(shadeFlat(maps, lightAngleDeg), 0, 0);
+	if (outline) {
+		ctx.globalCompositeOperation = 'destination-in';
+		ctx.beginPath();
+		tracePath(ctx, outline, maps.pxPerMm);
+		ctx.fill();
+		ctx.globalCompositeOperation = 'source-over';
+	}
+	return true;
 }
 
 function loadImage(url: string): Promise<Result<HTMLImageElement, SurfaceError>> {

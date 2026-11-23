@@ -1,15 +1,10 @@
 /** Typen des Mediums Lärche-Gravur. Alle Längen in mm. */
+import type { EdgeFinish, FillColor, Finish, GrainDirection, Level, Process } from '$lib/kura/kura';
 import type { Box, FontId, FontWeight, PathCommand, Point, Shape, TextAlign } from '$lib/typesetting/types';
 
 export type { Box, FontId, FontWeight, PathCommand, Point, Shape, TextAlign };
 
-export type GrainDirection = 'horizontal' | 'vertical';
-export type Process = 'dark' | 'inverse' | 'fill';
-export type Level = 'low' | 'medium' | 'high';
-export type FillColor = 'black' | 'white' | 'anthracite';
-export type Finish = 'raw' | 'oiled' | 'lacquer' | 'limed';
-/** Kante: so wie der Laser sie schneidet oder hell nachgeschliffen */
-export type EdgeFinish = 'burnt' | 'sanded';
+export type { EdgeFinish, FillColor, Finish, GrainDirection, Level, Process };
 export type SizeMode = 'auto' | 'manual';
 export type FrontColor = 'agave' | 'anthracite' | 'columba';
 export type ViewAngle = 'front' | 'oblique';

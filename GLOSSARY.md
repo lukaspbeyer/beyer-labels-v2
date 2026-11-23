@@ -37,7 +37,7 @@ Eine Regel eines Produkts, die Kura ergänzt oder aus Kura ableitet, etwa ein fe
 _Avoid_: Ausnahme, Override
 
 **Hinweis**:
-Die Meldung, dass ein Inhalt eine Regel von Kura, eine Unterregel oder eine Fertigungsgrenze verletzt, mit der Angabe, was zu ändern ist.
+Die Meldung, dass ein Inhalt eine Regel von Kura, eine Unterregel oder eine Fertigungsgrenze verletzt, mit der Angabe, was zu ändern ist, und dem Ort im Inhalt (welches Etikett, welcher Tag, welches Feld). Für Agenten sperrt jeder Hinweis die Datei.
 _Avoid_: Fehler, Warnung
 
 ### Produkte

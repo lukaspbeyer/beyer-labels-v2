@@ -6,10 +6,18 @@
 import { err, ok, type Result } from '$utils/result';
 import { fontInfo, FONT_CATALOG } from '$lib/typesetting/fonts';
 import type { FontId, FontWeight, Shape, TextAlign } from '$lib/typesetting/types';
-import type { EdgeFinish, FillColor, Finish, GrainDirection, Level, Process } from '$lib/media/wood/types';
 import values from './kura.json';
 
 export type LetterCase = 'lower' | 'upper' | 'as-typed';
+
+/** Wahlwerte der Ausprägung für Lärche. Kura legt sie fest, das Medium liest sie (docs/adr/0001). */
+export type GrainDirection = 'horizontal' | 'vertical';
+export type Process = 'dark' | 'inverse' | 'fill';
+export type Level = 'low' | 'medium' | 'high';
+export type FillColor = 'black' | 'white' | 'anthracite';
+export type Finish = 'raw' | 'oiled' | 'lacquer' | 'limed';
+/** Kante: so wie der Laser sie schneidet oder hell nachgeschliffen */
+export type EdgeFinish = 'burnt' | 'sanded';
 
 type DeepReadonly<T> = { readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : T[K] };
 

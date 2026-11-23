@@ -61,18 +61,18 @@ src/
 │   ├── holz/+page.svelte      # Product page wood label
 │   ├── papier/+page.svelte    # Product page paper label (one sheet, several labels)
 │   ├── tag/+page.svelte       # Product page day sheet (form, preview, PDF)
-│   ├── mcp/+server.ts         # MCP endpoint (checks Access, wires fonts and file store)
+│   ├── mcp/+server.ts         # MCP endpoint (wires fonts and file store; access is decided in the hook)
 │   └── d/[key]/[name]/        # Download of a generated file, no sign-in, 24 hours
-├── hooks.server.ts            # Requires a valid Access token for pages once Access is configured
+├── hooks.server.ts            # Applies the access rule (`decideAccess`) to every request
 └── lib/
     ├── kura/                  # kura.json (the design), kura.ts (validation, derivation rules), vocabulary.ts
-    ├── typesetting/           # Shared by all media: fonts, line and block setting, geometry, mm formatting
+    ├── typesetting/           # Shared by all media: fonts, line and block setting, geometry, mm formatting, file slugs; fontState.svelte.ts (the font of a page)
     ├── media/
-    │   ├── wood/              # Larch engraving: layout, checks, surface, scene, svgExport, calibration
+    │   ├── wood/              # Larch engraving: layout, checks, surface, surfaceView, scene, svgExport, calibration
     │   └── paper/             # Paper print: page model with SVG preview, PDF output
-    ├── products/              # woodLabel.ts, paperLabel.ts, daySheet.ts, registry.ts (workbench), orders.ts (agents), hint.ts
-    ├── server/                # mcp.ts (tools), files.ts (24 h store), access.ts (Cloudflare Access)
-    ├── components/            # SiteHeader, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview, WoodTopView)
+    ├── products/              # product.ts (what a product is), woodLabel.ts, paperLabel.ts, daySheet.ts (+ daySheetForm.ts), registry.ts (the list), orders.ts (agents), hint.ts
+    ├── server/                # mcp.ts (tools), files.ts (24 h store), access.ts (Cloudflare Access, access rule), font.ts (Kura font in the Worker)
+    ├── components/            # SiteHeader, StatusCard, ControlGroup, Segmented, Slider; wood/ (WoodControls, WoodPreview, WoodTopView)
     ├── stores/wood.ts         # Input of the wood label page; engraving settings are derived
     ├── types/opentype.d.ts    # Types for the used part of opentype.js
     └── utils/                 # result.ts (Result<T, E> for expected errors), download.ts (save a file from the browser)
@@ -92,6 +92,8 @@ Aliases: `$lib`, `$components`, `$stores`, `$utils`.
 - `maxSignWidth(kura, width)`: the widest the word may be.
 - `applyCase`: Kura writes the word in lower case.
 - `KURA_OPTIONS` and `KURA_RANGES`: allowed values; validation and the workbench controls both read them.
+- `kuraChanges(before, after)`: the changed values of a working copy as „path: old → new“.
+- The option types of the wood expression (`Process`, `Finish`, …) are defined here; the medium re-exports them (ADR 0001: Kura knows nothing but itself).
 - `vocabulary.ts`: the Kura vocabulary (short words for cupboards and drawers).
 
 **Workbench** (`src/routes/werkbank/+page.svelte`): edits a working copy in the browser only. Every registered product is redrawn with the working copy and shows its hints; the wood label card also reports vocabulary words that no longer fit. A change takes effect only when the downloaded `kura.json` is committed. Product pages always use the committed `KURA`. Overview and workbench show the examples in front of their surroundings (`backdrop` of an example: the furniture front for wood, sand for paper). A wood example carries `wood` (layout and settings); `components/wood/WoodTopView.svelte` renders it as a lit top view with the same surface pipeline as `/holz` (`renderSurface`, `shadeFlat`, quick frame first), without three.js, so every larch control of the workbench shows its effect. It carries the same `data-render-*` attributes as the preview and `data-mode` (`sketch`, `surface`).
@@ -100,15 +102,19 @@ There are no presets and no design controls on product pages. Never put a design
 
 ## Products (`src/lib/products`)
 
-Each product module holds its formats, its input type, the derivation from Kura and its hints (`Hint`: kind and a message saying what to change).
+**One module per product** (`product.ts`): a product describes itself once with `defineProduct`: identity (`id`, `name`, `medium`, `nav`, `summary`, `href`), what agents may send (`order(kura)`: description, fields, example; sizes and limits are computed from Kura and the formats, never written as prose), `parse(raw)` (reads content from outside, returns what can still be set plus hints), `set(kura, order, font)` (typesets and checks; returns a `Proof`: hints, file name, `file()`, plus what the page previews) and `examples`. `make` is derived: parse, set, and any hint means no file. Overview, workbench, navigation, the product page and MCP all read this one description. Never compose layout, check, file name and renderer in a caller; call `set`.
 
-**Day sheet** (`daySheet.ts`): fixed zones in fixed order (weekday and date, heute wichtig with erster Schritt, morgens/mittags/abends, außerdem, termine, mitnehmen) with limits per zone (`DAY_SHEET_LIMITS`). `parseDaySheet(raw)` validates content from outside and reports every violation; `layoutDaySheet` sets the sheet and reports entries that are too long (`too-long`, never wrapped) and characters the font lacks (`character`). All sizes are multiples of Kura's reading size. The zones keep their place on an empty day. Two edges for the whole sheet: weekday, headings, checkboxes and times at the left one, every entry at the second (appointments set their text in a column of their own); the weekday follows the alignment of the text role because it does not stand alone. The page `/tag` feeds a form through the same `parseDaySheet` an agent's content goes through and keeps nothing.
+**Hint** (`hint.ts`): `kind`, `at` (where in the content, as data: `['days', 1, 'tasks', 0, 'text']`) and `message` (what to change, without the location). `within(outer, hints)` nests the hints of a part; `hintText` renders the field path for agents (`days[1].tasks[0].text: …`). A page may name the location in its own words (the paper label page says „Spalte 2, Zeile 1“). Never glue a location into a message. Fabrication warnings of the wood medium are converted to hints in `woodLabel.ts`; the rule `sign-width` belongs to the products, not to the medium.
 
-**Registry** (`registry.ts`): `PRODUCTS` lists every product with a summary, its page and examples drawn for a given Kura. A new product registers here and then appears on the overview and the workbench without further changes. Every product must be free of hints in the committed Kura (tested).
+An order with several pieces (`labels`, `days`) carries `many: true`; its hints then name the piece. Pages build the typed order themselves and call `set`; whether a hint blocks the download on a page is the page's decision and is stated there (`/tag` blocks, `/holz` and `/papier` do not, so a test engraving or print stays possible).
 
-**Wood label** (`woodLabel.ts`): formats `series` 64 × 24 mm and `long` 90 × 24 mm; one word, no sub line. `woodLabelSketch` draws a plain top view as SVG (a crop of the larch photo in the tone of the finish); overview and workbench show it only until the larch photo has loaded. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `checkWoodLabel` returns the fabrication warnings plus the Kura rule for the word width (`sign-width`). Every word of the Kura vocabulary must stay free of hints in the series format (tested).
+**Day sheet** (`daySheet.ts`): fixed zones in fixed order (weekday and date, heute wichtig with erster Schritt, morgens/mittags/abends, außerdem, termine, mitnehmen) with limits per zone (`DAY_SHEET_LIMITS`). `parseDaySheet(raw)` validates one day from outside and reports every violation; `layoutDaySheet` sets the sheet and reports entries that are too long (`too-long`, never wrapped) and characters the font lacks (`character`). `daySheetForm.ts` maps the form of `/tag` to that content and back. All sizes are multiples of Kura's reading size. The zones keep their place on an empty day. Two edges for the whole sheet: weekday, headings, checkboxes and times at the left one, every entry at the second (appointments set their text in a column of their own); the weekday follows the alignment of the text role because it does not stand alone. The page `/tag` feeds a form through the same `parseDaySheet` an agent's content goes through and keeps nothing.
 
-**Paper label** (`paperLabel.ts`): formats `label` 105 × 74 mm (A4 portrait sheet, 2 × 4) and `sign` 210 × 100 mm (A5 landscape, top); one word per label, sub line allowed. `layoutPaperLabel` sets the lines of one label, `checkPaperLabel` returns `sign-width` and `sub-width`, `paperSheetPage` places any number of labels at their places on one sheet (`positionAt`/`placeOf` convert between column/row from 1 and the row-wise position from 0); free places stay unprinted. The cell borders are shown in the preview only and are not printed.
+**Registry** (`registry.ts`): `PRODUCTS` lists every product. A new product is one module plus one entry here; it then appears on the overview, the workbench, in the navigation and for agents. It still needs its own page under `src/routes`. Every product must be free of hints in the committed Kura (tested).
+
+**Wood label** (`woodLabel.ts`): formats `series` 64 × 24 mm and `long` 90 × 24 mm; one word, no sub line. `woodLabelSketch` draws a plain top view as SVG (a crop of the larch photo in the tone of the finish); overview and workbench show it only until the larch photo has loaded. `woodLabelSettings(kura, input)` builds the engine's `WoodSettings`; the cap height follows the series format so the long format carries the same type. `woodLabel.set` returns per label layout, settings and hints: the Kura rule for the word width (`sign-width`) plus the fabrication warnings. Every word of the Kura vocabulary must stay free of hints in the series format (tested).
+
+**Paper label** (`paperLabel.ts`): formats `label` 105 × 74 mm (A4 portrait sheet, 2 × 4) and `sign` 210 × 100 mm (A5 landscape, top); one word per label, sub line allowed. `paperLabel.parse` assigns the places (named ones first, the rest fill the free places in order; a place named twice is a hint), `paperLabel.set` sets every label, reports `sign-width` and `sub-width` and builds the sheet (`positionAt`/`placeOf` convert between column/row from 1 and the row-wise position from 0); free places stay unprinted. The cell borders are shown in the preview only and are not printed.
 
 ## Typesetting (`src/lib/typesetting`)
 
@@ -119,7 +125,7 @@ All lengths in mm, y down. `fonts.ts`: ten free fonts (OFL) in `FONT_CATALOG`, e
 Pipeline per change:
 1. `layout.ts` sets main and sub line, determines the size and places the text.
 2. `checks.ts` returns fabrication warnings: cap height, thinnest stroke, margin to edge/frame/inverse rim, size limit.
-3. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps. After a change a quick frame (`render.quickPxPerMm`) appears first, full resolution follows after `render.refineDelayMs` without further change.
+3. `surface.ts` rasterises engraving, outline and larch texture and computes albedo, normal and roughness maps (pure array maths plus a canvas adapter). `surfaceView.ts` owns everything around it: cache key, cache, the quick frame (`render.quickPxPerMm`) first and full resolution after `render.refineDelayMs` without further change, the shared larch photo and the diagnostics. `WoodPreview` and `WoodTopView` only present the frames; never repeat this sequence in a component.
 4. `scene.ts` (three.js) shows the extruded 4 mm label on the furniture front. Without WebGL, `WoodPreview` shows a flat lit top view (`shadeFlat`).
 5. `svgExport.ts` writes the laser file.
 
@@ -139,19 +145,19 @@ The engine supports more than Kura uses today (inverse engraving, frame, pill, o
 
 ## Orders and MCP server
 
-`products/orders.ts` is what agents see: `listProducts()` returns per product its fields, limits, output format and a valid example; `makeProduct(kura, id, content, font)` returns the file (`OrderFile`) or the hints. Any hint means no file. Every example in the list must produce a file, and the list must contain the same products as the workbench registry (both tested). A new product needs an entry in `registry.ts` and in `orders.ts`.
+`products/orders.ts` is what agents see, a thin view of the registry: `listProducts()` returns per product its fields, limits, output format and a valid example; `makeProduct(kura, id, content, font)` returns the file (`OrderFile`) or the hints. Any hint means no file; violations of form and of typesetting come back in one answer. Every example in the list must produce a file (tested).
 
-`server/mcp.ts` exposes two tools over `createMcpHandler` (a fresh server per request, no session): `list_products` and `render_product({ product, content })`. The result is a JSON text with `url`, `fileName`, `mimeType`, `validForHours`, plus a `resource_link`; on a rule violation `created: false` with `hints` and `isError`. The day sheet accepts one day or `{ days: [...] }` with up to seven days. Format ids are the same words in code and for agents (`series`/`long`, `label`/`sign`); the earlier names `standard`, `small` and `large` stay valid as aliases. Wood label and paper label both accept `{ labels: [...] }` for several pieces in one file. The paper label accepts one label (place as `column`/`row` or `position`, from 1) or `{ format, labels: [...] }` for several on one sheet; labels without a place fill the free places in order, a place named twice is a hint.
+`server/mcp.ts` exposes two tools over `createMcpHandler` (a fresh server per request, no session): `list_products` and `render_product({ product, content })`. The result is a JSON text with `url`, `fileName`, `mimeType`, `validForHours`, plus a `resource_link`; on a rule violation `created: false` with `hints` (one line each, field path first) and `isError`. The tool contract is tested through `McpDeps` with an in-memory store. The day sheet accepts one day or `{ days: [...] }` with up to seven days. Format ids are the same words in code and for agents (`series`/`long`, `label`/`sign`); the earlier names `standard`, `small` and `large` stay valid as aliases. Wood label and paper label both accept `{ labels: [...] }` for several pieces in one file. The paper label accepts one label (place as `column`/`row` or `position`, from 1) or `{ format, labels: [...] }` for several on one sheet; labels without a place fill the free places in order, a place named twice is a hint.
 
 `server/files.ts` stores a file in Workers KV (binding `FILES`) with a TTL of 24 hours under a 48-digit random hex key; `/d/<key>/<name>` serves it without sign-in.
 
-`server/access.ts` verifies `Cf-Access-Jwt-Assertion` against the team's keys and the application's audience (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`). `/mcp` answers 503 while these are unset and 401 without a valid token; only the dev server (`npm run dev`) is open, for pages and `/mcp`, because it reads the Access vars from `wrangler.toml` but has no Access in front. Never add a switch that opens `/mcp` in production. Once Access is configured, `hooks.server.ts` also requires the token for all pages except `/d/` and `/mcp` (which checks itself).
+`server/access.ts` verifies `Cf-Access-Jwt-Assertion` against the team's keys and the application's audience (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`) and holds the access rule in one function, `decideAccess` (tested, including a valid token): `/mcp` answers 503 while Access is unset and 401 without a valid token; `/d/` is open; all other pages require the token once Access is configured; only the dev server (`npm run dev`) is open, because it reads the Access vars from `wrangler.toml` but has no Access in front. `hooks.server.ts` applies the rule and puts the identity into `locals.identity`; the MCP route refuses a second time without it. Change the rule only in `decideAccess`. Never add a switch that opens `/mcp` in production.
 
 Local test of the endpoint: `npm run dev`, then POST JSON-RPC to `/mcp` with `Accept: application/json, text/event-stream`. `wrangler dev` runs the built Worker in the real runtime, where `/mcp` stays closed without Access.
 
 ## Web UI
 
-Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted`), one terracotta accent (`clay`), lines instead of shadows. Tokens in `src/app.css` (`@theme`), UI fonts `font-ui-head` (Sora) and `font-ui-body` (Noto Sans) from `static/fonts`. Every control is at least 44 px; no horizontal scrolling at 360 px. Product pages share one build: preview, title with one sentence, status card (format, hints, download, file name), control groups, secondary actions, footer. Use Tailwind utility classes; avoid custom CSS. The UI fonts are independent of Kura's typeface.
+Calm, warm style: off-white (`ivory`, `sand`), dark warm grey (`ink`, `ink-muted`), one terracotta accent (`clay`), lines instead of shadows. Tokens in `src/app.css` (`@theme`), UI fonts `font-ui-head` (Sora) and `font-ui-body` (Noto Sans) from `static/fonts`. Every control is at least 44 px; no horizontal scrolling at 360 px. Product pages share one build: preview, title with one sentence, status card (`StatusCard`: format, hints, download, file name), control groups, secondary actions, footer. A page holds only its input state: the font comes from `useFont` (`typesetting/fontState.svelte.ts`), typesetting and file from the product's `set`, the download from `utils/download.ts`. Use Tailwind utility classes; avoid custom CSS. The UI fonts are independent of Kura's typeface.
 
 ## Development Notes
 
