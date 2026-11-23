@@ -1,42 +1,24 @@
 import { dev } from '$app/environment';
 import { json } from '@sveltejs/kit';
 import { KURA } from '$lib/kura/kura';
-import { accessConfig, verifyAccess } from '$lib/server/access';
-import type { FileStore } from '$lib/server/files';
+import { loadKuraFont } from '$lib/server/font';
 import { createKuraMcpHandler } from '$lib/server/mcp';
-import { createFontLoader, type LoadedFont } from '$lib/typesetting/fonts';
 import type { RequestHandler } from './$types';
 
-// Die Schrift bleibt über Anfragen hinweg im Speicher der Instanz
-let font: LoadedFont | null = null;
-
-const handle: RequestHandler = async ({ request, platform, fetch, url }) => {
+/** Der Zugang ist in hooks.server.ts schon geprüft (`decideAccess`); hier werden nur Ablage und Schrift angeschlossen. */
+const handle: RequestHandler = async ({ request, platform, fetch, url, locals }) => {
+	// Zweite Sicherung: Außerhalb des Entwicklungsservers geht hier nichts ohne geprüfte Anmeldung durch
+	if (!dev && !locals.identity) return json({ error: 'Nicht angemeldet.' }, { status: 401 });
 	const env = platform?.env;
-	const config = accessConfig(env);
-	// Ohne eingerichtetes Access bleibt der Endpunkt zu; nur der Entwicklungsserver ist offen (er hat kein Access vor sich)
-	const identity = dev ? null : await verifyAccess(request, config);
-	if (identity && !identity.ok) {
-		const status = identity.error === 'not-configured' ? 503 : 401;
-		return json({ error: identity.error === 'not-configured' ? 'Anmeldung über Cloudflare Access ist nicht eingerichtet.' : 'Nicht angemeldet.' }, { status });
-	}
-	const store = env?.FILES as FileStore | undefined;
+	const store = env?.FILES;
 	if (!store) return json({ error: 'Die Dateiablage (KV-Bindung FILES) fehlt.' }, { status: 503 });
 
 	const handler = createKuraMcpHandler({
 		store,
 		origin: url.origin,
-		async loadFont() {
-			if (!font) {
-				// Im Worker direkt aus den statischen Dateien lesen: Der Weg über die eigene Adresse endet an der Anmeldung der Seiten
-				const assets = env?.ASSETS as { fetch: typeof fetch } | undefined;
-				const read: typeof fetch = assets && !dev ? (input) => assets.fetch(new URL(String(input), url.origin)) : fetch;
-				const loaded = await createFontLoader(read).load(KURA.typeface.font, KURA.typeface.weight);
-				if (loaded.ok) font = loaded.value;
-			}
-			return font;
-		}
+		loadFont: () => loadKuraFont(KURA, { assets: dev ? undefined : env?.ASSETS, fetch, origin: url.origin })
 	});
-	const user = identity?.ok ? identity.value : null;
+	const user = locals.identity;
 	return handler.fetch(request, user ? { authInfo: { token: '', clientId: user.subject, scopes: [], extra: { email: user.email } } } : undefined);
 };
 

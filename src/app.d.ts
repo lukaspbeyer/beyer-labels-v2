@@ -1,19 +1,18 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
 declare global {
 	namespace App {
-		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
-		// interface PageState {}
+		interface Locals {
+			/** Die geprüfte Anmeldung über Cloudflare Access; `null`, wo keine verlangt ist */
+			identity: import('$lib/server/access').AccessIdentity | null;
+		}
 		interface Platform {
-			// Cloudflare Workers bindings exposed on platform.env
+			/** Bindungen und Variablen des Workers (wrangler.toml) */
 			env?: {
-				// Add other bindings here as needed, or widen to Record<string, unknown>
-				[key: string]: unknown;
+				FILES?: import('$lib/server/files').FileStore;
+				ASSETS?: { fetch: typeof fetch };
+				ACCESS_TEAM_DOMAIN?: string;
+				ACCESS_AUD?: string;
 			};
-			// Optionally, include Cloudflare request properties if needed
-			// cf?: import('@cloudflare/workers-types').IncomingRequestCfProperties;
 		}
 	}
 }
