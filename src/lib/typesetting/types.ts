@@ -10,7 +10,8 @@ export type FontId =
 	| 'jost'
 	| 'outfit'
 	| 'manrope'
-	| 'dm-sans';
+	| 'dm-sans'
+	| 'inter-tight';
 export type FontWeight = 400 | 500 | 600 | 700;
 export type TextAlign = 'left' | 'center' | 'right';
 export type Shape = 'rectangle' | 'pill' | 'oval';
