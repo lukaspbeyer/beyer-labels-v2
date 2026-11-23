@@ -3,7 +3,7 @@
 	import ControlGroup from '$components/ControlGroup.svelte';
 	import Segmented from '$components/Segmented.svelte';
 	import StatusCard from '$components/StatusCard.svelte';
-	import { KURA } from '$lib/kura/kura';
+	import { caseInWords, KURA } from '$lib/kura/kura';
 	import { pageSvg } from '$lib/media/paper/page';
 	import { DEFAULT_PAPER_LABEL_INPUT, PAPER_LABEL_FORMAT_IDS, PAPER_LABEL_FORMATS, paperLabel, placeOf, positionCount, type PaperLabelFormatId } from '$lib/products/paperLabel';
 	import { useFont } from '$lib/typesetting/fontState.svelte';
@@ -167,7 +167,7 @@
 
 				<ControlGroup title="Etikett" summary={[placeName(selected), current.text.trim() || 'frei'].filter(Boolean).join(' · ')} open>
 					<label class="flex flex-col gap-2 text-sm">
-						<span class="text-ink-muted">Ein kurzes Wort, Kura schreibt es klein</span>
+						<span class="text-ink-muted">Ein kurzes Wort, Kura schreibt es {caseInWords(KURA.sign.case)}</span>
 						<input
 							class="min-h-11 rounded-xl border border-line bg-ivory px-3 text-base text-ink outline-none focus:border-clay focus:ring-2 focus:ring-clay/20"
 							value={current.text}

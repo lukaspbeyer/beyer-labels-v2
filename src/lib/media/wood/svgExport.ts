@@ -2,6 +2,7 @@
  * SVG für die Laser-Software (xTool, LightBurn). 1 Einheit = 1 mm.
  * Ebenen nach Farbe: Gravur schwarz (Fläche), Rahmen blau (Kontur), Schnitt rot (Kontur).
  */
+import { KURA_OPTION_NAMES, kuraOptionName, type KuraOption, type KuraOptionValue } from '$lib/kura/kura';
 import { calibration } from './calibration';
 import { fontInfo } from '$lib/typesetting/fonts';
 import { fileSlug } from '$lib/typesetting/format';
@@ -12,12 +13,6 @@ import type { LabelLayout, PathCommand, WoodSettings } from './types';
 export const CUT_COLOR = '#FF0000';
 export const ENGRAVE_COLOR = '#000000';
 export const FRAME_COLOR = '#0000FF';
-
-const PROCESS_NAMES = { dark: 'Dunkle Gravur', inverse: 'Inverse Gravur', fill: 'Farbfüllung' } as const;
-const LEVEL_NAMES = { low: 'flach', medium: 'mittel', high: 'tief' } as const;
-const BURN_NAMES = { low: 'hell', medium: 'mittel', high: 'dunkel' } as const;
-const FILL_NAMES = { black: 'Schwarz', white: 'Weiß', anthracite: 'Anthrazit' } as const;
-const FINISH_NAMES = { raw: 'roh', oiled: 'geölt', lacquer: 'Lack matt', limed: 'weiß gekalkt' } as const;
 
 function escapeXml(text: string): string {
 	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -43,16 +38,18 @@ function engravingPaths(layout: LabelLayout, settings: WoodSettings): { commands
 	return { commands: text, fillRule: 'nonzero' };
 }
 
+/** Ein Auswahlfeld mit seinem Wert, etwa „Oberfläche: Geölt“; Namen aus Kura, wie die Werkbank sie zeigt. */
+function named<P extends KuraOption>(path: P, value: KuraOptionValue<P>): string {
+	return `${KURA_OPTION_NAMES[path].title}: ${kuraOptionName(path, value)}`;
+}
+
+/** Beschreibung für die Laser-Software. */
 function description(settings: WoodSettings, layout: LabelLayout): string {
-	const process = PROCESS_NAMES[settings.process];
-	const treatment =
-		settings.process === 'fill'
-			? `Füllfarbe ${FILL_NAMES[settings.fillColor]}`
-			: `Brennfarbe ${BURN_NAMES[settings.burn]}`;
+	const treatment = settings.process === 'fill' ? named('wood.fillColor', settings.fillColor) : named('wood.burn', settings.burn);
 	return [
 		`Lärche ${calibration.label.thicknessMm} mm, ${formatSize(layout.width)} × ${formatSize(layout.height)} mm`,
-		`${process}, Tiefe ${LEVEL_NAMES[settings.depth]}, ${treatment}`,
-		`Oberfläche ${FINISH_NAMES[settings.finish]}`,
+		`${named('wood.process', settings.process)}, ${named('wood.depth', settings.depth)}, ${treatment}`,
+		named('wood.finish', settings.finish),
 		`${fontInfo(settings.font).name} ${settings.weight}, Versalhöhe ${formatSize(settings.capHeight)} mm`,
 		'Ebenen: schwarz = Gravur (Fläche), blau = Rahmen (Linie), rot = Schnitt (Kontur)'
 	].join('. ');

@@ -98,6 +98,14 @@ describe('SVG-Export', () => {
 		expect(isInside(insideStem, polylines)).toBe(false);
 	});
 
+	it('beschreibt Verfahren und Oberfläche mit den Namen aus Kura', () => {
+		const desc = (changes: Partial<WoodSettings>): string => exportFor(changes).svg.querySelector('desc')?.textContent ?? '';
+		expect(desc({ process: 'dark', depth: 'low', burn: 'high', finish: 'limed' })).toContain('Verfahren: Dunkle Gravur, Tiefe: Flach, Brennfarbe: Dunkel. Oberfläche: Weiß gekalkt');
+		const filled = desc({ process: 'fill', fillColor: 'anthracite' });
+		expect(filled).toContain('Verfahren: Farbfüllung');
+		expect(filled).toContain('Füllfarbe: Anthrazit');
+	});
+
 	it('Dateiname folgt dem Muster holzlabel-<text>-<b>x<h>mm.svg', () => {
 		const s = { ...TEST_SETTINGS, sizeMode: 'manual' as const, width: 80, height: 30 };
 		expect(exportFileName(s, layoutLabel(s, sora))).toBe('holzlabel-teller-80x30mm.svg');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import values from './kura.json';
-import { applyCase, KURA, kuraChanges, maxSignWidth, parseKura, signCapHeight } from './kura';
+import { applyCase, caseInWords, KURA, KURA_OPTION_NAMES, KURA_OPTIONS, kuraChanges, kuraChoices, maxSignWidth, parseKura, signCapHeight, type KuraOption } from './kura';
 
 describe('Kura', () => {
 	it('kura.json ist gültig', () => {
@@ -32,5 +32,33 @@ describe('Kura', () => {
 		expect(kuraChanges(values, values)).toEqual([]);
 		const draft = { ...values, typeface: { ...values.typeface, weight: 500 }, paper: { ...values.paper, ink: '#222222' } };
 		expect(kuraChanges(values, draft)).toEqual([`typeface.weight: ${values.typeface.weight} → 500`, `paper.ink: ${values.paper.ink} → #222222`]);
+	});
+
+	it('nennt jedes Auswahlfeld und jeden zulässigen Wert genau einmal', () => {
+		const paths = Object.keys(KURA_OPTIONS) as KuraOption[];
+		expect(Object.keys(KURA_OPTION_NAMES).sort()).toEqual([...paths].sort());
+		for (const path of paths) {
+			const { title, values } = KURA_OPTION_NAMES[path];
+			expect(title.trim(), path).not.toBe('');
+			expect(Object.keys(values).sort(), path).toEqual([...KURA_OPTIONS[path]].sort());
+			const names = Object.values(values) as string[];
+			expect(names.every((name) => name.trim() !== ''), path).toBe(true);
+			expect(new Set(names).size, path).toBe(names.length);
+		}
+	});
+
+	it('bietet die Werte eines Auswahlfelds in der Reihenfolge der Definition mit Namen an', () => {
+		expect(kuraChoices('wood.finish')).toEqual([
+			{ value: 'raw', label: 'Roh' },
+			{ value: 'oiled', label: 'Geölt' },
+			{ value: 'lacquer', label: 'Lack matt' },
+			{ value: 'limed', label: 'Weiß gekalkt' }
+		]);
+	});
+
+	it('beschreibt die Schreibweise in Worten', () => {
+		expect(caseInWords('lower')).toBe('klein');
+		expect(caseInWords('upper')).toBe('groß');
+		expect(caseInWords('as-typed')).toBe('wie eingegeben');
 	});
 });

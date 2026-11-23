@@ -85,6 +85,51 @@ export const KURA_OPTIONS = {
 	'wood.shape': ['rectangle', 'pill', 'oval'],
 	'wood.edge': ['burnt', 'sanded']
 } as const;
+
+export type KuraOption = keyof typeof KURA_OPTIONS;
+export type KuraOptionValue<P extends KuraOption> = (typeof KURA_OPTIONS)[P][number];
+
+/** Name eines Auswahlfelds und je zulässigem Wert ein Name; der Typ verlangt für jeden Wert aus KURA_OPTIONS genau einen. */
+type KuraOptionNames = {
+	readonly [P in KuraOption]: { readonly title: string; readonly values: { readonly [V in KuraOptionValue<P>]: string } };
+};
+
+/**
+ * Die Namen der Auswahlfelder und ihrer Werte, wie Werkbank und Laserdatei sie zeigen.
+ * Die Schreibweisen nennen sich in ihrer eigenen Schreibweise.
+ */
+export const KURA_OPTION_NAMES: KuraOptionNames = {
+	'sign.case': { title: 'Schreibweise', values: { lower: 'klein', upper: 'VERSAL', 'as-typed': 'Wie eingegeben' } },
+	'sign.align': { title: 'Ausrichtung', values: { left: 'Links', center: 'Mittig', right: 'Rechts' } },
+	'text.case': { title: 'Schreibweise', values: { lower: 'klein', upper: 'VERSAL', 'as-typed': 'Wie eingegeben' } },
+	'text.align': { title: 'Ausrichtung', values: { left: 'Links', center: 'Mittig', right: 'Rechts' } },
+	'wood.grain': { title: 'Maserung', values: { horizontal: 'Waagerecht', vertical: 'Senkrecht' } },
+	'wood.process': { title: 'Verfahren', values: { dark: 'Dunkle Gravur', inverse: 'Inverse Gravur', fill: 'Farbfüllung' } },
+	'wood.depth': { title: 'Tiefe', values: { low: 'Flach', medium: 'Mittel', high: 'Tief' } },
+	'wood.burn': { title: 'Brennfarbe', values: { low: 'Hell', medium: 'Mittel', high: 'Dunkel' } },
+	'wood.fillColor': { title: 'Füllfarbe', values: { black: 'Schwarz', white: 'Weiß', anthracite: 'Anthrazit' } },
+	'wood.finish': { title: 'Oberfläche', values: { raw: 'Roh', oiled: 'Geölt', lacquer: 'Lack matt', limed: 'Weiß gekalkt' } },
+	'wood.shape': { title: 'Form', values: { rectangle: 'Rechteck', pill: 'Pille', oval: 'Oval' } },
+	'wood.edge': { title: 'Kante', values: { burnt: 'Gebrannt', sanded: 'Geschliffen' } }
+};
+
+/** Die Werte eines Auswahlfelds in der Reihenfolge von KURA_OPTIONS, je mit Namen (für Auswahlknöpfe). */
+export function kuraChoices<P extends KuraOption>(path: P): { value: KuraOptionValue<P>; label: string }[] {
+	const names: Readonly<Record<KuraOptionValue<P>, string>> = KURA_OPTION_NAMES[path].values;
+	return (KURA_OPTIONS[path] as readonly KuraOptionValue<P>[]).map((value) => ({ value, label: names[value] }));
+}
+
+/** Name des Werts eines Auswahlfelds. */
+export function kuraOptionName<P extends KuraOption>(path: P, value: KuraOptionValue<P>): string {
+	const names: Readonly<Record<KuraOptionValue<P>, string>> = KURA_OPTION_NAMES[path].values;
+	return names[value];
+}
+
+/** Wie Kura ein eingegebenes Wort schreibt, für Sätze wie „Kura schreibt es klein“. */
+export function caseInWords(letterCase: LetterCase): string {
+	return { lower: 'klein', upper: 'groß', 'as-typed': 'wie eingegeben' }[letterCase];
+}
+
 /** Zulässige Bereiche der Zahlenwerte: [kleinster, größter] */
 export const KURA_RANGES = {
 	'sign.trackingPercent': [0, 40],

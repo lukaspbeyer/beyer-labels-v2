@@ -4,7 +4,7 @@
 	import SiteHeader from '$components/SiteHeader.svelte';
 	import WoodTopView from '$components/wood/WoodTopView.svelte';
 	import Slider from '$components/Slider.svelte';
-	import { KURA_RANGES, kuraChanges, parseKura, type KuraValues } from '$lib/kura/kura';
+	import { KURA_OPTION_NAMES, KURA_RANGES, kuraChanges, kuraChoices, parseKura, type KuraValues } from '$lib/kura/kura';
 	import current from '$lib/kura/kura.json';
 	import { PRODUCTS } from '$lib/products/registry';
 	import { useFont } from '$lib/typesetting/fontState.svelte';
@@ -31,6 +31,7 @@
 	const WEIGHT_LABEL: Record<FontWeight, string> = { 400: 'Regular', 500: 'Medium', 600: 'Semibold', 700: 'Bold' };
 	const weightOptions = $derived(fontInfo(draft.typeface.font).weights.map((value) => ({ value, label: WEIGHT_LABEL[value] })));
 	const R = KURA_RANGES;
+	const N = KURA_OPTION_NAMES;
 
 	function reset(): void {
 		draft = structuredClone(current) as KuraValues;
@@ -156,40 +157,14 @@
 			</ControlGroup>
 
 			<ControlGroup title="Zeichen" summary={`${draft.sign.trackingPercent} % gesperrt`}>
-				<Segmented
-					label="Schreibweise"
-					options={[
-						{ value: 'lower', label: 'klein' },
-						{ value: 'upper', label: 'VERSAL' },
-						{ value: 'as-typed', label: 'Wie eingegeben' }
-					]}
-					value={draft.sign.case}
-					onchange={(v) => (draft.sign.case = v)}
-				/>
+				<Segmented label={N['sign.case'].title} options={kuraChoices('sign.case')} value={draft.sign.case} onchange={(v) => (draft.sign.case = v)} />
 				<Slider label="Laufweite" unit="%" min={R['sign.trackingPercent'][0]} max={R['sign.trackingPercent'][1]} step={1} value={draft.sign.trackingPercent} onchange={(v) => (draft.sign.trackingPercent = v)} />
-				<Segmented
-					label="Ausrichtung"
-					options={[
-						{ value: 'left', label: 'Links' },
-						{ value: 'center', label: 'Mittig' },
-						{ value: 'right', label: 'Rechts' }
-					]}
-					value={draft.sign.align}
-					onchange={(v) => (draft.sign.align = v)}
-				/>
+				<Segmented label={N['sign.align'].title} options={kuraChoices('sign.align')} value={draft.sign.align} onchange={(v) => (draft.sign.align = v)} />
 			</ControlGroup>
 
 			<ControlGroup title="Text" summary={`${draft.text.trackingPercent} % gesperrt · ${draft.paper.textCapHeight.toFixed(1).replace('.', ',')} mm`}>
-				<Segmented
-					label="Schreibweise"
-					options={[
-						{ value: 'as-typed', label: 'Wie eingegeben' },
-						{ value: 'lower', label: 'klein' },
-						{ value: 'upper', label: 'VERSAL' }
-					]}
-					value={draft.text.case}
-					onchange={(v) => (draft.text.case = v)}
-				/>
+				<Segmented label={N['text.case'].title} options={kuraChoices('text.case')} value={draft.text.case} onchange={(v) => (draft.text.case = v)} />
+				<Segmented label={N['text.align'].title} options={kuraChoices('text.align')} value={draft.text.align} onchange={(v) => (draft.text.align = v)} />
 				<Slider label="Laufweite" unit="%" min={R['text.trackingPercent'][0]} max={R['text.trackingPercent'][1]} step={1} value={draft.text.trackingPercent} onchange={(v) => (draft.text.trackingPercent = v)} />
 				<Slider label="Lesegröße auf Papier (Versalhöhe)" unit="mm" min={R['paper.textCapHeight'][0]} max={R['paper.textCapHeight'][1]} step={0.1} decimals={1} value={draft.paper.textCapHeight} onchange={(v) => (draft.paper.textCapHeight = v)} />
 				<Slider label="Feine Linien" unit="mm" min={R['paper.ruleWidth'][0]} max={R['paper.ruleWidth'][1]} step={0.05} decimals={2} value={draft.paper.ruleWidth} onchange={(v) => (draft.paper.ruleWidth = v)} />
@@ -207,70 +182,15 @@
 			</ControlGroup>
 
 			<ControlGroup title="Lärche" summary="Gravur, Oberfläche, Form">
-				<Segmented
-					label="Verfahren"
-					options={[
-						{ value: 'dark', label: 'Dunkel graviert' },
-						{ value: 'inverse', label: 'Invers' },
-						{ value: 'fill', label: 'Gefüllt' }
-					]}
-					value={draft.wood.process}
-					onchange={(v) => (draft.wood.process = v)}
-				/>
-				<Segmented
-					label="Tiefe"
-					options={[
-						{ value: 'low', label: 'Flach' },
-						{ value: 'medium', label: 'Mittel' },
-						{ value: 'high', label: 'Tief' }
-					]}
-					value={draft.wood.depth}
-					onchange={(v) => (draft.wood.depth = v)}
-				/>
+				<Segmented label={N['wood.process'].title} options={kuraChoices('wood.process')} value={draft.wood.process} onchange={(v) => (draft.wood.process = v)} />
+				<Segmented label={N['wood.depth'].title} options={kuraChoices('wood.depth')} value={draft.wood.depth} onchange={(v) => (draft.wood.depth = v)} />
 				{#if draft.wood.process === 'fill'}
-					<Segmented
-						label="Füllfarbe"
-						options={[
-							{ value: 'black', label: 'Schwarz' },
-							{ value: 'white', label: 'Weiß' },
-							{ value: 'anthracite', label: 'Anthrazit' }
-						]}
-						value={draft.wood.fillColor}
-						onchange={(v) => (draft.wood.fillColor = v)}
-					/>
+					<Segmented label={N['wood.fillColor'].title} options={kuraChoices('wood.fillColor')} value={draft.wood.fillColor} onchange={(v) => (draft.wood.fillColor = v)} />
 				{:else}
-					<Segmented
-						label="Brennfarbe"
-						options={[
-							{ value: 'low', label: 'Hell' },
-							{ value: 'medium', label: 'Mittel' },
-							{ value: 'high', label: 'Dunkel' }
-						]}
-						value={draft.wood.burn}
-						onchange={(v) => (draft.wood.burn = v)}
-					/>
+					<Segmented label={N['wood.burn'].title} options={kuraChoices('wood.burn')} value={draft.wood.burn} onchange={(v) => (draft.wood.burn = v)} />
 				{/if}
-				<Segmented
-					label="Oberfläche"
-					options={[
-						{ value: 'raw', label: 'Roh' },
-						{ value: 'oiled', label: 'Geölt' },
-						{ value: 'lacquer', label: 'Lack matt' },
-						{ value: 'limed', label: 'Gekalkt' }
-					]}
-					value={draft.wood.finish}
-					onchange={(v) => (draft.wood.finish = v)}
-				/>
-				<Segmented
-					label="Form"
-					options={[
-						{ value: 'rectangle', label: 'Rechteck' },
-						{ value: 'pill', label: 'Pille' },
-						{ value: 'oval', label: 'Oval' }
-					]}
-					value={draft.wood.shape}
-					onchange={(v) => (draft.wood.shape = v)}
-				/>
+				<Segmented label={N['wood.finish'].title} options={kuraChoices('wood.finish')} value={draft.wood.finish} onchange={(v) => (draft.wood.finish = v)} />
+				<Segmented label={N['wood.shape'].title} options={kuraChoices('wood.shape')} value={draft.wood.shape} onchange={(v) => (draft.wood.shape = v)} />
 				{#if draft.wood.shape === 'rectangle'}
 					<Slider label="Eckradius" unit="mm" min={R['wood.cornerRadius'][0]} max={R['wood.cornerRadius'][1]} step={0.5} decimals={1} value={draft.wood.cornerRadius} onchange={(v) => (draft.wood.cornerRadius = v)} />
 				{/if}
@@ -283,24 +203,8 @@
 					value={draft.wood.frame}
 					onchange={(v) => (draft.wood.frame = v)}
 				/>
-				<Segmented
-					label="Kante"
-					options={[
-						{ value: 'burnt', label: 'Gebrannt' },
-						{ value: 'sanded', label: 'Geschliffen' }
-					]}
-					value={draft.wood.edge}
-					onchange={(v) => (draft.wood.edge = v)}
-				/>
-				<Segmented
-					label="Maserung"
-					options={[
-						{ value: 'horizontal', label: 'Waagerecht' },
-						{ value: 'vertical', label: 'Senkrecht' }
-					]}
-					value={draft.wood.grain}
-					onchange={(v) => (draft.wood.grain = v)}
-				/>
+				<Segmented label={N['wood.edge'].title} options={kuraChoices('wood.edge')} value={draft.wood.edge} onchange={(v) => (draft.wood.edge = v)} />
+				<Segmented label={N['wood.grain'].title} options={kuraChoices('wood.grain')} value={draft.wood.grain} onchange={(v) => (draft.wood.grain = v)} />
 			</ControlGroup>
 
 			<p class="px-1 text-xs leading-relaxed text-ink-muted">Papier druckt immer in Schwarz. Holzlabels zeigt diese Seite als beleuchtete Draufsicht aus demselben Renderer wie die Produktseite; die räumliche Ansicht steht dort.</p>

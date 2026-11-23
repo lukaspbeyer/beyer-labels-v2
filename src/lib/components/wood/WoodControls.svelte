@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { caseInWords, KURA } from '$lib/kura/kura';
 	import { WOOD_LABEL_FORMAT_IDS, WOOD_LABEL_FORMATS } from '$lib/products/woodLabel';
 	import { updateWoodLabel, woodLabelInput } from '$stores/wood';
 	import { calibration } from '$lib/media/wood/calibration';
@@ -25,7 +26,7 @@
 <div class="flex flex-col gap-3">
 	<ControlGroup title="Wort" summary={input.text} open>
 		<label class="flex flex-col gap-2 text-sm">
-			<span class="text-ink-muted">Ein kurzes Wort, Kura schreibt es klein</span>
+			<span class="text-ink-muted">Ein kurzes Wort, Kura schreibt es {caseInWords(KURA.sign.case)}</span>
 			<input
 				class="min-h-11 rounded-xl border border-line bg-ivory px-3 text-base text-ink outline-none focus:border-clay focus:ring-2 focus:ring-clay/20"
 				value={input.text}
