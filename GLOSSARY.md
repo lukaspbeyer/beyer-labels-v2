@@ -22,6 +22,10 @@ _Avoid_: Variante, Theme
 Die zweite Farbe von Kura auf Papier, ein Rot. Sie hebt nur die Hauptsache eines Blatts hervor und trägt nie allein eine Information, damit ein Schwarzweißdruck nichts verliert.
 _Avoid_: Akzentfarbe, Highlight
 
+**Fluchtlinie**:
+Eine gedachte senkrechte Linie auf einem Blatt, an der Text, Kästchen oder Uhrzeiten beginnen. Was an derselben Fluchtlinie steht, liest sich als zusammengehörig.
+_Avoid_: Kante (meint beim Holzlabel die Holzkante), Einzug
+
 **Werkbank**:
 Die Seite `/werkbank`, auf der Kura an einer Arbeitskopie verändert und an allen Produkten zugleich geprüft wird. Die Arbeitskopie gilt erst, wenn sie als neue Kura-Definition übernommen ist.
 _Avoid_: Editor, Einstellungen

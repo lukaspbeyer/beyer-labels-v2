@@ -122,14 +122,24 @@ function isoWeek(day: Date): number {
 	return Math.ceil(((thursday.getTime() - yearStart) / 86400000 + 1) / 7);
 }
 
+/**
+ * Die eine Fluchtlinie für allen Text unter dem Kopf: Überschriften, Einträge, erster Schritt, Termine und Mitnehmen beginnen hier.
+ * Kästchen und Uhrzeiten hängen links davor; der Platz davor ist so breit wie die breiteste denkbare Uhrzeit.
+ */
+export function entryLine(kura: Kura, font: LoadedFont): number {
+	const cap = kura.paper.textCapHeight;
+	const digitWidth = (d: string) => setRoleLine(kura, font, 'text', d, cap).width;
+	const widest = [...'0123456789'].reduce((a, b) => (digitWidth(b) > digitWidth(a) ? b : a));
+	return SHEET.margin + setRoleLine(kura, font, 'text', `${widest}${widest}:${widest}${widest}`, cap).width + cap * 0.9;
+}
+
 export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFont): { page: PrintPage; hints: Hint[] } {
 	const items: PrintItem[] = [];
 	const hints: Hint[] = [];
 	const cap = kura.paper.textCapHeight;
 	const rule = kura.paper.ruleWidth;
 	const left = SHEET.margin;
-	const width = SHEET.width - 2 * SHEET.margin;
-	const right = left + width;
+	const right = SHEET.width - SHEET.margin;
 	// Unterregeln: alle Größen hängen an der Lesegröße
 	const headingCap = cap * 0.72;
 	const focusCap = cap * 1.55;
@@ -140,13 +150,15 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	const zoneGap = cap * 2.5;
 	const headingGap = cap * 1.25;
 	const box = cap * 1.25;
-	// Zwei Kanten für das ganze Blatt: an der linken stehen Überschriften, Kästchen und Uhrzeiten, an der zweiten jeder Eintrag
-	const entryLeft = left + box + cap * 0.9;
+	const gap = cap * 0.9;
+	// Eine Fluchtlinie für allen Text; Kästchen und Uhrzeiten enden einen Abstand davor
+	const text = entryLine(kura, font);
+	const markRight = text - gap;
 
 	/** Setzt einen Einzeiler in der Textrolle; `anchor` ist die linke oder rechte Kante, `y` die Grundlinie. Liefert die Breite. */
-	function put(text: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, at: Hint['at'], side: 'left' | 'right' = 'left', tone?: PrintTone): number {
-		if (!text) return 0;
-		const set = setRoleLine(kura, font, role, text, capHeight, at);
+	function put(content: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, at: Hint['at'], side: 'left' | 'right' = 'left', tone?: PrintTone): number {
+		if (!content) return 0;
+		const set = setRoleLine(kura, font, role, content, capHeight, at);
 		hints.push(...set.hints);
 		if (set.width === 0) return 0;
 		items.push({ kind: 'fill', commands: placeLine(set, side, { x: anchor, width: 0 }, y).commands, tone });
@@ -154,10 +166,10 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	}
 
 	/** Einzeiler mit Breitenprüfung: zu lange Einträge werden gemeldet, nicht umbrochen. */
-	function entry(text: string, capHeight: number, x: number, y: number, available: number, at: Hint['at']): void {
-		const used = put(text, 'text', capHeight, x, y, at);
+	function entry(content: string, capHeight: number, x: number, y: number, available: number, at: Hint['at']): void {
+		const used = put(content, 'text', capHeight, x, y, at);
 		if (used > available + 1e-6)
-			hints.push(hint('too-long', `„${text}“ ist ${formatMm(used)} mm breit, Platz sind ${formatMm(available)} mm. Kürzer fassen.`, at));
+			hints.push(hint('too-long', `„${content}“ ist ${formatMm(used)} mm breit, Platz sind ${formatMm(available)} mm. Kürzer fassen.`, at));
 	}
 
 	function line(x1: number, x2: number, y: number): void {
@@ -168,13 +180,13 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 		items.push({ kind: 'stroke', commands, widthMm: rule });
 	}
 
-	/** Kästchen an der Kante `x`, senkrecht mittig zur Versalhöhe `capHeight` der Zeile. */
-	function checkbox(x: number, baseline: number, capHeight = cap, tone?: PrintTone, weight = 1): void {
-		items.push({ kind: 'stroke', commands: roundedRectPath(x, baseline - capHeight / 2 - box / 2, box, box, 0), widthMm: rule * weight, tone });
+	/** Kästchen der Kantenlänge `size`, das bei `end` endet, senkrecht mittig zur Versalhöhe `capHeight` der Zeile. */
+	function checkbox(end: number, baseline: number, capHeight = cap, size = box, tone?: PrintTone, weight = 1): void {
+		items.push({ kind: 'stroke', commands: roundedRectPath(end - size, baseline - capHeight / 2 - size / 2, size, size, 0), widthMm: rule * weight, tone });
 	}
 
-	function heading(text: string, x: number, y: number, tone?: PrintTone): number {
-		put(text, 'sign', headingCap, x, y + headingCap, [], 'left', tone);
+	function heading(content: string, x: number, y: number, tone?: PrintTone): number {
+		put(content, 'sign', headingCap, x, y + headingCap, [], 'left', tone);
 		return y + headingCap + headingGap;
 	}
 
@@ -191,59 +203,61 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	line(left, right, headerRule);
 	let y = headerRule + zoneGap;
 
-	// Heute wichtig: eine Sache, größer als alles andere, darunter der erste Schritt. Überschrift und Kästchen in der Signalfarbe;
-	// die Sache selbst bleibt in der Druckfarbe, so trägt im Schwarzweißdruck die Größe die Hervorhebung.
-	y = heading('heute wichtig', left, y, 'signal');
+	// Heute wichtig: eine Sache, größer als alles andere. Überschrift und Kästchen in der Signalfarbe; die Sache selbst bleibt
+	// in der Druckfarbe, so trägt im Schwarzweißdruck die Größe die Hervorhebung.
+	y = heading('heute wichtig', text, y, 'signal');
 	const focusBaseline = y + focusRow - focusCap * 0.9;
-	// Das Kästchen der Hauptsache doppelt so kräftig: in Farbe sichtbar, im Schwarzweißdruck trotzdem hervorgehoben
-	checkbox(left, focusBaseline, focusCap, 'signal', 2);
-	entry(input.focus.text, focusCap, entryLeft, focusBaseline, right - entryLeft, ['focus', 'text']);
-	line(left, right, y + focusRow);
-	y += focusRow + headingGap;
-	y = heading('erster schritt', entryLeft, y) - headingGap + cap * 0.35;
-	entry(input.focus.firstStep, cap, entryLeft, y + row - cap * 0.9, right - entryLeft, ['focus', 'firstStep']);
-	line(entryLeft, right, y + row);
-	y += row + zoneGap;
+	// Das Kästchen wächst mit seiner Zeile und ist doppelt so kräftig: in Farbe sichtbar, im Schwarzweißdruck trotzdem hervorgehoben
+	checkbox(markRight, focusBaseline, focusCap, focusCap * 1.1, 'signal', 2);
+	entry(input.focus.text, focusCap, text, focusBaseline, right - text, ['focus', 'text']);
+	// Der erste Schritt ist die Unterzeile der Hauptsache: kleine Beschriftung und Eintrag auf einer Grundlinie, ohne eigene Linie
+	const stepBaseline = focusBaseline + row;
+	const label = put('erster schritt', 'sign', headingCap, text, stepBaseline, []) + gap;
+	entry(input.focus.firstStep, cap, text + label, stepBaseline, right - text - label, ['focus', 'firstStep']);
+	y = stepBaseline + cap * 0.9 + gap;
+	line(left, right, y);
+	y += zoneGap;
 
-	// Routinen: drei Spalten, nur was gilt
-	const columnGap = cap * 2;
-	const column = (width - 2 * columnGap) / 3;
+	// Routinen: drei Spalten, nur was gilt. In jeder Spalte hängt das Kästchen vor dem Text; die erste beginnt an der Fluchtlinie.
+	const columnGap = cap * 1.5;
+	const mark = box + gap;
+	const columnsFrom = text - mark;
+	const column = (right - columnsFrom - 2 * columnGap) / 3;
 	const routineTop = y;
 	ROUTINE_BLOCKS.forEach(({ id, name }, c) => {
-		const x = left + c * (column + columnGap);
+		const x = columnsFrom + c * (column + columnGap) + mark;
 		let rowY = heading(name, x, routineTop);
-		input.routines[id].slice(0, DAY_SHEET_LIMITS.routinesPerBlock).forEach((text, i) => {
+		input.routines[id].slice(0, DAY_SHEET_LIMITS.routinesPerBlock).forEach((content, i) => {
 			const baseline = rowY + row - cap * 0.9;
-			checkbox(x, baseline);
-			entry(text, cap, x + (entryLeft - left), baseline, column - (entryLeft - left), ['routines', id, i]);
+			checkbox(x - gap, baseline);
+			entry(content, cap, x, baseline, column - mark, ['routines', id, i]);
 			rowY += row;
 		});
 	});
 	y = routineTop + headingCap + headingGap + DAY_SHEET_LIMITS.routinesPerBlock * row + zoneGap;
 
-	// Außerdem: immer drei Plätze, leere bleiben zum Schreiben
-	y = heading('außerdem', left, y);
+	// Außerdem: immer drei Plätze, leere bleiben zum Schreiben; rechts die Dauer
+	y = heading('außerdem', text, y);
 	for (let i = 0; i < DAY_SHEET_LIMITS.tasks; i++) {
 		const task = input.tasks[i];
 		const baseline = y + row - cap * 0.9;
-		checkbox(left, baseline);
+		checkbox(markRight, baseline);
 		const durationWidth = task?.minutes ? put(`${task.minutes} min`, 'text', cap, right, baseline, ['tasks', i, 'minutes'], 'right') + cap * 1.5 : 0;
-		if (task) entry(task.text, cap, entryLeft, baseline, right - entryLeft - durationWidth, ['tasks', i, 'text']);
+		if (task) entry(task.text, cap, text, baseline, right - text - durationWidth, ['tasks', i, 'text']);
 		line(left, right, y + row);
 		y += row;
 	}
 	y += zoneGap;
 
-	// Termine: Uhrzeit an der linken Kante, Sache in eigener Spalte, rechts die Zeit zum Losgehen
-	y = heading('termine', left, y);
-	const appointmentLeft = left + cap * 5.2;
+	// Termine: die Uhrzeit hängt vor der Fluchtlinie, die Sache steht an ihr, rechts die Zeit zum Losgehen
+	y = heading('termine', text, y);
 	for (let i = 0; i < DAY_SHEET_LIMITS.appointments; i++) {
 		const appointment = input.appointments[i];
 		const baseline = y + row - cap * 0.9;
 		if (appointment) {
-			put(appointment.time, 'text', cap, left, baseline, ['appointments', i, 'time']);
+			put(appointment.time, 'text', cap, markRight, baseline, ['appointments', i, 'time'], 'right');
 			const leaveWidth = appointment.leaveAt ? put(`los ${appointment.leaveAt}`, 'text', cap, right, baseline, ['appointments', i, 'leaveAt'], 'right') + cap * 1.5 : 0;
-			entry(appointment.text, cap, appointmentLeft, baseline, right - appointmentLeft - leaveWidth, ['appointments', i, 'text']);
+			entry(appointment.text, cap, text, baseline, right - text - leaveWidth, ['appointments', i, 'text']);
 		}
 		line(left, right, y + row);
 		y += row;
@@ -251,8 +265,8 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	y += zoneGap;
 
 	// Mitnehmen: eine Zeile
-	y = heading('mitnehmen', left, y);
-	entry(input.remember.join(' · '), cap, left, y + row - cap * 0.9, width, ['remember']);
+	y = heading('mitnehmen', text, y);
+	entry(input.remember.join(' · '), cap, text, y + row - cap * 0.9, right - text, ['remember']);
 	line(left, right, y + row);
 	y += row;
 
