@@ -1,7 +1,6 @@
 // PROTOTYP, zum Wegwerfen: setzt das Beispiel im Produkt und in den drei Varianten und meldet Hinweise und Länge.
 // Mit KURA_PROTOTYP_OUT=<ordner> schreibt er die Blätter als SVG für den Vergleich.
 import { it } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
 import { KURA } from '$lib/kura/kura';
 import { paperPreview } from '$lib/media/paper/medium';
 import { pathBox } from '$lib/typesetting/geometry';
@@ -21,16 +20,23 @@ const FULL: DaySheetInput = {
 	remember: ['Versichertenkarte', 'Turnbeutel', 'Schlüssel']
 };
 
-it('Varianten der Tagesübersicht', () => {
+/** Das Projekt hat keine Node-Typen; der Export braucht nur diese zwei Aufrufe */
+interface Fs {
+	mkdirSync(path: string, options: { recursive: boolean }): void;
+	writeFileSync(path: string, data: string): void;
+}
+
+it('Varianten der Tagesübersicht', async () => {
 	const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
-	const out = process.env.KURA_PROTOTYP_OUT;
-	if (out) mkdirSync(out, { recursive: true });
+	const out = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.KURA_PROTOTYP_OUT;
+	const fs: Fs | null = out ? await import('node:fs' as string) : null;
+	fs?.mkdirSync(out as string, { recursive: true });
 	const all = [{ id: 'heute', name: 'Heute', layout: layoutDaySheet }, ...DAY_SHEET_VARIANTS];
 	for (const v of all)
 		for (const [label, input] of [['beispiel', DAY_SHEET_EXAMPLE], ['voll', FULL]] as const) {
 			const { page, hints } = v.layout(KURA, input, font);
 			const end = Math.max(...page.items.map((i) => pathBox(i.commands).maxY));
 			console.log(`VARIANTE ${v.id} ${label}: Ende ${end.toFixed(1)} mm, ${hints.length} Hinweise ${JSON.stringify(hints.map((h) => h.message))}`);
-			if (out) writeFileSync(`${out}/tag-${v.id}-${label}.svg`, paperPreview(KURA, page));
+			fs?.writeFileSync(`${out}/tag-${v.id}-${label}.svg`, paperPreview(KURA, page));
 		}
 });
