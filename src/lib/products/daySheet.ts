@@ -133,7 +133,7 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	// Unterregeln: alle Größen hängen an der Lesegröße
 	const headingCap = cap * 0.72;
 	const focusCap = cap * 1.55;
-	const dayCap = cap * 14;
+	const dayCap = cap * 10;
 	const dateCap = cap * 1.15;
 	const row = cap * 2.75;
 	const focusRow = cap * 3.7;

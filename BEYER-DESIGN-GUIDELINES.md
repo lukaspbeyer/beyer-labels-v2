@@ -13,11 +13,11 @@ Der Name: *Kura* (蔵) ist das japanische Speicherhaus, der Ort, an dem Vorräte
 ### Was Kura ausmacht
 
 1. **Holz vor Schrift.** Die Schrift nimmt höchstens etwa die Hälfte der Breite ein, der Rest ist freie Lärchenfläche oder freies Papier. Die Ruhe entsteht aus dieser Fläche, nicht aus der Schrift.
-2. **Sachliche Schrift.** Eine neutrale Grotesk ohne Eigenheiten. Das einzelne Wort steht in Versalien und ist nur leicht gesperrt, wie ein Wort auf einem Kalenderblatt; Text steht in gewohnter Groß- und Kleinschreibung, damit er sich so schnell liest wie jeder andere Text.
+2. **Leise Schrift.** Kleinbuchstaben, dünn, weit gesperrt. Das Wort liest sich wie ein ruhiges Zeichen, nicht wie ein Hinweisschild.
 3. **Klarer Kontrast.** Die Gravur ist flach und schwarz gefüllt, der Druck schwarz auf weißem Papier. Damit bleibt die kleine Schrift aus 1–2 m lesbar, ohne groß werden zu müssen.
 4. **Ehrliches Material.** Naturbelassene, geölte Lärche mit hell geschliffener Kante, scharfen Ecken, ohne Rahmen und ohne Verkohlung. Das Label sieht aus wie ein Stück Holz, nicht wie ein Laserprodukt.
 5. **Serie statt Einzelstück.** Alle Labels haben dasselbe Format. Nur das Wort ändert sich. Eine Reihe von Fronten wirkt dadurch geordnet und gewollt.
-6. **Ein kurzes Wort.** Ein Begriff, ohne Unterzeile, ohne Artikel. Lange Wörter werden durch kurze ersetzt (siehe Wortschatz).
+6. **Ein kurzes Wort.** Ein Begriff, klein geschrieben, ohne Unterzeile, ohne Artikel. Lange Wörter werden durch kurze ersetzt (siehe Wortschatz).
 7. **Eine Sache trägt das Blatt.** Wo ein Blatt mehr als ein Wort trägt, ist eines sehr groß (die Tageszahl der Tagesübersicht) und alles andere klein. Gegliedert wird über Größe, Abstand und feine Linien.
 8. **Rot nur als Signal.** Neben Schwarz gibt es auf Papier genau eine Farbe, ein Rot. Es markiert nur die Hauptsache eines Blatts und trägt nie allein eine Information: Was rot ist, ist auch durch Größe oder Stellung hervorgehoben. So verliert ein Schwarzweißdruck nichts.
 
@@ -25,10 +25,10 @@ Der Name: *Kura* (蔵) ist das japanische Speicherhaus, der Ort, an dem Vorräte
 
 - **Lärche ist das durchgehende Material des Hauses:** Fenster, Türzargen und die Kanten der Küchenfronten. Ein Lärchenlabel mit heller Kante setzt diese Linie fort und wirkt wie ein Teil des Möbels.
 - **Die Fronten sind graugrün (Agave), grifflos und ruhig;** dazu Lehmputz, eine helle Holzdecke, dunkler Steinboden und außen Schiefer. Schwarz gefüllte Schrift nimmt die schwarze Arbeitsplatte, den Boden und den Schiefer auf.
-- **Vorbild für das Material sind japanische Hausschilder aus Holz:** naturbelassenes Holz, scharfe Ecken, saubere Kanten, kleine Schrift, meist schwarz gefüllt, viel freie Fläche. Kura überträgt diese Haltung auf kleine Labels für Schränke.
-- **Vorbild für die Schrift sind die Drucksachen von Muji** (Abreißkalender, Minikalender, Buchumschlag): neutrale Grotesk, das einzelne Wort in Versalien, Text in gewohnter Schreibweise, eine große Zahl, die das Blatt trägt, Rot nur als Signal. Im direkten Vergleich mit der früheren Fassung (Jost, Kleinbuchstaben, 22 % gesperrt) wirkt das sachlicher und liest sich schneller, vor allem auf der Tagesübersicht.
-- **Versalien für das Zeichen, gewohnte Schreibweise für Text:** Ein einzelnes Wort in Versalien wirkt gleichmäßig wie eine Fläche und braucht keine weite Sperrung. Listeneinträge in Groß- und Kleinschreibung liest das Auge als Wortbild, schneller als gesperrte Kleinschrift.
-- **Inter Tight statt Jost:** Inter Tight ist eine neutrale Grotesk nahe an Helvetica, der Schrift der Vorbilder. Ihre große x-Höhe hält Text auch bei kleiner Lesegröße klar; deshalb genügt auf Papier eine Versalhöhe von 3,1 mm statt 3,4 mm.
+- **Vorbild sind japanische Hausschilder aus Holz:** naturbelassenes Holz, scharfe Ecken, saubere Kanten, kleine, weit gesperrte Schrift, meist schwarz gefüllt, viel freie Fläche. Kura überträgt diese Haltung auf kleine Labels für Schränke.
+- **Kleinbuchstaben statt Versalien:** Im direkten Vergleich mit Jost in Versalien wirkt die Kleinschrift leiser und moderner; Ober- und Unterlängen geben dem Wort eine eigene Gestalt.
+- **Jost statt Sora:** Jost ist eine geometrische Grotesk mit Futura-Anmutung (einstöckiges a) und kommt den Vorbildern am nächsten.
+- **Vorbild für die Tagesübersicht sind Drucksachen von Muji:** eine große Zahl trägt das Blatt wie am Abreißkalender, Rot steht nur als Signal. Eine Fassung ganz nach diesem Vorbild, mit Inter Tight in Versalien und Text in gewohnter Schreibweise, ist ausprobiert und kurz eingesetzt worden (lukaspbeyer/beyer-labels-v2#6). Die Schrift wirkte darin weniger modern als Jost in Kleinbuchstaben. Übernommen sind deshalb nur der Kopf der Tagesübersicht, die Signalfarbe und die feinen Linien von 0,2 mm; die Schrift bleibt Jost.
 - **Festes Querformat statt Kompakt oder Quadrat:** Kompakt verliert die freie Fläche und wirkt wie ein Etikett aus dem Drucker. Ein Quadrat wirkt auf einer großen Front wie ein aufgesetztes Objekt. Das Querformat nimmt die waagerechten Kanten der Fronten und die waagerechte Maserung auf.
 - **Größe zwischen leisem Detail und ausgewogen:** auf einer 50–60 cm breiten Front etwa ein Zehntel der Breite; aus der Nähe ein Detail, aus 1–2 m lesbar.
 
@@ -38,10 +38,10 @@ Kern (gilt für jedes Produkt):
 
 | Merkmal | Kura |
 |---|---|
-| Schrift | Inter Tight Regular (400) |
-| Zeichen (das einzelne Wort, auch Überschriften von Zonen) | Versalien, Laufweite 8 %; allein auf der Fläche mittig, neben Text an dessen Kante |
-| Text (Listeneinträge, Angaben) | wie geschrieben (Groß- und Kleinschreibung), Laufweite 2 %, linksbündig; Überschriften von Zonen stehen ebenfalls links |
-| Versalhöhe | 7,5 % der Breite der Fläche, höchstens 25 % ihrer Höhe |
+| Schrift | Jost Regular (400) |
+| Zeichen (das einzelne Wort, auch Überschriften von Zonen) | Kleinbuchstaben, Laufweite 22 %; allein auf der Fläche mittig, neben Text an dessen Kante |
+| Text (Listeneinträge, Angaben) | Kleinbuchstaben wie das Zeichen, Laufweite 8 %, linksbündig; Überschriften von Zonen stehen ebenfalls links |
+| Versalhöhe | 9,375 % der Breite der Fläche, höchstens 25 % ihrer Höhe |
 | Breite des Zeichens | höchstens 70,3 % der Breite der Fläche |
 | Unterzeile | 55 % der Versalhöhe, Abstand 0,6 Versalhöhen, gesetzt wie das Zeichen; je Produkt erlaubt oder nicht |
 
@@ -63,7 +63,7 @@ Ausprägung Papier:
 | Druckfarbe | Schwarz |
 | Signalfarbe | Rot (#e4402b), nur für die Hauptsache eines Blatts; nie allein Träger einer Information, damit Schwarzweißdruck nichts verliert |
 | Gliederung | nur über Größe, Abstand und feine Linien (0,2 mm) |
-| Lesegröße | Versalhöhe 3,1 mm für Text |
+| Lesegröße | Versalhöhe 3,4 mm für Text |
 
 Produkt Holzlabel (Unterregeln):
 
@@ -71,10 +71,10 @@ Produkt Holzlabel (Unterregeln):
 |---|---|
 | Format | Serienformat 64 × 24 mm, fest für alle Wörter |
 | Inhalt | ein Wort, keine Unterzeile |
-| Daraus abgeleitet | Versalhöhe 4,8 mm, Wort höchstens 45 mm breit, links und rechts mindestens 9,5 mm Holz |
+| Daraus abgeleitet | Versalhöhe 6 mm, Wort höchstens 45 mm breit, links und rechts mindestens 9,5 mm Holz |
 | Vorschau | Front Agave (graugrün), wahlweise Anthrazit oder Columba Grey |
 
-Langformat für die seltene Ausnahme eines unverzichtbar langen Wortes (etwa „weihnachten“): 90 × 24 mm, Versalhöhe weiter 4,8 mm, Wort höchstens 63,3 mm breit.
+Langformat für die seltene Ausnahme eines unverzichtbar langen Wortes (etwa „servietten“): 90 × 24 mm, Versalhöhe weiter 6 mm, Wort höchstens 63,3 mm breit.
 
 Produkt Papierlabel (Unterregeln):
 
@@ -82,7 +82,7 @@ Produkt Papierlabel (Unterregeln):
 |---|---|
 | Formate | Etikett 105 × 74 mm (Bogen A4 hoch, 2 × 4), Schild 210 × 100 mm (A5 quer, oben) |
 | Inhalt | je Etikett ein Wort, Unterzeile erlaubt; ein Bogen trägt ein oder mehrere Etiketten, freie Plätze bleiben unbedruckt |
-| Daraus abgeleitet | Versalhöhe 7,9 mm (Etikett) und 15,8 mm (Schild), Wort höchstens 73,8 mm und 147,7 mm breit |
+| Daraus abgeleitet | Versalhöhe 9,8 mm (Etikett) und 19,7 mm (Schild), Wort höchstens 73,8 mm und 147,7 mm breit |
 | Druck | in Originalgröße (100 %), Schwarz |
 
 Produkt Tagesübersicht (Unterregeln):
@@ -96,14 +96,14 @@ Produkt Tagesübersicht (Unterregeln):
 | Kopf | wie ein Abreißkalender: die Tageszahl groß an der linken Kante, auf ihrer Grundlinie daneben Wochentag (als Zeichen) und Monat mit Jahr, oben rechts die Kalenderwoche, darunter eine Linie über die ganze Breite |
 | Kanten | zwei für das ganze Blatt: links Tageszahl, Überschriften, Kästchen und Uhrzeiten, an der zweiten jeder Eintrag; Termine haben ihre Sache in einer eigenen Spalte; Linien laufen über die ganze Breite |
 | Signalfarbe | Überschrift und Kästchen von „heute wichtig“, das Kästchen in doppelter Linienstärke; die Hauptsache selbst bleibt schwarz und ist durch ihre Größe hervorgehoben |
-| Daraus abgeleitet | Tageszahl 14-fache Lesegröße (43,4 mm), Wochentag und Monat 1,15-fache Lesegröße, Hauptsache 1,55-fache Lesegröße, Überschriften 0,72-fache Lesegröße |
+| Daraus abgeleitet | Tageszahl 10-fache Lesegröße (34 mm), Wochentag und Monat 1,15-fache Lesegröße, Hauptsache 1,55-fache Lesegröße, Überschriften 0,72-fache Lesegröße |
 | Leere Plätze | bei „außerdem“ und „termine“ bleiben die Zeilen zum Schreiben stehen; Routinen zeigen nur, was gilt |
 
 Das Blatt soll beim Anfangen helfen (eine Hauptsache, kleinster erster Schritt), Routinen sichtbar halten und das Zeitgefühl stützen (Dauer je Aufgabe, „los“-Zeit je Termin). Der Inhalt kommt von einem Agenten oder zum Ausprobieren aus der Seite `/tag`; dieses System speichert ihn nicht.
 
 ### Wortschatz
 
-Alle Wörter passen in 64 × 24 mm ohne Fertigungswarnung (geprüft mit den Schriftdaten von Inter Tight; längstes Wort „duschgel“, 36,7 mm). Die Wörter stehen hier klein; Kura setzt sie in Versalien.
+Alle Wörter passen in 64 × 24 mm ohne Fertigungswarnung (geprüft mit den Schriftdaten von Jost; längstes Wort „duschgel“, 45 mm).
 
 - **Küche:** teller, schalen, tassen, gläser, besteck, töpfe, pfannen, deckel, backen, bretter, messer, geräte, vorrat, gewürze, öle, tee, kaffee, müsli, nudeln, reis, mehl, zucker, brot, snacks, dosen, folien, tücher, putzen, müll
 - **Bad:** tücher, lappen, zähne, haare, pflege, kosmetik, rasur, seife, duschgel, shampoo, föhn, medizin, pflaster, papier, putzen, bürsten, vorrat, wäsche
