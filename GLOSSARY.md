@@ -11,7 +11,7 @@ Das Hausdesign der Familie Beyer und das einzige Design dieses Systems. Es legt 
 _Avoid_: Vorlage, Preset, Stil, Theme
 
 **Textrolle**:
-Eine von Kura festgelegte Art, Text zu setzen. „Zeichen“ ist das einzelne Wort, in Versalien und leicht gesperrt; „Text“ ist der Listeneintrag, in gewohnter Groß- und Kleinschreibung mit geringer Laufweite, damit er sich als Zeile liest.
+Eine von Kura festgelegte Art, Text zu setzen. „Zeichen“ ist das einzelne, weit gesperrte Wort; „Text“ ist der Listeneintrag: dieselbe Schreibweise, aber mit geringer Laufweite, damit er sich als Zeile liest.
 _Avoid_: Schriftstil, Font-Variante
 
 **Ausprägung**:

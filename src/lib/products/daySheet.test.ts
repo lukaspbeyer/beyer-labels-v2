@@ -65,9 +65,9 @@ describe('Tagesübersicht: Blatt', () => {
 		const { page } = sheet();
 		const boxes = page.items.filter((i) => i.kind === 'fill').map((i) => pathBox(i.commands));
 		const tallest = boxes.reduce((a, b) => (b.maxY - b.minY > a.maxY - a.minY ? b : a));
-		// die Tageszahl hat das 14-fache der Lesegröße als Versalhöhe; Rundungen ragen etwas darüber und darunter
-		expect(tallest.maxY - tallest.minY).toBeGreaterThan(KURA.paper.textCapHeight * 14 - 1e-6);
-		expect(tallest.maxY - tallest.minY).toBeLessThan(KURA.paper.textCapHeight * 14 * 1.05);
+		// die Tageszahl hat das 10-fache der Lesegröße als Versalhöhe; Rundungen ragen etwas darüber und darunter
+		expect(tallest.maxY - tallest.minY).toBeGreaterThan(KURA.paper.textCapHeight * 10 - 1e-6);
+		expect(tallest.maxY - tallest.minY).toBeLessThan(KURA.paper.textCapHeight * 10 * 1.05);
 		expect(tallest.minX).toBeCloseTo(18, 0);
 	});
 

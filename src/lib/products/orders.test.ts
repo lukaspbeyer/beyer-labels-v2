@@ -24,19 +24,19 @@ describe('Bestellbare Produkte', () => {
 		const file = await make('holzlabel', { text: 'Teller' });
 		expect(file.ok && file.value.fileName).toBe('holzlabel-teller-64x24mm.svg');
 		expect(file.ok && String(file.value.body)).toContain('id="schnitt"');
-		const tooWide = await make('holzlabel', { text: 'weihnachten' });
+		const tooWide = await make('holzlabel', { text: 'servietten' });
 		expect(!tooWide.ok && tooWide.error.map((h) => h.kind)).toContain('sign-width');
-		expect((await make('holzlabel', { text: 'weihnachten', format: 'long' })).ok).toBe(true);
+		expect((await make('holzlabel', { text: 'servietten', format: 'long' })).ok).toBe(true);
 	});
 
 	it('Holzlabel: mehrere Labels stehen untereinander in einer Datei', async () => {
-		const sheet = await make('holzlabel', { labels: [{ text: 'teller' }, { text: 'tassen' }, { text: 'weihnachten', format: 'long' }] });
+		const sheet = await make('holzlabel', { labels: [{ text: 'teller' }, { text: 'tassen' }, { text: 'servietten', format: 'long' }] });
 		expect(sheet.ok && sheet.value.fileName).toBe('holzlabel-teller-und-2-weitere-64x24mm.svg');
 		const svg = sheet.ok ? String(sheet.value.body) : '';
 		// drei Labels von 24 mm mit zweimal 3 mm Abstand, so breit wie das Langformat
 		expect(svg).toContain('width="90mm" height="78mm"');
 		expect(svg.match(/<g id="schnitt"[\s\S]*?<\/g>/)?.[0].match(/<path/g)).toHaveLength(3);
-		const bad = await make('holzlabel', { labels: [{ text: 'teller' }, { text: 'weihnachten' }, {}] });
+		const bad = await make('holzlabel', { labels: [{ text: 'teller' }, { text: 'servietten' }, {}] });
 		// erst die Verstöße der Form, dann die des Satzes; beide in einer Antwort
 		expect(!bad.ok && bad.error.map((h) => h.kind)).toEqual(['empty', 'sign-width']);
 		expect(!bad.ok && hintText(bad.error[0])).toBe('labels[2].text: Das Wort fehlt.');
