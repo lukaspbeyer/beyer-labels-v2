@@ -93,10 +93,11 @@ Produkt Tagesübersicht (Unterregeln):
 | Zonen, immer in dieser Reihenfolge | Wochentag und Datum · heute wichtig mit erstem Schritt · morgens, mittags, abends · außerdem · termine · mitnehmen |
 | Obergrenzen | eine Hauptsache, je Tagesabschnitt 4 Routinen, 3 weitere Aufgaben, 4 Termine, 3 Dinge zum Mitnehmen |
 | Einträge | jeder Eintrag eine Zeile; zu lange Einträge werden gemeldet, nicht umbrochen |
-| Kopf | wie ein Abreißkalender: die Tageszahl groß an der linken Kante, auf ihrer Grundlinie daneben Wochentag (als Zeichen) und Monat mit Jahr, oben rechts die Kalenderwoche, darunter eine Linie über die ganze Breite |
-| Kanten | zwei für das ganze Blatt: links Tageszahl, Überschriften, Kästchen und Uhrzeiten, an der zweiten jeder Eintrag; Termine haben ihre Sache in einer eigenen Spalte; Linien laufen über die ganze Breite |
+| Kopf | wie ein Abreißkalender: die Tageszahl groß am linken Rand, auf ihrer Grundlinie daneben Wochentag (als Zeichen) und Monat mit Jahr, oben rechts die Kalenderwoche, darunter eine Linie über die ganze Breite |
+| Fluchtlinie | eine für allen Text unter dem Kopf: Überschriften, Hauptsache, erster Schritt, Einträge, die Sache der Termine und Mitnehmen beginnen an derselben Linie. Kästchen und Uhrzeiten hängen links davor, Dauer und „los“-Zeit stehen am rechten Rand. Die zweite und dritte Spalte der Routinen haben je ihre eigene Linie. Linien laufen über die ganze Breite |
+| Erster Schritt | Unterzeile der Hauptsache: kleine Beschriftung und Eintrag auf einer Grundlinie, ohne eigene Linie |
 | Signalfarbe | Überschrift und Kästchen von „heute wichtig“, das Kästchen in doppelter Linienstärke; die Hauptsache selbst bleibt schwarz und ist durch ihre Größe hervorgehoben |
-| Daraus abgeleitet | Tageszahl 10-fache Lesegröße (34 mm), Wochentag und Monat 1,15-fache Lesegröße, Hauptsache 1,55-fache Lesegröße, Überschriften 0,72-fache Lesegröße |
+| Daraus abgeleitet | Tageszahl 10-fache Lesegröße (34 mm), Wochentag und Monat 1,15-fache Lesegröße, Hauptsache 1,55-fache Lesegröße, Überschriften 0,72-fache Lesegröße; die Fluchtlinie liegt so weit vom Rand, wie die breiteste Uhrzeit und ein Abstand brauchen (gut 35 mm vom Blattrand); das Kästchen der Hauptsache wächst mit ihr (1,1-fache ihrer Versalhöhe) |
 | Leere Plätze | bei „außerdem“ und „termine“ bleiben die Zeilen zum Schreiben stehen; Routinen zeigen nur, was gilt |
 
 Das Blatt soll beim Anfangen helfen (eine Hauptsache, kleinster erster Schritt), Routinen sichtbar halten und das Zeitgefühl stützen (Dauer je Aufgabe, „los“-Zeit je Termin). Der Inhalt kommt von einem Agenten oder zum Ausprobieren aus der Seite `/tag`; dieses System speichert ihn nicht.

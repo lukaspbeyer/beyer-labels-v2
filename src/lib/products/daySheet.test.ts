@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { KURA } from '$lib/kura/kura';
 import { pathBox } from '$lib/typesetting/geometry';
 import { loadTestFont } from '$lib/typesetting/testFonts';
-import { DAY_SHEET_EXAMPLE, daySheet, layoutDaySheet, parseDaySheet, type DaySheetInput } from './daySheet';
+import { DAY_SHEET_EXAMPLE, daySheet, entryLine, layoutDaySheet, parseDaySheet, type DaySheetInput } from './daySheet';
 import { hintText } from './hint';
 
 const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
@@ -71,9 +71,32 @@ describe('Tagesübersicht: Blatt', () => {
 		expect(tallest.minX).toBeCloseTo(18, 0);
 	});
 
+	it('lässt allen Text an einer Fluchtlinie beginnen; Kästchen und Uhrzeiten hängen davor', () => {
+		const { page } = sheet();
+		const line = entryLine(KURA, font);
+		const gap = KURA.paper.textCapHeight * 0.9;
+		const headerRule = page.items.find((i) => i.kind === 'stroke' && i.commands.length === 2);
+		if (!headerRule) throw new Error('Linie unter dem Kopf fehlt');
+		const body = page.items.filter((i) => pathBox(i.commands).minY > pathBox(headerRule.commands).minY);
+		const fills = body.filter((i) => i.kind === 'fill').map((i) => pathBox(i.commands));
+		// links der Fluchtlinie steht an Text nur die Uhrzeit, sie endet einen Abstand davor
+		for (const box of fills.filter((b) => b.minX < line - 1e-6)) expect(box.maxX).toBeCloseTo(line - gap, 6);
+		// sechs Überschriften (mit „erster schritt“), die Hauptsache, drei Routinen der ersten Spalte, drei Aufgaben, zwei Termine, Mitnehmen
+		expect(fills.filter((b) => Math.abs(b.minX - line) < 1e-6)).toHaveLength(16);
+		// jedes Kästchen der ersten Spalte endet einen Abstand vor der Fluchtlinie
+		const boxes = body.filter((i) => i.kind === 'stroke' && i.commands.length > 2).map((i) => pathBox(i.commands));
+		const firstColumn = boxes.filter((b) => b.maxX < line);
+		// Hauptsache, drei Routinen am Morgen, drei Aufgaben
+		expect(firstColumn).toHaveLength(1 + 3 + 3);
+		for (const box of firstColumn) expect(box.maxX).toBeCloseTo(line - gap, 6);
+	});
+
 	it('hebt „heute wichtig“ mit Überschrift und Kästchen in der Signalfarbe hervor, die Sache selbst bleibt in der Druckfarbe', () => {
 		const signal = sheet().page.items.filter((i) => i.tone === 'signal');
 		expect(signal.map((i) => i.kind)).toEqual(['fill', 'stroke']);
+		// das Kästchen wächst mit der Zeile der Hauptsache
+		const box = pathBox(signal[1].commands);
+		expect(box.maxX - box.minX).toBeCloseTo(KURA.paper.textCapHeight * 1.55 * 1.1, 6);
 		const plain = sheet({ focus: { text: '', firstStep: '' } }).page.items.filter((i) => i.tone === 'signal');
 		expect(plain).toHaveLength(2);
 	});
