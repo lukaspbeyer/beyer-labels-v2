@@ -13,7 +13,7 @@ export interface FontInfo {
 	weights: readonly FontWeight[];
 }
 
-/** Zehn freie Schriften (OFL), ruhig und klar, passend zu Beyer-Design und Japandi. */
+/** Elf freie Schriften (OFL), ruhig und klar, passend zu Beyer-Design und Japandi. */
 export const FONT_CATALOG: readonly FontInfo[] = [
 	{ id: 'sora', name: 'Sora', cssFamily: 'holz-sora', weights: [400, 500, 600] },
 	{ id: 'noto-sans', name: 'Noto Sans', cssFamily: 'holz-noto-sans', weights: [400, 500, 600] },
@@ -24,7 +24,8 @@ export const FONT_CATALOG: readonly FontInfo[] = [
 	{ id: 'jost', name: 'Jost', cssFamily: 'holz-jost', weights: [400, 500, 600] },
 	{ id: 'outfit', name: 'Outfit', cssFamily: 'holz-outfit', weights: [400, 500, 600] },
 	{ id: 'manrope', name: 'Manrope', cssFamily: 'holz-manrope', weights: [400, 500, 600] },
-	{ id: 'dm-sans', name: 'DM Sans', cssFamily: 'holz-dm-sans', weights: [400, 500, 600] }
+	{ id: 'dm-sans', name: 'DM Sans', cssFamily: 'holz-dm-sans', weights: [400, 500, 600] },
+	{ id: 'inter-tight', name: 'Inter Tight', cssFamily: 'holz-inter-tight', weights: [400, 500, 700] }
 ];
 
 export interface LoadedFont {

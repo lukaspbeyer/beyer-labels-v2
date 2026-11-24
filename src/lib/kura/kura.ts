@@ -60,6 +60,8 @@ export interface KuraValues {
 	paper: {
 		/** Druckfarbe als #rrggbb */
 		ink: string;
+		/** Signalfarbe als #rrggbb, nur für die Hauptsache eines Blatts; trägt nie allein eine Information, damit Schwarzweißdruck nichts verliert */
+		signal: string;
 		/** Versalhöhe von Lesetext in mm */
 		textCapHeight: number;
 		/** Stärke feiner Linien in mm */
@@ -159,8 +161,10 @@ export function parseKura(raw: unknown): Result<Kura, string[]> {
 		if (typeof value !== 'number' || !(value >= min && value <= max)) problems.push(`${path}: Zahl zwischen ${min} und ${max} erwartet`);
 	}
 	if (typeof at(raw, 'wood.frame') !== 'boolean') problems.push('wood.frame: true oder false erwartet');
-	const ink = at(raw, 'paper.ink');
-	if (typeof ink !== 'string' || !/^#[0-9a-f]{6}$/i.test(ink)) problems.push('paper.ink: Farbe als #rrggbb erwartet');
+	for (const path of ['paper.ink', 'paper.signal']) {
+		const color = at(raw, path);
+		if (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color)) problems.push(`${path}: Farbe als #rrggbb erwartet`);
+	}
 	const font = at(raw, 'typeface.font');
 	const known = FONT_CATALOG.find((f) => f.id === font);
 	if (!known) problems.push(`typeface.font: erlaubt sind ${FONT_CATALOG.map((f) => f.id).join(', ')}`);

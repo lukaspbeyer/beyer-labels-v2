@@ -4,9 +4,9 @@
  * Der Inhalt kommt vollständig von außen (ADR 0004); Schrift, Laufweiten und Größen leiten sich aus Kura ab.
  */
 import type { Kura } from '$lib/kura/kura';
-import { placeLine, setRoleLine, setSign } from '$lib/kura/textRole';
+import { placeLine, setRoleLine } from '$lib/kura/textRole';
 import { PAPER, paperExample, paperFile, paperPreview } from '$lib/media/paper/medium';
-import type { PrintItem, PrintPage } from '$lib/media/paper/page';
+import type { PrintItem, PrintPage, PrintTone } from '$lib/media/paper/page';
 import type { LoadedFont } from '$lib/typesetting/fonts';
 import { formatMm } from '$lib/typesetting/format';
 import { roundedRectPath } from '$lib/typesetting/geometry';
@@ -112,7 +112,15 @@ export function parseDaySheet(raw: unknown): Result<DaySheetInput, Hint[]> {
 }
 
 /** Maße des Blatts in mm. Zeilen und Abstände sind Vielfache der Lesegröße aus Kura. */
-const SHEET = { width: 210, height: 297, margin: 18, headerHeight: 30 } as const;
+const SHEET = { width: 210, height: 297, margin: 18 } as const;
+
+/** Kalenderwoche nach ISO 8601 */
+function isoWeek(day: Date): number {
+	const thursday = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
+	thursday.setUTCDate(thursday.getUTCDate() + 4 - (thursday.getUTCDay() || 7));
+	const yearStart = Date.UTC(thursday.getUTCFullYear(), 0, 1);
+	return Math.ceil(((thursday.getTime() - yearStart) / 86400000 + 1) / 7);
+}
 
 export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFont): { page: PrintPage; hints: Hint[] } {
 	const items: PrintItem[] = [];
@@ -125,6 +133,8 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	// Unterregeln: alle Größen hängen an der Lesegröße
 	const headingCap = cap * 0.72;
 	const focusCap = cap * 1.55;
+	const dayCap = cap * 14;
+	const dateCap = cap * 1.15;
 	const row = cap * 2.75;
 	const focusRow = cap * 3.7;
 	const zoneGap = cap * 2.5;
@@ -134,12 +144,12 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	const entryLeft = left + box + cap * 0.9;
 
 	/** Setzt einen Einzeiler in der Textrolle; `anchor` ist die linke oder rechte Kante, `y` die Grundlinie. Liefert die Breite. */
-	function put(text: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, at: Hint['at'], side: 'left' | 'right' = 'left'): number {
+	function put(text: string, role: 'sign' | 'text', capHeight: number, anchor: number, y: number, at: Hint['at'], side: 'left' | 'right' = 'left', tone?: PrintTone): number {
 		if (!text) return 0;
 		const set = setRoleLine(kura, font, role, text, capHeight, at);
 		hints.push(...set.hints);
 		if (set.width === 0) return 0;
-		items.push({ kind: 'fill', commands: placeLine(set, side, { x: anchor, width: 0 }, y).commands });
+		items.push({ kind: 'fill', commands: placeLine(set, side, { x: anchor, width: 0 }, y).commands, tone });
 		return set.width;
 	}
 
@@ -159,28 +169,34 @@ export function layoutDaySheet(kura: Kura, input: DaySheetInput, font: LoadedFon
 	}
 
 	/** Kästchen an der Kante `x`, senkrecht mittig zur Versalhöhe `capHeight` der Zeile. */
-	function checkbox(x: number, baseline: number, capHeight = cap): void {
-		items.push({ kind: 'stroke', commands: roundedRectPath(x, baseline - capHeight / 2 - box / 2, box, box, 0), widthMm: rule });
+	function checkbox(x: number, baseline: number, capHeight = cap, tone?: PrintTone, weight = 1): void {
+		items.push({ kind: 'stroke', commands: roundedRectPath(x, baseline - capHeight / 2 - box / 2, box, box, 0), widthMm: rule * weight, tone });
 	}
 
-	function heading(text: string, x: number, y: number): number {
-		put(text, 'sign', headingCap, x, y + headingCap, []);
+	function heading(text: string, x: number, y: number, tone?: PrintTone): number {
+		put(text, 'sign', headingCap, x, y + headingCap, [], 'left', tone);
 		return y + headingCap + headingGap;
 	}
 
-	// Kopf: Wochentag als Zeichen, Datum als Unterzeile. Das Zeichen steht hier nicht allein, es folgt der Ausrichtung des Textes.
+	// Kopf wie am Abreißkalender: die Tageszahl trägt das Blatt. Daneben, auf ihrer Grundlinie, Wochentag als Zeichen und Monat; oben rechts die Kalenderwoche.
 	const day = new Date(`${input.date}T00:00:00Z`);
 	const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'long', timeZone: 'UTC' }).format(day);
-	const dateText = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(day);
-	const header = setSign(kura, font, { x: left, y: SHEET.margin, width, height: SHEET.headerHeight }, { text: weekday, at: ['date'] }, { text: dateText, at: ['date'] }, { besideText: true, vertical: 'top' });
-	hints.push(...header.hints);
-	for (const l of header.lines) if (l.commands.length > 0) items.push({ kind: 'fill', commands: l.commands });
-	let y = SHEET.margin + SHEET.headerHeight + zoneGap;
+	const month = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(day);
+	const dayBaseline = SHEET.margin + dayCap;
+	const dateLeft = left + put(String(day.getUTCDate()), 'text', dayCap, left, dayBaseline, ['date']) + cap * 2.2;
+	put(month, 'text', dateCap, dateLeft, dayBaseline, ['date']);
+	put(weekday, 'sign', dateCap, dateLeft, dayBaseline - dateCap - cap * 1.1, ['date']);
+	put(`KW ${isoWeek(day)}`, 'text', dateCap, right, SHEET.margin + dateCap, ['date'], 'right');
+	const headerRule = dayBaseline + cap * 2.2;
+	line(left, right, headerRule);
+	let y = headerRule + zoneGap;
 
-	// Heute wichtig: eine Sache, größer als alles andere, darunter der erste Schritt
-	y = heading('heute wichtig', left, y);
+	// Heute wichtig: eine Sache, größer als alles andere, darunter der erste Schritt. Überschrift und Kästchen in der Signalfarbe;
+	// die Sache selbst bleibt in der Druckfarbe, so trägt im Schwarzweißdruck die Größe die Hervorhebung.
+	y = heading('heute wichtig', left, y, 'signal');
 	const focusBaseline = y + focusRow - focusCap * 0.9;
-	checkbox(left, focusBaseline, focusCap);
+	// Das Kästchen der Hauptsache doppelt so kräftig: in Farbe sichtbar, im Schwarzweißdruck trotzdem hervorgehoben
+	checkbox(left, focusBaseline, focusCap, 'signal', 2);
 	entry(input.focus.text, focusCap, entryLeft, focusBaseline, right - entryLeft, ['focus', 'text']);
 	line(left, right, y + focusRow);
 	y += focusRow + headingGap;

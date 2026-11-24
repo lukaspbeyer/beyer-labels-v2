@@ -15,10 +15,10 @@ function variant(changes: Record<string, unknown>): Kura {
 
 describe('Textrolle: Schreibweise', () => {
 	it('schreibt in der Schreibweise der Rolle', () => {
-		expect(roleText(KURA, 'sign', 'Gewürze')).toBe('gewürze');
-		expect(roleText(KURA, 'text', 'Tee kochen')).toBe('tee kochen');
-		expect(roleText(variant({ sign: { ...values.sign, case: 'upper' } }), 'sign', 'Gewürze')).toBe('GEWÜRZE');
-		expect(roleText(variant({ text: { ...values.text, case: 'as-typed' } }), 'text', 'Tee')).toBe('Tee');
+		expect(roleText(KURA, 'sign', 'Gewürze')).toBe('GEWÜRZE');
+		expect(roleText(KURA, 'text', 'Tee kochen')).toBe('Tee kochen');
+		expect(roleText(variant({ sign: { ...values.sign, case: 'lower' } }), 'sign', 'Gewürze')).toBe('gewürze');
+		expect(roleText(variant({ text: { ...values.text, case: 'upper' } }), 'text', 'Tee')).toBe('TEE');
 	});
 });
 
@@ -26,7 +26,7 @@ describe('Textrolle: Zeile', () => {
 	it('beginnt mit der Kontur bei 0 und misst ihre Breite', () => {
 		const line = setRoleLine(KURA, font, 'sign', 'Teller', 6);
 		const box = pathBox(line.commands);
-		expect(line.text).toBe('teller');
+		expect(line.text).toBe('TELLER');
 		expect(box.minX).toBeCloseTo(0, 9);
 		expect(box.maxX).toBeCloseTo(line.width, 9);
 		expect(line.hints).toEqual([]);
@@ -39,7 +39,7 @@ describe('Textrolle: Zeile', () => {
 	it('meldet Zeichen, die die Schrift nicht hat, einmal je Zeichen und am übergebenen Ort', () => {
 		const line = setRoleLine(KURA, font, 'text', 'Tee ☕ und ☕', 3.4, ['tasks', 0, 'text']);
 		expect(line.hints).toEqual([{ kind: 'character', at: ['tasks', 0, 'text'], message: '„Tee ☕ und ☕“ enthält Zeichen, die die Schrift nicht hat: ☕. Ersetzen oder weglassen.' }]);
-		expect(setRoleLine(KURA, font, 'sign', 'чай', 6).hints[0].message).toContain('ч а й');
+		expect(setRoleLine(KURA, font, 'sign', 'чай', 6).hints[0].message).toContain('Ч А Й');
 	});
 
 	it('ist leer ohne Text', () => {

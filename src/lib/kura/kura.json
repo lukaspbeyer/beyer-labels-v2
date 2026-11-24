@@ -1,8 +1,8 @@
 {
-	"typeface": { "font": "jost", "weight": 400 },
-	"sign": { "case": "lower", "trackingPercent": 22, "align": "center" },
-	"text": { "case": "lower", "trackingPercent": 8, "align": "left" },
-	"proportion": { "capHeightPerWidth": 0.09375, "capHeightPerHeight": 0.25, "maxSignWidthRatio": 0.703125 },
+	"typeface": { "font": "inter-tight", "weight": 400 },
+	"sign": { "case": "upper", "trackingPercent": 8, "align": "center" },
+	"text": { "case": "as-typed", "trackingPercent": 2, "align": "left" },
+	"proportion": { "capHeightPerWidth": 0.075, "capHeightPerHeight": 0.25, "maxSignWidthRatio": 0.703125 },
 	"subLine": { "capRatio": 0.55, "lineSpacing": 0.6 },
 	"wood": {
 		"grain": "horizontal",
@@ -16,5 +16,5 @@
 		"frame": false,
 		"edge": "sanded"
 	},
-	"paper": { "ink": "#000000", "textCapHeight": 3.4, "ruleWidth": 0.25 }
+	"paper": { "ink": "#000000", "signal": "#e4402b", "textCapHeight": 3.1, "ruleWidth": 0.2 }
 }

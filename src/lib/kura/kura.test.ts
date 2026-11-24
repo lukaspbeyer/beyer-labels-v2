@@ -14,10 +14,16 @@ describe('Kura', () => {
 	});
 
 	it('leitet die Versalhöhe aus der Breite ab, begrenzt durch die Höhe', () => {
-		expect(signCapHeight(KURA, 64, 24)).toBe(6);
+		expect(signCapHeight(KURA, 64, 24)).toBeCloseTo(4.8, 9);
+		// 90 mm breit gäbe 6,75 mm; die Höhe von 24 mm begrenzt auf 6 mm
 		expect(signCapHeight(KURA, 90, 24)).toBe(6);
-		expect(signCapHeight(KURA, 105, 74)).toBeCloseTo(9.84, 2);
-		expect(signCapHeight(KURA, 210, 100)).toBeCloseTo(19.69, 2);
+		expect(signCapHeight(KURA, 105, 74)).toBeCloseTo(7.88, 2);
+		expect(signCapHeight(KURA, 210, 100)).toBeCloseTo(15.75, 2);
+	});
+
+	it('verlangt Druck- und Signalfarbe als #rrggbb', () => {
+		const result = parseKura({ ...values, paper: { ...values.paper, signal: 'rot' } });
+		expect(!result.ok && result.error).toEqual(['paper.signal: Farbe als #rrggbb erwartet']);
 	});
 
 	it('lässt dem Zeichen höchstens 45 mm auf 64 mm Breite', () => {

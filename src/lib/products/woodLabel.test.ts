@@ -15,7 +15,8 @@ describe('Holzlabel', () => {
 	it('leitet die Kura-Spezifikation ab', () => {
 		const { engraving, layout } = check({});
 		expect([layout.width, layout.height]).toEqual([64, 24]);
-		expect(engraving).toMatchObject({ font: 'jost', weight: 400, capHeight: 6, tracking: 22, process: 'fill', fillColor: 'black', edge: 'sanded', subText: '' });
+		expect(engraving).toMatchObject({ font: 'inter-tight', weight: 400, tracking: 8, process: 'fill', fillColor: 'black', edge: 'sanded', subText: '' });
+		expect(engraving.capHeight).toBeCloseTo(4.8, 9);
 	});
 
 	it('der ganze Wortschatz passt ohne Hinweis ins Serienformat', () => {
@@ -23,15 +24,16 @@ describe('Holzlabel', () => {
 		expect(vocabularyMisfits(KURA, loadTestFont(KURA.typeface.font, KURA.typeface.weight))).toEqual([]);
 	});
 
-	it('schreibt das Wort klein, auch wenn es groß eingegeben wird', () => {
-		expect(check({ text: 'Teller' }).engraving.text).toBe('teller');
+	it('schreibt das Wort in Versalien, wie auch immer es eingegeben wird', () => {
+		expect(check({ text: 'Teller' }).engraving.text).toBe('TELLER');
 	});
 
 	it('meldet ein zu breites Wort und nimmt es im Langformat an', () => {
-		expect(check({ text: 'servietten' }).hints.map((h) => h.kind)).toContain('sign-width');
-		const long = check({ text: 'servietten', format: 'long' });
+		expect(check({ text: 'weihnachten' }).hints.map((h) => h.kind)).toContain('sign-width');
+		const long = check({ text: 'weihnachten', format: 'long' });
 		expect([long.layout.width, long.layout.height]).toEqual([90, 24]);
-		expect(long.engraving.capHeight).toBe(6);
+		// dieselbe Schrift wie das Serienformat
+		expect(long.engraving.capHeight).toBeCloseTo(4.8, 9);
 		expect(long.hints).toEqual([]);
 	});
 
@@ -44,7 +46,7 @@ describe('Holzlabel', () => {
 	it('gibt der Laserdatei den Titel des Produkts mit allen Wörtern, wie Kura sie schreibt', async () => {
 		const font = loadTestFont(KURA.typeface.font, KURA.typeface.weight);
 		const proof = woodLabel.set(KURA, { labels: [{ text: ' Teller ', format: 'series' }, { text: 'öl & co', format: 'series' }] }, font);
-		expect(String((await proof.file()).body)).toContain('<title>Holzlabel teller, öl &amp; co</title>');
+		expect(String((await proof.file()).body)).toContain('<title>Holzlabel TELLER, ÖL &amp; CO</title>');
 	});
 
 	it('zeigt die Beispiele vor der Front, aus demselben Satz wie eine Bestellung', () => {

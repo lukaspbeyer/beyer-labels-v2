@@ -14,11 +14,12 @@ function label(input: Partial<PaperLabelInput>) {
 
 describe('Papierlabel', () => {
 	it('leitet die Versalhöhe je Format aus Kura ab', () => {
-		expect(label({ format: 'label' }).layout.lines[0].capHeight).toBeCloseTo(9.84, 2);
-		expect(label({ format: 'sign' }).layout.lines[0].capHeight).toBeCloseTo(19.69, 2);
+		expect(label({ format: 'label' }).layout.lines[0].capHeight).toBeCloseTo(7.88, 2);
+		expect(label({ format: 'sign' }).layout.lines[0].capHeight).toBeCloseTo(15.75, 2);
 	});
 
-	it('setzt das Wort klein und mittig ins Etikett', () => {
+	it('setzt das Wort in Versalien mittig ins Etikett', () => {
+		expect(label({ text: 'Gewürze' }).layout.lines[0].text).toBe('GEWÜRZE');
 		const { layout } = label({ text: 'Gewürze' });
 		const box = pathBox(layout.lines[0].commands);
 		expect((box.minX + box.maxX) / 2).toBeCloseTo(105 / 2, 3);
